@@ -1,4 +1,4 @@
-# V6.2 long-run reliability and operating procedure
+# Long-run reliability and operating procedure
 
 V6.2 adds persistent model-specific backoff and failover, indexed scheduling,
 bounded source residency, paginated inspection, staged exports, and consistent
@@ -235,11 +235,66 @@ WAL/checkpoint and backup choices follow [SQLite's WAL guidance](https://www.sql
 and [online backup documentation](https://www.sqlite.org/backup.html).
 The custom-thread limitation follows [Python's executor cancellation semantics](https://docs.python.org/3/library/concurrent.futures.html).
 
-The local application is a single-machine collector, not a distributed job
-service, hosted multi-user system, or guarantee against every provider/OS failure.
-No real API outage/load test, paid pilot, live website crawl, or publication was
-performed during this build. A pilot should begin with a small authorized sample
-to calibrate latency, quotas, reservations, and quality before enlarging the run.
+The extraction engine remains a single-machine collector. The separate cluster
+controller submits a reviewed worker to Slurm; it does not turn one SQLite
+project into a live distributed database or a hosted multi-user service.
+No real API outage/load test, paid pilot, live website crawl, GT job, or
+publication was performed during this build. A pilot should begin with a small
+authorized sample to calibrate latency, quotas, reservations, and quality before
+enlarging the run.
+
+## Durable GT jobs and reconnecting an agent
+
+For a job that must outlive a laptop or MCP session, follow
+[the GT procedure](GT_COMPUTE.md). The ordinary local `collect` worker is tied
+to its connection and requests cancellation on disconnect. A submitted cluster
+worker is owned by Slurm: reconnect, open the same study and inspect its saved
+job before considering resume. A missing chat connection is not evidence of a
+missing scheduler job.
+
+Keep the live worker database on its node-local scratch filesystem. Only
+consistent checkpoints/results belong on approved durable shared storage.
+Do not open the same WAL database from two nodes or point job arrays at it.
+SQLite's online backup includes committed WAL state; copying only the live
+database file does not. [SQLite WAL](https://www.sqlite.org/wal.html),
+[online backup](https://www.sqlite.org/backup.html).
+
+Periodic backups do not accumulate once per interval indefinitely. After a
+successful receipt, the worker retains its latest/previous generations and all
+saved job references, pruning only its own unreferenced generations. Published
+checkpoint generations are conservatively bounded by four times the finite
+submission cap. Prior-worker checkpoints and immutable source/review files stay
+intact. Hard-crash orphan files require operator inspection; no blanket physical
+disk cap is promised after storage failure. The first checkpoint/control failure
+stops dispatch, with only bounded final/recovery backup attempts.
+
+Set a finite checkpoint interval and shutdown grace greater than the longest
+model request plus settlement time. The cluster profile validates those limits
+against the recipe. The worker stops dispatch before its walltime and responds
+to shutdown signals. A lost node or forced kill can still lose work since the
+last completed durable checkpoint. Resume retains checkpointed jobs, cached
+replies, coverage, failures and cost reservations; uncheckpointed work may repeat.
+
+Submission timeout is an uncertain scheduler outcome, separate from an uncertain
+inference request. Preserve its full allocation reservation. Explicitly
+reconcile the saved submission with Slurm's job ID, or obtain a verified-absence
+decision, before submitting a replacement. Do not wrap submissions in a second
+retry loop or silently reset cumulative GPU-hour/submission limits.
+
+Cancelled, walltime-limited and failed jobs remain visible. Inspect their saved
+checkpoint/result before restarting unfinished work. Complete the intended
+bounded resumes before importing into the control inventory; import validates
+the stopped job's available checkpoint. An explicit resume requests another
+finite allocation within the saved caps;
+it does not authorize infinite resubmission or a changed model/source plan.
+
+See [cluster command and Python examples](../examples/gt-compute/README.md).
+Pinned runtimes, checkpoint staging, institution access and any SSH control
+connection are operator-provided resources. Select either an existing approved
+gateway with a CPU collector or the fixed reviewed vLLM launcher using pre-staged
+safe files inside the GPU allocation. Server choices and file digests are bound
+to the concrete resource review. Resume cannot download a model or switch to an
+unapproved launcher; it preserves the fixed configuration and finite startup.
 
 ## Offline verification
 

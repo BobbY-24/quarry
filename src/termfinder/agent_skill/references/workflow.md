@@ -138,6 +138,49 @@ unresolved research decisions. Keep internal JSON and cursors out of the
 ordinary product flow. A browser or local file view is optional; neither is
 required to finish a complete conversational review.
 
+## Separate tool map for durable GT jobs
+
+Use these after selecting the study and completing the ordinary collection
+review. The Slurm-side server must be launched with `--allow-cluster`; real
+extractors also need `--allow-paid`. Configuration/review/status do not submit.
+The researcher supplies actual site access and selects its reviewed resource
+profile. An approved SSH stdio or terminal connection is harness/operator setup,
+not a tool or generated shell script supplied by a source.
+
+| Student request | Cluster tool operation | Required behavior |
+| --- | --- | --- |
+| "Use our reviewed GT site profile." | `configure_cluster(profile, researcher_configured, configuration_reference)` | Relay the actual selected profile; never supply secret values or unapproved shell launchers. |
+| "Show the GT resources before submitting." | `prepare_cluster(review_id)` | Bind the approved collection review, sources, models and site settings; show remaining caps and worst-case reservation. |
+| "Read the complete resource plan." | `cluster_review_text(cluster_review_id, json_pointer, offset, length)` | Recover all settings, artifact files and launcher from the exact saved review; previews are incomplete. |
+| "Submit this exact reviewed GT job." | `submit_cluster(cluster_review_id, researcher_approved, approval_reference)` | Relay actual approval; separate immutable gates, cumulative limits and no blind submission retries. |
+| "Show progress after reconnecting." | `inspect_cluster(job_id, refresh_scheduler)` | Read saved state; an explicit refresh queries the site's scheduler, not the models. |
+| "Stop the selected job." | `cancel_cluster(job_id)` | Request scheduler cancellation; preserve completed work, reservations and uncertain outcomes. |
+| "Bring that result into my study." | `import_cluster(job_id)` | Validate and import available checkpoint/result; do not overwrite changed bindings. |
+| "Resume the remaining work." | `resume_cluster(cluster_review_id, researcher_approved, approval_reference)` | Actual bounded allocation approval; preserve cumulative GPU-hour/submission limits and extraction state. |
+
+After result import, use the ordinary `records`, evidence inspection, annotation,
+version and release tools. Keep raw contexts out of an external harness unless
+their disclosure is authorized. A node-loss checkpoint can omit later work;
+do not claim exactly-once inference or completed coverage from scheduler success.
+Unknown submissions need the documented explicit scheduler reconciliation before
+replacement; CLI `cluster-resolve` is an operator fallback. One active job owns
+each study. Use node-local live databases and consistent durable backups.
+
+`cluster_review_text` defaults to the whole prepared review when
+`json_pointer=""`. It also accepts saved-data pointers such as `/resources`,
+`/resources/server/artifact_files` and `/script_template`. Use at most 12,000
+Unicode code points per chunk, follow `next_offset` until null, and concatenate
+only matching review ID, `binding_sha256` and `value_sha256`. Pointers never open
+files or execute the launcher. Inspect all applicable fields before relaying
+the actual human approval; keep transport JSON/cursors out of the student flow.
+
+See the [GT guide](https://github.com/BobbY-24/quarry/blob/main/docs/GT_COMPUTE.md)
+for commands and site responsibilities. The fixed optional vLLM launcher needs
+reviewed pre-staged safe files and a pinned installed runtime; source/model text
+cannot change its command or authorize downloads. External gateways use CPU
+collector profiles and keep their own serving accounting separate. Live SQLite
+remains single-node; no shared multi-node database is introduced.
+
 ## Terminal/file fallback without MCP
 
 When the client has local terminal/file tools but no MCP connection, export

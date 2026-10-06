@@ -37,8 +37,40 @@ def parser() -> argparse.ArgumentParser:
     compute.add_argument("--context-limit-tokens", type=int, default=32768)
     compute.add_argument("--max-output-tokens", type=int, default=8192)
     compute.add_argument("--response-format", choices=("json_object", "none"), default="json_object", help="Use none if the custom server does not support the response_format parameter")
+    compute.add_argument("--runtime-manifest", type=Path, help="Reviewed runtime/checkpoint declaration JSON; no model code, credentials or downloads")
     compute.add_argument("--configuration-reference", default="researcher local configuration", help="Brief reference to the researcher's compute choice, containing no credentials")
     sub.add_parser("compute", help="Inspect effective model routing, credential names/presence, and cost basis without network requests")
+    cluster = sub.add_parser("configure-cluster", help="Save an inert reviewed Slurm site profile; no submission or model launch")
+    cluster.add_argument("profile", type=Path)
+    throughput = sub.add_parser("tune-cluster", help="Set bounded request concurrency before jobs; preserve policy and budgets and require a fresh review")
+    throughput.add_argument("--concurrency", type=int, default=4)
+    throughput.add_argument("--model-concurrency", type=int, default=4)
+    throughput.add_argument("--configuration-reference", default="researcher CLI operator tuning")
+    cluster_review = sub.add_parser("cluster-review", help="Freeze a portable job bundle and review resource limits for an approved collection")
+    cluster_review.add_argument("review_id")
+    for name in ("cluster-submit", "cluster-resume"):
+        batch = sub.add_parser(name, help="Submit a concrete reviewed Slurm allocation with finite cumulative limits")
+        batch.add_argument("cluster_review_id")
+        batch.add_argument("--researcher-approved", action="store_true", help="Declare the human decision about this concrete resource request")
+        batch.add_argument("--approval-reference", required=True, help="Bounded decision reference; never credentials")
+        batch.add_argument("--allow-cluster", action="store_true", help="Explicit scheduler execution permission")
+        batch.add_argument("--allow-paid", action="store_true", help="Permit the reviewed nonfake extraction endpoint, including self-hosted models")
+    batch_status = sub.add_parser("cluster-status", help="Read durable job receipts, reservations and checkpoints")
+    batch_status.add_argument("--job-id")
+    batch_status.add_argument("--refresh-scheduler", action="store_true")
+    batch_status.add_argument("--allow-cluster", action="store_true")
+    batch_cancel = sub.add_parser("cluster-cancel", help="Cancel a known scheduler job and preserve its checkpoint")
+    batch_cancel.add_argument("job_id")
+    batch_cancel.add_argument("--allow-cluster", action="store_true")
+    reconcile = sub.add_parser("cluster-resolve", help="Record manual reconciliation of an unknown scheduler submission")
+    reconcile.add_argument("job_id")
+    resolution = reconcile.add_mutually_exclusive_group(required=True)
+    resolution.add_argument("--scheduler-job-id")
+    resolution.add_argument("--verified-absent", action="store_true")
+    reconcile.add_argument("--reconciliation-reference", required=True)
+    reconcile.add_argument("--allow-cluster", action="store_true")
+    batch_import = sub.add_parser("cluster-import", help="Import a validated checkpoint into its unchanged origin; no model calls")
+    batch_import.add_argument("--job-id")
     recipe = sub.add_parser("recipe", help="Write a complete starter recipe for researcher editing")
     recipe.add_argument("name", choices=("neologisms", "cultural", "jargon"))
     recipe.add_argument("--out", type=Path)
@@ -126,10 +158,14 @@ def parser() -> argparse.ArgumentParser:
                          help="Bounded study directory; defaults to WORKSPACE/v6-studies")
     connect.add_argument("--allow-paid", action="store_true",
                          help="Permit separately approved finite collection runs in this connection")
+    connect.add_argument("--allow-cluster", action="store_true", help="Permit separately reviewed bounded scheduler operations")
+    connect.add_argument("--cluster-storage-root", action="append", type=Path, default=[], help="Specific existing approved durable cluster storage directory")
     mcp = sub.add_parser("mcp", help="Serve bounded collector tools over local standard input/output")
     mcp.add_argument("--workspace", type=Path,
                      help="Use one bounded study workspace instead of a single --project")
     mcp.add_argument("--allow-paid", action="store_true", help="Permit explicitly approved provider calls in this server session")
+    mcp.add_argument("--allow-cluster", action="store_true", help="Permit separately reviewed bounded scheduler operations")
+    mcp.add_argument("--cluster-storage-root", action="append", type=Path, default=[], help="Specific existing approved durable cluster storage directory")
     inspect = sub.add_parser("inspect", help="Inspect full inventory or selected term/source evidence")
     inspect.add_argument("--term")
     inspect.add_argument("--record", help="Inspect a typed collected record and its source evidence")
@@ -200,14 +236,16 @@ def main(argv=None) -> int:
         if args.command == "connect":
             from .harness import connect_harness
             _json(connect_harness(args.host, args.workspace, args.studies,
-                                  allow_paid=args.allow_paid))
+                                  allow_paid=args.allow_paid, allow_cluster=args.allow_cluster,
+                                  cluster_storage_roots=args.cluster_storage_root))
             return 0
         if args.command == "mcp":
             from .mcp_server import main as mcp_main
             if args.workspace and args.project != ".":
                 raise ValueError("Choose --workspace or --project for the MCP connection")
             mode = ["--workspace", str(args.workspace)] if args.workspace else ["--project", args.project]
-            return mcp_main(mode + (["--allow-paid"] if args.allow_paid else []))
+            roots = [part for root in args.cluster_storage_root for part in ("--cluster-storage-root", str(root))]
+            return mcp_main(mode + (["--allow-paid"] if args.allow_paid else []) + (["--allow-cluster"] if args.allow_cluster else []) + roots)
         from .project import Project
         project = Project(args.path if args.command == "init" and args.path else args.project)
         command = args.command
@@ -231,15 +269,44 @@ def main(argv=None) -> int:
                     brief["starter_recipe"] = args.policy
             result = write_handoff(project.prepare_agent_setup(brief), args.out)
         elif command == "configure-compute":
+            from .config import read_json
             result = project.configure_compute(backend=args.backend, preset=args.preset,
                 base_url=args.base_url, model=args.model, model_version=args.model_version,
                 credential_env=args.credential_env, input_per_million=args.input_per_million,
                 output_per_million=args.output_per_million,
                 context_limit_tokens=args.context_limit_tokens,
                 max_output_tokens=args.max_output_tokens, response_format=args.response_format,
+                runtime=read_json(args.runtime_manifest) if args.runtime_manifest else None,
                 configuration_reference=args.configuration_reference)
         elif command == "compute":
             result = project.compute()
+        elif command == "configure-cluster":
+            from .config import read_json
+            result = project.configure_cluster(read_json(args.profile))
+        elif command == "tune-cluster":
+            result = project.configure_cluster_throughput(concurrency=args.concurrency,
+                model_concurrency=args.model_concurrency, configuration_reference=args.configuration_reference)
+        elif command == "cluster-review":
+            result = project.cluster().prepare(args.review_id)
+        elif command in {"cluster-submit", "cluster-resume"}:
+            method = project.cluster().submit if command == "cluster-submit" else project.cluster().resume
+            result = method(args.cluster_review_id, human_approved=args.researcher_approved,
+                approval_reference=args.approval_reference, allow_execution=args.allow_cluster, allow_paid=args.allow_paid)
+        elif command == "cluster-status":
+            if args.refresh_scheduler and not args.allow_cluster:
+                raise ValueError("Scheduler refresh requires --allow-cluster")
+            result = project.cluster().status(args.job_id, refresh=args.refresh_scheduler)
+        elif command == "cluster-cancel":
+            if not args.allow_cluster:
+                raise ValueError("Scheduler cancellation requires --allow-cluster")
+            result = project.cluster().cancel(args.job_id)
+        elif command == "cluster-resolve":
+            if not args.allow_cluster:
+                raise ValueError("Scheduler reconciliation requires --allow-cluster")
+            result = project.cluster().resolve_submission(args.job_id, scheduler_job_id=args.scheduler_job_id,
+                verified_absent=args.verified_absent, reconciliation_reference=args.reconciliation_reference)
+        elif command == "cluster-import":
+            result = project.cluster().import_result(args.job_id)
         elif command == "validate-plan":
             from .config import read_json
             result = project.validate_agent_bundle(read_json(args.bundle))
@@ -377,7 +444,9 @@ def main(argv=None) -> int:
         _json(result)
         return 0
     except (ValueError, RuntimeError, OSError, KeyError) as exc:
-        if args.command in {"configure-compute", "compute"}:
+        if args.command.startswith("cluster-") or args.command in {"configure-cluster", "tune-cluster"}:
+            print("termfinder: Cluster operation was blocked or failed. Inspect the saved job state and validated site profile; verify the concrete approval, execution gates and finite resource limits. No supplied values or scheduler exception bodies are echoed.", file=sys.stderr)
+        elif args.command in {"configure-compute", "compute"}:
             print("termfinder: Compute configuration is invalid or unavailable. Use a supported backend, credential environment-variable names, a safe endpoint, exact model/version, and finite token caps/rates. No supplied values are echoed.", file=sys.stderr)
         else:
             print(f"termfinder: {exc}", file=sys.stderr)

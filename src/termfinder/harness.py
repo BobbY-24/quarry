@@ -327,20 +327,23 @@ def _existing(path):
         os.close(fd)
 
 
-def connect_harness(host, workspace, studies=None, *, allow_paid=False):
+def connect_harness(host, workspace, studies=None, *, allow_paid=False, allow_cluster=False,
+                    cluster_storage_roots=()):
     """Prepare one local harness workspace from explicit researcher-chosen paths.
 
     Existing matching V6 files are idempotent. Different V6 definitions require
     an explicit migration; unrelated settings are retained and never echoed.
     """
-    if host not in {"codex", "claude", "generic"} or not isinstance(allow_paid, bool):
+    if host not in {"codex", "claude", "generic"} or not isinstance(allow_paid, bool) or not isinstance(allow_cluster, bool):
         raise HarnessError("Choose codex, claude, or generic and a Boolean paid launch gate.")
     workspace = _chosen_root(workspace, existing=True)
     studies = _chosen_root(studies if studies is not None else workspace / "v6-studies")
     if not studies.exists() and not studies.is_relative_to(workspace):
         raise HarnessError("A new studies root must be inside the chosen workspace; create any separate root explicitly first.")
     command, prefix = _launcher()
-    args = prefix + ["--workspace", str(studies)] + (["--allow-paid"] if allow_paid else [])
+    roots = [_chosen_root(root, existing=True) for root in cluster_storage_roots]
+    args = prefix + ["--workspace", str(studies)] + (["--allow-paid"] if allow_paid else []) + (["--allow-cluster"] if allow_cluster else [])
+    args += [part for root in roots for part in ("--cluster-storage-root", str(root))]
     entry = {"type": "stdio", "command": command, "args": args}
     skill = workspace / ({"codex": ".agents/skills", "claude": ".claude/skills", "generic": ""}[host]) / SKILL_NAME
     config = workspace / {"codex": ".codex/config.toml", "claude": ".mcp.json", "generic": "v6-mcp.json"}[host]
@@ -397,6 +400,7 @@ def connect_harness(host, workspace, studies=None, *, allow_paid=False):
     return {"status": "exported" if host == "generic" else "configured", "host": host,
             "workspace": str(workspace), "studies": str(studies), "skill_path": str(skill),
             "config_path": str(config), "command": command, "args": args,
-            "allow_paid": allow_paid, "changed": changed, "installed_globally": False,
+            "allow_paid": allow_paid, "allow_cluster": allow_cluster,
+            "cluster_storage_roots": [str(root) for root in roots], "changed": changed, "installed_globally": False,
             "client_started": False, "connection_verified": False, "prompt": prompt,
             "next_steps": next_steps, "skill_sha256": {name: hashlib.sha256(value).hexdigest() for name, value in sorted(assets.items())}}

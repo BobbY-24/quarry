@@ -243,6 +243,8 @@ def _export_dataset(dataset: dict, out: Path, formats, staging) -> dict:
     schema = {"export_schema_version": EXPORT_SCHEMA_VERSION, "dataset_schema_version": dataset["schema_version"], "offsets": "Unicode code points in extracted source text; half-open [start,end)", "tables": schemas, "record_contract": "records includes all configured data types; terms contains lexical terms only. record_id equals the legacy storage term_id alias. observed_text is an exact source span; interpretation is a generated suggestion, not observed evidence. evidence retains original contexts and source IDs. Type checks prove occurrence, not meaning, factual truth, opinion attribution, sentence completeness, or novelty.", "csv_formula_protection": "Potential spreadsheet formula strings (leading =,+,-,@ after whitespace, or initial tab/CR/LF) are prefixed with an apostrophe. Each CSV row has a JSON list of modified column names in its csv_escape_column named by this table schema. To restore values, remove exactly one leading apostrophe from those columns before using evidence offsets. Use JSONL or decoded Parquet for original typed records; CSV null/empty cells remain ambiguous.", "annotation_sources": "Complete-source gold template for held-out evaluation. Blank terms/records and complete=false are deliberate; do not use candidate-only review to measure recall."}
     files["schema.json"] = (canonical_json(schema) + "\n").encode("utf-8")
     files.json("dataset.json",dataset)
+    if "compute_execution" in dataset:
+        files["compute_execution.json"] = (canonical_json(dataset["compute_execution"]) + "\n").encode("utf-8")
     if dataset.get("agent_workflow", {}).get("events"):
         from .publication import audit_dataset
         files["agent_workflow.json"] = (canonical_json(dataset["agent_workflow"]) + "\n").encode("utf-8")
@@ -252,8 +254,12 @@ def _export_dataset(dataset: dict, out: Path, formats, staging) -> dict:
     for occurrence in _records(dataset.get("occurrences")):
         for entry in occurrence.get("provenance", []):
             model_provenance.append({key: entry.get(key) for key in ("provider", "model", "configured_model_version", "reported_model_version", "reported_model_version_reason", "prompt_version", "prompt_sha256", "expert_id", "run_id", "transport_identity", "record_type", "observed_text_contract", "interpretation_origin")})
+            model_provenance[-1].update({key: entry[key] for key in
+                ("runtime", "declared_cluster_runtime", "declared_cluster_runtime_reason", "request_decoding", "token_admission", "token_admission_reason") if key in entry})
     model_provenance = sorted({canonical_json(row) for row in model_provenance})
     manifest = {"export_schema_version": EXPORT_SCHEMA_VERSION, "version_id": dataset["version_id"], "dataset_sha256": files.metadata["dataset.json"]["sha256"], "formats": sorted(formats), "tables": {name: len(_records(tables.get(name))) for name in TABLES}, "files": dict(sorted(files.metadata.items())), "frozen_metadata": {key: dataset.get(key) for key in ("schema_version", "name", "created_at", "recipe", "profile", "prompts", "coverage", "failures", "constraints")}, "source_inventory": source_inventory, "model_provenance": [json.loads(row) for row in model_provenance], "costs": dataset.get("costs", []), "collection_runs": dataset.get("runs", []), "schema_file": "schema.json", "reproduction": "All records derive from this saved snapshot. Export performs no model calls. JSONL and CSV are byte reproducible; Parquet bytes are reproducible with the pinned pyarrow version."}
+    if "compute_execution" in dataset:
+        manifest["compute_execution"] = dataset["compute_execution"]
     files["manifest.json"] = (canonical_json(manifest) + "\n").encode("utf-8")
     # Preflight the entire result before writing any new file.
     for name, metadata in files.metadata.items():

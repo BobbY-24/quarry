@@ -1,6 +1,6 @@
 # Quarry architecture and guarantees
 
-Quarry uses the V6.4 collector engine. The [four diagrams](QUARRY_DIAGRAMS.md)
+Quarry uses the independent V6 collector engine. The [four diagrams](QUARRY_DIAGRAMS.md)
 show its workflow, components, evidence lineage and independent evaluation.
 
 Quarry is an independent Python package. It does not import V3, V4, V5, sibling
@@ -75,6 +75,51 @@ audit suggestions, separate from human review. Relayed human approval is a
 recorded declaration rather than authenticated identity. The
 [simple procedure](SIMPLE_WORKFLOW.md) explains the current guided protocol limit
 for changed plans after processing; the lower-level engine remains available.
+
+## Cluster collection through the existing agent
+
+`cluster.py` adds a separate controller for reviewed Slurm jobs. Research recipe,
+model profile and site resource profile remain distinct. The controller freezes
+a source-backed input bundle using consistent SQLite backup, binds it to the
+approved collection review and site configuration, and presents a separate
+hash-bound resource review. Submission requires an actual researcher decision,
+finite cumulative submission/GPU-hour caps, and an immutable scheduler execution
+gate. Real extraction retains the separate real-request gate. Source text,
+extraction replies and planning bundles cannot change the scheduler profile or
+execute shell commands.
+
+The submitted command invokes the installed `cluster_worker` with its reviewed
+interpreter. The worker stages the active database onto node-local scratch,
+checks the runtime executable digest, runs the same extraction/evidence engine,
+and writes consistent durable checkpoints and results. Operators either select
+an existing approved gateway with a CPU collector allocation or a fixed optional
+vLLM launcher inside the GPU allocation. The latter verifies a complete hashed
+inventory of pre-staged safe checkpoint/tokenizer files and the pinned runtime;
+it has bounded startup and server cleanup. Quarry does not download weights,
+execute model-supplied Python/pickle/remote code, or accept arbitrary launchers.
+Gateway artifact digests remain operator declarations; a gateway model name is
+not proof of its loaded bytes.
+
+Cluster status and submission history live outside the worker's active database.
+Reconnecting the existing agent reads that history; disconnecting does not
+cancel Slurm work. Unknown submission outcomes remain reserved and need explicit
+scheduler reconciliation before replacement. Resume keeps the same reviewed
+scope and cumulative caps. Import validates a completed checkpoint against its
+reviewed bundle and brings the resulting inventory into the control study.
+
+SQLite WAL is never used as a live multi-node shared database. One active cluster
+job owns a study; durable checkpoints use SQLite online backup, not a raw copy
+of a writing database. Sudden node loss can lose work after the last durable
+checkpoint. Graceful walltime signals reduce that risk but cannot establish
+exactly-once inference. Slurm-reported allocation use is distinct from token
+fees and remains uncertain when scheduler accounting is unavailable.
+
+The lab supplies actual Slurm access, site-approved storage and endpoint rules.
+A laptop-side MCP process has no built-in remote scheduler access. An existing
+harness may use a reviewed SSH stdio connection to the cluster-side controller,
+or operate its CLI. This transport is external to the collector. See
+[the complete GT procedure](GT_COMPUTE.md) and
+[site profile/CLI/notebook examples](../examples/gt-compute/README.md).
 
 ## Separation of records
 

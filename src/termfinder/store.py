@@ -179,6 +179,9 @@ class Store:
                 if time.monotonic()>=deadline: raise ValueError("Backup time limit exceeded; original project is intact")
             with sqlite3.connect(temporary) as destination, self.connection() as source:
                 source.backup(destination,pages=256,progress=progress,sleep=0.05)
+                # The active database stays WAL. A durable backup is a closed
+                # standalone generation, safe to stage without WAL/SHM siblings.
+                destination.execute("PRAGMA journal_mode=DELETE")
                 if destination.execute("PRAGMA quick_check").fetchone()[0] != "ok": raise ValueError("Backup integrity check failed")
             os.link(temporary,target)
         finally:

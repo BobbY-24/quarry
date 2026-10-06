@@ -16,7 +16,9 @@ Two model layers are independent:
 A ChatGPT/Claude subscription does not automatically supply Quarry's extractor
 API access. Quarry does not read your harness's keys or inherit a developer key.
 Harness spending, local electricity, model downloads, and scheduler/GPU charges
-are outside its per-token extraction ledger.
+are outside its per-token extraction ledger. The separate cluster controller
+records finite allocation reservations and available scheduler observations;
+these are resource-use records, not a guarantee of an institutional invoice.
 
 ## Configure through your agent
 
@@ -193,6 +195,19 @@ session ends. Do not create startup hooks just to use Quarry.
 
 ## Option C: use Georgia Tech or another institution's compute
 
+**For an existing agent controlling durable GT extraction, start with
+[the GT workflow](GT_COMPUTE.md).** It adds a separate reviewed site profile,
+Slurm submission/status/cancel/resume, node-local work and consistent durable
+checkpoints/result import. Submitted jobs survive an agent disconnect.
+The [site profile and examples](../examples/gt-compute/README.md) keep student
+setup conversational. A cluster-side controller must have the site's Slurm
+tools; a laptop installation does not acquire remote scheduler access.
+Model installation and institution access remain site-provided. An optional
+reviewed fixed vLLM launch can run pre-staged safe model files inside the same
+GPU allocation; an existing gateway instead uses a CPU collector profile.
+
+The manual endpoint patterns below also work without the cluster controller.
+
 There is no universal Georgia Tech API key or assumed NLPx allocation. PACE
 describes Phoenix as research compute where faculty can add their research group
 to an account, and ICE as instructional compute for teaching. Use only the
@@ -285,8 +300,10 @@ Use `compute`/`inspect_compute` to verify the effective configuration before the
 plan review. The API route records token rates and model versions; local and
 institutional default zero rates mean **no assumed per-token service fee**, not
 free computing. Quarry cannot derive GPU-hour charges or an allocation balance
-from token usage. Report those separately using the scheduler/provider's records,
-and retain the account's own limits. Calls, concurrency, timeouts, recovery,
+from token usage. Cluster profiles bound GPU-hour allocation reservations and
+submission counts; scheduler accounting is tracked separately when available.
+Report unavailable scheduler observations as unknown, and retain the account's
+own limits. Calls, concurrency, timeouts, recovery,
 source/window limits, and deadlines remain finite even when token fees are zero.
 
 For a paper, retain the reviewed nonsecret compute configuration, source and
@@ -299,7 +316,8 @@ the same stored records without contacting any model.
 
 Read [publication protocol](PUBLICATION_PROTOCOL.md) and
 [source-level evaluation](EVALUATION.md) for the complete procedure. This build
-implements configuration and offline transport verification. It does not certify
+implements configuration, bounded cluster control and offline transport/scheduler
+verification. It does not certify
 a live provider's compatibility, deploy a Georgia Tech service, establish lab
 access, or measure the research quality of a local model. Those checks belong to
 an explicitly authorized, bounded pilot.
