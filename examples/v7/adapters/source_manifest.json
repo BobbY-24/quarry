@@ -1,0 +1,50 @@
+{
+  "schema_version": "1",
+  "verified_date": "2026-10-06",
+  "method": "primary PyPI JSON metadata, direct wheel download, SHA-256 check, static source inspection; no installation or foreign code execution",
+  "langextract": {
+    "distribution_version": "1.7.0",
+    "repository": "https://github.com/google/langextract",
+    "release": "https://pypi.org/project/langextract/1.7.0/",
+    "wheel": "langextract-1.7.0-py3-none-any.whl",
+    "wheel_sha256": "908f8ec696ab13578cdc3862efcf1a4fda929ae426410d99e86977d50e52136d",
+    "source_sha256": {
+      "langextract/annotation.py": "87522608ccbb160cf0ef228390bbd2ef6bbb5d268480a2cc983ce9601dd1bcd9",
+      "langextract/resolver.py": "454de8e17b398d689ba5fee89f840772cc9708a511dc241c5d8931702cbbf319",
+      "langextract/core/base_model.py": "dfc7170a407af88618c916dc6bc172c0fe6283afea7e0648b705d66b3d1418ed"
+    },
+    "observations": [
+      "1.7.0 defaults to DP exact alignment and LCS fuzzy alignment; not the legacy difflib algorithm",
+      "Fuzzy or partial alignment can assign a native source interval to generated wording that is not the exact source substring",
+      "Sequential passes keep earlier-pass overlaps; later overlapping proposals can disappear from final extractions",
+      "Custom BaseLanguageModel and Resolver/Annotator hooks retain every raw inference attempt, parsed proposal and pre-merge alignment"
+    ]
+  },
+  "delm": {
+    "distribution_version": "0.1.4",
+    "package_internal_version": "0.1.3",
+    "version_reason": "The pinned wheel's delm/__init__.py internal __version__ differs; use importlib.metadata distribution version",
+    "repository": "https://github.com/Center-for-Applied-AI/delm",
+    "release": "https://pypi.org/project/delm/0.1.4/",
+    "publication": "https://arxiv.org/abs/2509.20617",
+    "wheel": "delm-0.1.4-py3-none-any.whl",
+    "wheel_sha256": "442ea908337ec48de7367e88cd9b26e48eefd7bbaf0da116543891ce23c1cdee",
+    "source_sha256": {
+      "delm/core/extraction_manager.py": "5c07f0a08f061064a8ae7ac77b96385308c89d26559ce9576938cba2583f26f0",
+      "delm/schemas/schemas.py": "f37c7562b0436f6b8353b490d6ccc299259e096a197a4692b3b36ff32ff1ac79",
+      "delm/core/data_processor.py": "8afebd46c6270a3949f059ac1b7d8787d6f7f26c2610bd2ceb7ebbe6965f1497",
+      "delm/utils/retry_handler.py": "d82dada3230cb530358f354ff0e2d004f22bad0e69f1faf2bb7e3f7c95892542"
+    },
+    "observations": [
+      "Pinned 0.1.4 has configuration-based DELM constructor, unlike some newer website quick-start examples",
+      "ExtractionManager uses an outer RetryHandler and Instructor create(max_retries=0)",
+      "NestedSchema cleaning removes null words, disallowed values and case-insensitive validate_in_text failures; missing required values remove an item",
+      "Native preprocessing may filter all source chunks; those source gold positives still belong in the complete-source denominator",
+      "Injection bypasses dotenv, automatic client construction and token-estimate price lookup; native Instructor provider modes and disk orchestration are unverified"
+    ]
+  },
+  "live_library_execution": false,
+  "transitive_source_review": "not_complete",
+  "quality_measurements": null,
+  "quality_measurements_reason": "Synthetic fixture and deterministic offline checks do not measure real extraction quality"
+}

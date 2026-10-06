@@ -1,0 +1,4 @@
+# Verified direct wheels; install only after reviewing imported dependencies.
+# --no-deps is intentional: this file verifies baseline artifacts, not a graph lock.
+langextract==1.7.0 --hash=sha256:908f8ec696ab13578cdc3862efcf1a4fda929ae426410d99e86977d50e52136d
+delm==0.1.4 --hash=sha256:442ea908337ec48de7367e88cd9b26e48eefd7bbaf0da116543891ce23c1cdee
