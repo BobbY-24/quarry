@@ -216,6 +216,7 @@ def prepare_review(project, bundle=None, *, fetch_remote=False):
             "created_at": previous.get("created_at") if previous.get("review_id") == review_id else now(),
             "question": setup["brief"]["research_question"], "data_type": setup["brief"]["data_type"],
             "mode": project.recipe["mode"], "model_profile": project.profile["id"],
+            "compute": project.compute(),
             "source_count": len(sources), "eligible_source_count": len(eligible),
             "sources": summaries, "failures": [s for s in summaries if s["status"] == "failed"],
             "pending_sources": pending, "freeze": freeze, "estimate": estimate,

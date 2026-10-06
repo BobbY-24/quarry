@@ -8,6 +8,8 @@ import json
 import math
 from pathlib import Path
 import re
+import ipaddress
+from urllib.parse import urlsplit, urlunsplit
 
 CORE_FIELDS = {"expression", "language", "sense", "context"}
 DATA_TYPES = frozenset({"term", "idea", "opinion", "sentence"})
@@ -204,6 +206,53 @@ def load_recipe(path_or_dict):
     return validate_recipe(path_or_dict if isinstance(path_or_dict, dict) else read_json(path_or_dict))
 
 
+def provider_endpoint(provider):
+    """Validate an operator-selected endpoint; plaintext is loopback-only, without secrets."""
+    _text(provider["base_url"], "provider endpoint", limit=2048)
+    raw = provider["base_url"]
+    if any(c.isspace() or ord(c) < 32 for c in raw) or "?" in raw or "#" in raw:
+        raise ValueError("provider endpoint contains unsupported URL components")
+    u = urlsplit(raw)
+    try:
+        port = u.port
+    except ValueError:
+        raise ValueError("provider endpoint has an invalid port") from None
+    if not u.hostname or u.username is not None or u.password is not None or u.scheme not in {"http", "https"}:
+        raise ValueError("provider requires a credential-free HTTP(S) base URL")
+    host = u.hostname.lower()
+    loopback = host == "localhost"
+    if not loopback:
+        try:
+            loopback = ipaddress.ip_address(host).is_loopback
+        except ValueError:
+            pass
+    auth = provider.get("auth", "api_key" if provider["adapter"] == "gemini" else "bearer")
+    if auth not in {"none", "bearer", "api_key"}:
+        raise ValueError("unsupported provider authentication")
+    if u.scheme == "http" and (not loopback or auth != "none"):
+        raise ValueError("plaintext inference requires unauthenticated loopback")
+    if auth == "none":
+        if not loopback or provider["credential_env"] is not None or provider["adapter"] != "openai":
+            raise ValueError("unauthenticated inference is restricted to loopback OpenAI-compatible servers")
+    else:
+        credential = provider["credential_env"]
+        if not isinstance(credential, str) or not re.fullmatch(r"[A-Z][A-Z0-9_]{0,127}", credential):
+            raise ValueError("invalid credential environment name")
+        if credential in {"PATH", "HOME", "CODEX_HOME", "PYTHONPATH", "PYTHONHOME", "TMPDIR", "SHELL", "USER", "LOGNAME"}:
+            raise ValueError("use a dedicated credential environment name")
+        if not credential.endswith(("_KEY", "_TOKEN", "_SECRET")) or credential.startswith((
+                "LD_", "DYLD_", "PYTHON", "PIP_", "SSL_", "OPENSSL_", "GCONV_", "BASH_", "ZSH_", "LC_")):
+            raise ValueError("use a dedicated credential name ending in _KEY, _TOKEN or _SECRET, not a runtime control")
+        if (provider["adapter"] == "gemini") != (auth == "api_key"):
+            raise ValueError("authentication does not match the provider adapter")
+    if provider.get("response_format", "json_object") not in {"json_object", "none"}:
+        raise ValueError("unsupported response format option")
+    # Do not delegate a plaintext localhost resolution to DNS or a proxy.
+    if host == "localhost":
+        u = u._replace(netloc="127.0.0.1" + (":" + str(port) if port is not None else ""))
+    return urlunsplit(u), loopback, auth
+
+
 def load_profile(value):
     if isinstance(value, dict):
         profile = deepcopy(value)
@@ -211,7 +260,19 @@ def load_profile(value):
         profile = json.loads(files("termfinder").joinpath("profiles", str(value) + ".json").read_text())
     else:
         profile = read_json(value)
-    _keys(profile, {"schema_version", "id", "version", "providers", "models", "broad"}, "profile")
+    required = {"schema_version", "id", "version", "providers", "models", "broad"}
+    _keys(profile, required | {"compute"}, "profile", required=required)
+    from .agent_setup import _credential_free
+    _credential_free(profile)
+    if "compute" in profile:
+        meta = profile["compute"]
+        _keys(meta, {"backend", "cost_basis", "infrastructure_cost_usd", "infrastructure_cost_reason", "configuration_reference"}, "compute")
+        if meta["backend"] not in {"api", "local", "institutional"} or meta["cost_basis"] not in {"token_rates", "unmetered_infrastructure"}:
+            raise ValueError("invalid compute metadata")
+        if meta["infrastructure_cost_usd"] is not None:
+            raise ValueError("infrastructure costs must remain unknown until separately measured")
+        _text(meta["infrastructure_cost_reason"], "infrastructure cost reason", limit=2048)
+        _text(meta["configuration_reference"], "configuration reference", limit=1000)
     if type(profile["schema_version"]) is not int or profile["schema_version"] != 1:
         raise ValueError("unsupported profile schema")
     for key in ("id", "version"):
@@ -219,18 +280,21 @@ def load_profile(value):
     if not isinstance(profile["providers"], dict) or not profile["providers"]:
         raise ValueError("providers required")
     for provider in profile["providers"].values():
-        _keys(provider, {"adapter", "base_url", "credential_env"}, "provider")
+        required = {"adapter", "base_url", "credential_env"}
+        _keys(provider, required | {"auth", "response_format"}, "provider", required=required)
         if provider["adapter"] not in {"openai", "gemini", "fake"}:
             raise ValueError("unknown provider adapter")
         if provider["adapter"] == "fake" and (provider["credential_env"] is not None or provider["base_url"] is not None):
             raise ValueError("fake provider has no credential or network endpoint")
         if provider["adapter"] != "fake":
-            from urllib.parse import urlsplit
-            u = urlsplit(provider["base_url"])
-            if u.scheme != "https" or not u.hostname or u.username or u.password or u.query or u.fragment:
-                raise ValueError("provider requires a credential-free HTTPS base URL")
-            if not re.fullmatch(r"[A-Z][A-Z0-9_]{0,127}", provider["credential_env"]):
-                raise ValueError("invalid credential environment name")
+            provider["base_url"], loopback, auth = provider_endpoint(provider)
+            backend = profile.get("compute", {}).get("backend")
+            if backend == "local" and (not loopback or auth != "none"):
+                raise ValueError("local compute metadata must describe credential-free loopback inference")
+            if backend == "api" and auth == "none":
+                raise ValueError("API compute metadata must describe authenticated inference")
+        elif "compute" in profile:
+            raise ValueError("real compute metadata cannot label a fixture provider")
     if not isinstance(profile["models"], dict) or not 1 <= len(profile["models"]) <= 16:
         raise ValueError("1–16 models required")
     for model in profile["models"].values():
@@ -257,6 +321,9 @@ def load_profile(value):
         _text(expert["lens"], "lens", limit=4000)
         _strings(expert["communities"], "communities")
         ids.add(expert["id"])
+    if profile.get("compute", {}).get("cost_basis") == "unmetered_infrastructure" and any(
+            m["input_per_million"] or m["output_per_million"] for m in profile["models"].values()):
+        raise ValueError("unmetered infrastructure profiles cannot declare token charges")
     canonical(profile)
     return profile
 

@@ -1,6 +1,6 @@
 # Use Quarry inside your own coding-agent workflow
 
-Quarry is the product name for the V6.4 engine. Its commands remain `termfinder`,
+Quarry is the product name for the V6 engine. Its commands remain `termfinder`,
 its Python package remains `termfinder`, and its packaged skill remains
 `v6-collect-research`; existing projects and connections keep those identifiers.
 
@@ -16,6 +16,22 @@ give the coding agent a skill, connect scientific tools, and use them through
 natural-language requests. Quarry's tools are its own bounded collection engine.
 This is a local skill/stdio MCP connection, not a hosted ChatGPT/Claude account
 connector or a claim that a real client session was already tested.
+
+Before preparing a new real study, choose extraction compute separately from
+your planning-agent account. Use `configure_compute` for your own API, an
+already reviewed local model server, or your authorized institutional endpoint;
+`inspect_compute` shows the saved endpoint/model and credential names/presence.
+It makes no provider requests. [Compute setup](COMPUTE.md) explains personal
+credentials, local inference, Georgia Tech allocations, cost assumptions and the
+`configured` study profile. The legacy `--allow-paid` launch gate is required
+for all real inference, including local servers, and does not imply every
+request has a token charge. No cluster access is granted by installation.
+
+Upgrading an installed 6.4 connection to the 6.5 skill changes its files.
+`connect` deliberately refuses to overwrite an existing customized skill or
+conflicting host registration. Use a fresh workspace pointing to the existing
+studies root, or review the documented connection migration before replacing
+only Quarry's old registration. Preserve existing studies and host settings.
 
 ## 1. Have your agent install and connect Quarry once
 

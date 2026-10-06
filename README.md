@@ -8,11 +8,11 @@ Quarry turns a research question into a source-traceable dataset through your ex
 Claude Code, Codex or other local MCP harness. Your agent prepares the inputs;
 Quarry runs the fixed collection pipeline. **Terms and senses are the primary output.**
 Exact source spans expressing ideas, opinions and sentences are also supported.
-Quarry is the new product name for the V6.4 collector.
+Quarry is the product name for the V6 collector.
 
-**Quarry · engine V6.4.0** · Python 3.11–3.13 · [MIT](LICENSE) · [277 recorded offline tests](docs/HARNESS_VERIFIED.md)
+**Quarry · engine V6.5.0** · Python 3.11–3.13 · [MIT](LICENSE) · [Offline verification](docs/COMPUTE_VERIFIED.md)
 
-[Quick start](#quick-start) · [Research examples](#research-examples) · [How it works](#how-it-works) · [Diagrams](#quarry-diagrams) · [Install](#installation-on-macos-or-linux) · [Documentation](#documentation)
+[Quick start](#quick-start) · [Choose compute](docs/COMPUTE.md) · [Research examples](#research-examples) · [How it works](#how-it-works) · [Diagrams](#quarry-diagrams) · [Install](#installation-on-macos-or-linux) · [Documentation](#documentation)
 
 ## Quick start
 
@@ -47,7 +47,29 @@ normal trust/reload steps; **a successful Quarry tool call verifies the connecti
 [Connection and troubleshooting](docs/AGENT_NATIVE.md) cover Claude Code, Codex
 and generic harnesses.
 
-### 2. Describe your research
+### 2. Choose your extraction compute
+
+Your planning agent and Quarry's extractors use separately configured resources.
+Quarry does not bundle a developer key or charge a shared account. Each study
+uses your chosen API, local model server or authorized institutional endpoint.
+
+```text
+Create a study for me, then help me choose its extraction compute:
+my own API account, my installed local model, or my authorized institutional
+compute. Show the endpoint, model/version, pass count, credential variable
+name and cost assumptions. Record my chosen backend with configure_compute,
+then confirm it with inspect_compute. Do not ask me to paste keys into chat,
+launch compute, download models or start collection.
+```
+
+For example: “Use my Fireworks account with the GLM + DeepSeek preset,” or
+“Use my reviewed local Ollama model at `http://127.0.0.1:11434/v1`.” Supply the
+exact custom model/checkpoint revision. Credential values stay in the approved
+environment of the process running Quarry. [Compute setup](docs/COMPUTE.md)
+covers personal APIs, local Ollama/vLLM and Georgia Tech/PACE deployments.
+Configuration alone does not enable real inference or allocate cluster access.
+
+### 3. Describe your research
 
 After setup, ask for a study in ordinary language:
 
@@ -69,7 +91,7 @@ Follow [the pilot connection procedure](docs/AGENT_NATIVE.md#real-provider-autho
 The example's $10 is a cap, not an estimate or authorization. Your own agent's
 charges are separate and unknown to Quarry.
 
-### 3. Collect, inspect and continue
+### 4. Collect, inspect and continue
 
 Once the concrete plan and real-provider connection are authorized, use requests
 like these. The agent handles Quarry's saved identifiers and tools:
@@ -335,8 +357,8 @@ authenticated GitHub access. This example uses Python 3.13:
 ```sh
 gh repo clone BobbY-24/quarry
 cd quarry
-python3.13 -m venv .venv-6.4
-. .venv-6.4/bin/activate
+python3.13 -m venv .venv-6.5
+. .venv-6.5/bin/activate
 python -m pip install -r requirements-build.txt
 python -m pip install --no-build-isolation .
 mkdir -p research-workspace
@@ -374,6 +396,13 @@ and [CLI/Python guide](docs/ENGINE_GUIDE.md) provide working alternatives.
 
 ## Verification and current scope
 
+The V6.5 compute update passed **296 tests** against a fresh installed wheel,
+including 19 new operator-configuration and transport tests. Six starter/mode
+acceptance projects and installed stdio harness checks passed, with resume,
+visible failures, reversible annotations and byte-identical exports. Personal
+credential files and unrelated data were inaccessible; no paid API requests,
+model downloads or cluster jobs were launched. [6.5 verification](docs/COMPUTE_VERIFIED.md).
+
 The recorded V6.4 build passed **277 tests** against the installed package on
 macOS/Python 3.12.14. Offline checks exercised actual stdio tools, both extraction
 modes, reconnect/resume, exact evidence, annotation undo, identical frozen exports,
@@ -393,6 +422,8 @@ charges; Quarry does not promise exactly-once billing. See [known limitations an
 | Start here | Reference |
 | --- | --- |
 | Connect your own agent | [Setup, trust, real-provider gate and troubleshooting](docs/AGENT_NATIVE.md) |
+| Choose your extraction resources | [Own API, local model or institutional compute](docs/COMPUTE.md) |
+| Compute and credential checks | [6.5 installed-wheel verification](docs/COMPUTE_VERIFIED.md) |
 | Conduct a student study | [Simple procedure](docs/SIMPLE_WORKFLOW.md) · [11 walkthroughs](docs/NLPX_STUDENT_GUIDE.md) |
 | Customize research inputs | [Recipes](docs/RECIPES.md) · [Sources and discovery](docs/SOURCES.md) |
 | Use CLI, Python or notebooks | [Engine guide](docs/ENGINE_GUIDE.md) · [Notebook](examples/simple_student_workflow.ipynb) |

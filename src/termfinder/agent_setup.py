@@ -18,7 +18,7 @@ from .store import digest
 
 VERSION = "agent-handoff-v1"
 TYPES = ("term", "idea", "opinion", "sentence")
-PROFILES = ("glm-deepseek", "gemini", "fake")
+PROFILES = ("glm-deepseek", "gemini", "fake", "configured")
 FORBIDDEN_PARTS = {".ssh", ".aws", ".config", ".codex", ".git", "keychains"}
 SOURCE_SUFFIXES = {".html", ".htm", ".txt", ".md", ".markdown", ".pdf"}
 BRIEF_KEYS = {"schema_version", "id", "data_type", "research_question", "inclusion_criteria",
@@ -157,7 +157,15 @@ def normalize_brief(value):
     return brief
 
 
-def template_bundle(brief):
+def planning_profile(brief, configured_profile=None):
+    if brief["model_profile"] == "configured":
+        if configured_profile is None:
+            raise ValueError("Choose researcher compute before selecting the configured profile")
+        return load_profile(configured_profile)
+    return load_profile(brief["model_profile"])
+
+
+def template_bundle(brief, configured_profile=None):
     recipe = starter_recipe(brief["starter_recipe"])
     recipe.update(id=brief["id"], data_type=brief["data_type"], research_question=brief["research_question"],
                   mode=brief["mode"], model_profile=brief["model_profile"],
@@ -203,11 +211,15 @@ def template_bundle(brief):
             {"id": "deepseek-contextual-units", "model": "deepseek", "communities": brief["communities"],
              "lens": f"Attend to context-dependent {brief['data_type']} spans and attribution in the source; preserve original wording and all qualifying units."}]
         recipe["discovery"]["queries"] = [brief["research_question"]]
-    profile_aliases = list(load_profile(brief["model_profile"])["models"])
+    profile = planning_profile(brief, configured_profile)
+    profile_aliases = list(profile["models"])
     for index, lens in enumerate(recipe["specialist_lenses"]):
         if lens["model"] not in profile_aliases:
             lens["model"] = profile_aliases[index % len(profile_aliases)]
             lens["id"] = lens["model"] + "-focus-" + str(index + 1)
+    output_limit = min(m["output_token_ceiling"] for m in profile["models"].values())
+    recipe["execution"]["max_output_tokens"] = min(recipe["execution"]["max_output_tokens"], output_limit)
+    recipe["execution"]["recovery_output_tokens"] = min(recipe["execution"]["recovery_output_tokens"], output_limit)
     return {"schema_version": 1, "brief_sha256": digest(brief), "recipe": recipe, "sources": [], "search_log": [],
             "sampling": {"unit": "source", "strategy": "Specify selection before collection", "stopping_rule": f"At most {brief['max_sources']} sources", "limitations": ["Agent source suggestions do not establish an exhaustive population."]},
             "evaluation": {"unit": "occurrence", "grouping": "source_family", "holdout_fraction": 0.2,
@@ -229,7 +241,7 @@ def contract():
             "unit_contract": "expression must be an exact contiguous observed span for every data_type; sense/attributes/translation are generated suggestions."}
 
 
-def build_prompt(brief):
+def build_prompt(brief, configured_profile=None):
     return "\n\n".join([
         "V6 RESEARCH SETUP REQUEST — " + VERSION,
         "You are the researcher's planning assistant. Convert their brief into ONE JSON bundle for V6. Return JSON only, no code fences. You may propose sources and policy; the deterministic collector validates and runs the work. Do not execute V6, install code, contact people, publish/upload data, read unrelated local files or call paid collection services. Only use your existing researcher-authorized search workflow, at most 5 search queries and the brief's source limit. Do not assume this prompt grants extra tools or permissions.",
@@ -239,11 +251,11 @@ def build_prompt(brief):
         "Unknown research choices go in unresolved_questions; do not silently decide contested inclusion/sampling rules. An unresolved bundle cannot be applied. Agent-selected sources are not an exhaustive population. Specify sampling unit/strategy/stopping rule/limitations. Keep held-out complete sources independent of prompt tuning; opinions/ideas require an independently defined annotation rubric. Do not use model agreement or candidate counts as recall.",
         "Keep discovery disabled: V6 will ingest only the reviewed finite source list. All tools and credentials stay under the researcher's control. V6 prepare/validate/apply makes no model calls; remote fetching is a later explicit step. Repair errors by returning a revised bundle, not by weakening checks.",
         "Contract:\n" + json.dumps(contract(), ensure_ascii=False, indent=2),
-        "Complete editable bundle template:\n" + json.dumps(template_bundle(brief), ensure_ascii=False, indent=2),
+        "Complete editable bundle template:\n" + json.dumps(template_bundle(brief, configured_profile), ensure_ascii=False, indent=2),
     ])
 
 
-def validate_bundle(value, brief):
+def validate_bundle(value, brief, configured_profile=None):
     """Return stable diagnostics. Never fetch, read source contents or call models."""
     errors, warnings = [], []
 
@@ -274,7 +286,7 @@ def validate_bundle(value, brief):
     recipe = None
     try:
         recipe = load_recipe(value["recipe"])
-        profile = load_profile(brief["model_profile"])
+        profile = planning_profile(brief, configured_profile)
         passes = experts(recipe, profile)
         if any(recipe["execution"]["recovery_output_tokens"] > profile["models"][e["model"]]["output_token_ceiling"] for e in passes):
             raise ValueError("Output cap")

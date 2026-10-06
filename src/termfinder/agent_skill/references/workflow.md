@@ -109,7 +109,7 @@ top-level `items`, `section_sha256`, and `page` with `total` and `next_offset`.
 Valid sections are:
 
 ```text
-summary, brief, recipe, profile, sampling, evaluation, search_log, agent,
+summary, brief, recipe, profile, compute, sampling, evaluation, search_log, agent,
 binding, costs, source_plan, source_provenance, failures, pending_sources, freeze
 ```
 
