@@ -55,3 +55,24 @@ def large_run_execution(execution):
                  timeout_seconds=max(value["timeout_seconds"], 180),
                  max_retries=4, resilience=deepcopy(DEFAULT_RESILIENCE))
     return value
+
+
+def cluster_execution(execution, *, concurrency=4, model_concurrency=4):
+    """Explicit bounded throughput settings, without increasing study budgets.
+
+    These are operator choices, not measured optimum values or a benchmark.
+    Reuse retry/uncertain-outcome policy; never reduce extraction passes, text
+    overlap, output capacity or coverage to improve apparent throughput.
+    """
+    if type(concurrency) is not int or not 1 <= concurrency <= 64:
+        raise ValueError("cluster concurrency must be 1–64")
+    if type(model_concurrency) is not int or not 1 <= model_concurrency <= min(32, concurrency):
+        raise ValueError("per-model concurrency must be 1–32 and within total concurrency")
+    value = deepcopy(execution)
+    value["concurrency"] = concurrency
+    policy = deepcopy(value.get("resilience", DEFAULT_RESILIENCE))
+    if "resilience" not in execution:
+        policy["automatic_uncertain_retries"] = False
+    policy.update(model_concurrency=model_concurrency, min_request_interval_seconds=0)
+    value["resilience"] = policy
+    return value

@@ -70,6 +70,37 @@ class Project:
         configured = self.store.read_setting("configured_profile")
         return compute_summary(configured or self.profile, configured=bool(configured))
 
+    def cluster(self):
+        """Durable batch controller; construction never submits or queries jobs."""
+        from .cluster import ClusterController
+        self._guard_path(self.path)
+        return ClusterController(self)
+
+    def configure_cluster(self, profile):
+        return self.cluster().configure(profile)
+
+    def configure_cluster_throughput(self, *, concurrency=4, model_concurrency=4,
+                                     configuration_reference="researcher operator tuning"):
+        """Operator tuning is separate from the research recipe and its budget."""
+        from .resilience import cluster_execution
+        from .config import starter_recipe
+        execution = (self.recipe or starter_recipe("jargon"))["execution"]
+        cluster_execution(execution, concurrency=concurrency, model_concurrency=model_concurrency)
+        from .agent_setup import _credential_free
+        if not isinstance(configuration_reference, str) or not configuration_reference.strip() or len(configuration_reference) > 1000:
+            raise ValueError("A bounded operator configuration reference is required")
+        _credential_free(configuration_reference)
+        with self._lock(), self.store.connection() as db:
+            if self.store.count("jobs"):
+                raise ValueError("Configure throughput before jobs exist; resume preserves the reviewed execution settings")
+            settings = {"concurrency": concurrency, "model_concurrency": model_concurrency}
+            self.store.setting("cluster_throughput", settings, db)
+            self._plan_event("cluster_throughput_configured", {**settings,
+                "configuration_reference": configuration_reference}, db)
+        return {"settings": settings, "measured_performance": None,
+                "measured_performance_reason": "operator_tuning_requires_representative_benchmark",
+                "next_step": "Prepare a fresh collection review before execution."}
+
     def configure_compute(self, **settings):
         """Save an operator choice, separately from untrusted research/extraction inputs."""
         from .compute import build_compute_profile
@@ -500,9 +531,17 @@ class Project:
             for source in self.store.iter_rows("sources",batch_size=1):
                 if self.source_exclusion(source) is None:
                     sources.append({k:v for k,v in source.items() if k not in {"text","blocks","outlinks"}} | {"text_length":len(source["text"])})
-        return costs.estimate(self.recipe, self.profile, sources, links=links, **assumptions)
+        def source_text(metadata):
+            # One source is resident at a time. ASCII length placeholders cannot
+            # establish Unicode prompt fit, and inventories can contain many PDFs.
+            source = self.store.get("sources", metadata["source_id"])
+            if digest(source["text"]) != metadata["text_sha256"]:
+                raise ValueError("Source text changed before cost estimation")
+            return source["text"]
+        return costs.estimate(self.recipe, self.profile, sources, links=links,
+            source_text_loader=source_text if links is None else None, **assumptions)
 
-    def collect(self, provider=None, *, allow_paid=False, max_jobs=None):
+    def collect(self, provider=None, *, allow_paid=False, max_jobs=None, tokenizers=None):
         self._configured()
         if provider is None:
             if all(p["adapter"] == "fake" for p in self.profile["providers"].values()):
@@ -514,11 +553,12 @@ class Project:
         if getattr(provider, "paid", False) and not allow_paid:
             raise ValueError("Paid transport requires explicit authorization")
         with self._lock():
+            self.cluster().ensure_control_idle()
             self.store.setting("cancel_requested", False)
-            return Engine(self, provider).run(max_jobs)
+            return Engine(self, provider, tokenizers=tokenizers).run(max_jobs)
 
-    def resume(self, provider=None, *, allow_paid=False, max_jobs=None):
-        return self.collect(provider, allow_paid=allow_paid, max_jobs=max_jobs)
+    def resume(self, provider=None, *, allow_paid=False, max_jobs=None, tokenizers=None):
+        return self.collect(provider, allow_paid=allow_paid, max_jobs=max_jobs, tokenizers=tokenizers)
 
     def cancel(self):
         self.store.setting("cancel_requested", True)
@@ -744,6 +784,11 @@ class Project:
             "external_agent_costs": {"actual_usd": None, "reason": "not_metered_by_collector",
                                      "included_in_collector_budget": False},
             "scope_note": "Agent planning is recorded separately from deterministic validation and model extraction."}
+        value["compute_execution"] = {
+            "cluster_execution": self.store.read_setting("cluster_execution"),
+            "cluster_accounting": self.store.read_setting("cluster_accounting"),
+            "throughput_settings": self.store.read_setting("cluster_throughput"),
+            "resource_usage_note": "Reserved allocation bounds and measured worker time are distinct; missing scheduler charges are unknown."}
         self.store.put("versions",version_id,{"dataset":value,"sha256":digest(value)})
         return version_id
 

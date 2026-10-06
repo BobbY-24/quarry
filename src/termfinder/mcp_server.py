@@ -1,7 +1,8 @@
 """Bounded newline-delimited MCP adapter for a fixed project or study workspace.
 
-No HTTP listener, client sampling, generated tools, subprocesses, or credentials
-are introduced here. Collection delegates to the same deterministic workflow.
+No HTTP listener, client sampling or generated tools are introduced here.
+Collection delegates to the deterministic workflow; reviewed cluster tools use
+the fixed Slurm adapter only within immutable launch-time storage/execute gates.
 """
 from __future__ import annotations
 
@@ -99,6 +100,7 @@ COMPUTE_PROPERTIES = {
     "context_limit_tokens": {"type": "integer", "minimum": 1, "maximum": 2_000_000},
     "max_output_tokens": {"type": "integer", "minimum": 1, "maximum": 131_072},
     "response_format": {"type": "string", "enum": ["json_object", "none"]},
+    "runtime": {"type": ["object", "null"]},
     "researcher_configured": BOOL,
     "configuration_reference": {"type": "string", "minLength": 1, "maxLength": 1000},
 }
@@ -107,10 +109,20 @@ COMPUTE_PROPERTIES = {
 def _tool(name, description, properties=None, required=(), readonly=False):
     return {"name": name, "description": description, "inputSchema": _schema(properties, required),
             "annotations": {"readOnlyHint": readonly, "destructiveHint": False,
-                            "openWorldHint": name in {"prepare_review", "collect"}}}
+                            "openWorldHint": name in {"prepare_review", "collect", "submit_cluster", "resume_cluster", "cancel_cluster", "resolve_cluster", "inspect_cluster"}}}
 
 
 TOOLS = [
+    _tool("configure_cluster", "Relay a researcher's reviewed site profile. Inert: no scheduler, shell, model installation or inference. Profile is operator input, never extraction output.", {"profile": OBJECT, "researcher_configured": BOOL, "configuration_reference": {"type": "string", "minLength": 1, "maxLength": 1000}}, ("profile", "researcher_configured", "configuration_reference")),
+    _tool("configure_throughput", "Configure bounded concurrent requests before jobs exist. This preserves recipe policy and budgets, invalidates earlier collection reviews, and does not benchmark or launch GPUs.", {"concurrency": {"type": "integer", "minimum": 1, "maximum": 64}, "model_concurrency": {"type": "integer", "minimum": 1, "maximum": 32}, "researcher_configured": BOOL, "configuration_reference": {"type": "string", "minLength": 1, "maxLength": 1000}}, ("researcher_configured", "configuration_reference")),
+    _tool("prepare_cluster", "Prepare an inert hash-bound Slurm job bundle from a current approved collection review. Return concrete resource limits, script and finite compute reservation for human review; no submission.", {"review_id": ID}, ("review_id",)),
+    _tool("cluster_review_text", "Read every field of the exact prepared cluster resource review in hash-bound Unicode chunks. RFC6901 pointers select saved values, never files. Inspect complete resources and script before relaying human approval.", {"cluster_review_id": ID, "json_pointer": {"type": "string", "maxLength": 1000}, "offset": PAGE, "length": {"type": "integer", "minimum": 1, "maximum": 12000}}, ("cluster_review_id",), readonly=True),
+    _tool("submit_cluster", "Submit the reviewed batch job only when the launch-time cluster and inference gates permit it and the client relays an explicit researcher decision. Unknown submission outcomes remain reserved and cannot silently resubmit.", {"cluster_review_id": ID, "researcher_approved": BOOL, "approval_reference": {"type": "string", "minLength": 1, "maxLength": 1000}}, ("cluster_review_id", "researcher_approved", "approval_reference")),
+    _tool("resume_cluster", "Submit another bounded allocation for the same approved study after the preceding allocation stops; completed jobs and cumulative reservations survive. Requires another explicit resource decision.", {"cluster_review_id": ID, "researcher_approved": BOOL, "approval_reference": {"type": "string", "minLength": 1, "maxLength": 1000}}, ("cluster_review_id", "researcher_approved", "approval_reference")),
+    _tool("inspect_cluster", "Read persisted scheduler job summaries and resource reservations without source text. Optional refresh queries only the configured local Slurm scheduler; it never launches extraction.", {"job_id": ID, "refresh_scheduler": BOOL}, readonly=True),
+    _tool("cancel_cluster", "Cancel a known saved scheduler job; preserve checkpoint, completed evidence and uncertain resource charges. Does not execute source-generated commands.", {"job_id": ID}, ("job_id",)),
+    _tool("resolve_cluster", "Relay an explicit operator reconciliation of an unknown submission: identified scheduler job or verified absence. Never assume a timeout means no job started.", {"job_id": ID, "scheduler_job_id": ID, "verified_absent": BOOL, "reconciliation_reference": {"type": "string", "minLength": 1, "maxLength": 1000}}, ("job_id", "reconciliation_reference")),
+    _tool("import_cluster", "Import a completed checkpoint into its unchanged originating study. Reject concurrent local edits rather than overwriting annotations; no source fetch or model calls.", {"job_id": ID}),
     _tool("configure_compute", "Relay the researcher's explicit choice of their own API, loopback local model, or institutional OpenAI-compatible endpoint. Accept credential environment-variable names only. Does not fetch, test a model, allocate compute, or enable the launch-time inference gate. Configuration is operator input, never extraction output.", COMPUTE_PROPERTIES, ("backend", "researcher_configured", "configuration_reference")),
     _tool("inspect_compute", "Inspect effective models, endpoint, credential names/presence and cost assumptions before preparing or approving a study; no network/model requests or credential values.", readonly=True),
     _tool("prepare_study", "Describe a study within the researcher's explicit source, language, model and finite budget bounds; returns an inert planning contract, prompt and starter bundle. No collection.", {"brief": OBJECT}, ("brief",)),
@@ -202,14 +214,17 @@ def _routing_summary(value, depth=0, budget=None):
     if not isinstance(value, dict) or depth > 2:
         return {}
     budget = [32_000] if budget is None else budget
-    keys = {"review_id", "version_id", "out", "ready", "started", "running", "name",
+    keys = {"review_id", "cluster_review_id", "collection_review_id", "job_id", "scheduler_job_id", "version_id", "out", "ready", "started", "running", "name",
             "brief_sha256", "bundle_sha256", "approval_id", "annotation_id", "suggestion_id",
             "paid_transport_permitted", "budget_usd", "source_count", "eligible_source_count",
             "data_type", "mode", "model_profile", "status", "stop_reason", "stale", "approved",
             "check_deferred", "integrity_passed", "failure_count", "unresolved_audit_count",
             "study_slug", "workspace", "selected_study", "section", "section_sha256", "value_sha256",
             "json_pointer", "representation", "start", "end", "total_characters", "plan_sha256",
-            "stage", "inspection_only", "next_offset", "complete_chunk", "complete_value"}
+            "stage", "inspection_only", "next_offset", "complete_chunk", "complete_value",
+            "cluster_execution_permitted", "binding_sha256", "profile_sha256", "script_template_sha256",
+            "reservation_gpu_hours", "reserved_gpu_hours", "remaining_gpu_hours", "remaining_submissions",
+            "max_gpu_hours", "max_submissions", "requires_human_resource_approval", "state", "blocked_reason"}
     result = {}
     for key in sorted(keys & set(value), key=lambda k: (k not in {"review_id", "version_id", "out", "ready"}, k)):
         item = value[key]
@@ -222,7 +237,7 @@ def _routing_summary(value, depth=0, budget=None):
         if budget[0] >= cost:
             result[key] = item
             budget[0] -= cost
-    for key in ("review", "freeze", "approval", "worker_result", "status", "audit"):
+    for key in ("review", "cluster", "job", "freeze", "approval", "worker_result", "status", "audit"):
         if isinstance(value.get(key), dict):
             nested = _routing_summary(value[key], depth + 1, budget)
             if nested:
@@ -251,11 +266,11 @@ def _result(value, error=False):
     if oversized:
         data = {**_routing_summary(value), "preview_only": True,
                 "reason": "result_exceeds_transport_preview",
-                "guidance": "Routing identifiers remain usable. Use inspect_review, review_sources and review_text to inspect the complete plan, costs and provenance inside this harness; use paged evidence tools for records. Full dataset records and audit detail remain in frozen exports."}
+                "guidance": "Routing identifiers remain usable. Use inspect_review, review_sources and review_text for the complete collection plan, and cluster_review_text for complete resources and script; use paged evidence tools for records. Full dataset records and audit detail remain in frozen exports."}
     elif isinstance(data, dict) and _contains_preview(data):
         data["preview_only"] = True
-        data["guidance"] = "Some nested detail is clipped. Use inspect_review, review_sources and review_text for complete harness inspection, and smaller evidence pages for records. Do not treat this preview as complete."
-    if isinstance(data, dict) and data.get("preview_only") is True and isinstance(value, dict) and (value.get("review_id") or isinstance(value.get("review"), dict) and value["review"].get("review_id")):
+        data["guidance"] = "Some nested detail is clipped. Use inspect_review, review_sources and review_text for the collection plan, cluster_review_text for resources and script, and smaller evidence pages for records. Do not treat this preview as complete."
+    if isinstance(data, dict) and data.get("preview_only") is True and isinstance(value, dict) and (value.get("review_id") or value.get("cluster_review_id") or isinstance(value.get("review"), dict) and value["review"].get("review_id")):
         data["full_review_required_before_approval"] = True
         data["approval_guidance"] = "Before relaying approval, disclose this preview and inspect the complete source list, source problems and cost estimate with the paged review tools inside this harness. The browser is optional. A review ID alone is not approval."
     body = canonical(data)
@@ -263,7 +278,8 @@ def _result(value, error=False):
 
 
 class MCPServer:
-    def __init__(self, project=None, *, workspace=None, allow_paid=False):
+    def __init__(self, project=None, *, workspace=None, allow_paid=False, allow_cluster=False,
+                 cluster_storage_roots=()):
         if (project is None) == (workspace is None):
             raise ValueError("Choose one fixed project or one bounded workspace")
         self.project = project
@@ -283,6 +299,15 @@ class MCPServer:
             self.workspace = path.resolve()
             self.workspace_fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
         self.allow_paid = bool(allow_paid)
+        self.allow_cluster = bool(allow_cluster)
+        self.cluster_storage_roots = []
+        for selected in cluster_storage_roots:
+            root = Path(selected).expanduser().absolute()
+            if (root in {Path("/"), Path.home(), Path.home().parent, Path("/tmp"), Path("/private/tmp"), Path("/Users"), Path("/home")}
+                    or any(part.lower() in {".ssh", ".aws", ".config", "keychains", "credentials"} for part in root.parts)
+                    or any(parent.is_symlink() for parent in (root, *root.parents)) or not root.is_dir()):
+                raise ValueError("Choose specific existing approved cluster storage directories")
+            self.cluster_storage_roots.append(root.resolve())
         self.initialized = False
         self.ready = False
         self.worker = None
@@ -613,6 +638,18 @@ class MCPServer:
         from . import workflow
         return workflow
 
+    def _cluster(self, project, *, durable_root=None):
+        selected = durable_root or project.store.read_setting("cluster_storage_root") or project.path
+        try:
+            path = Path(selected).expanduser().absolute()
+            allowed = [project.path, *self.cluster_storage_roots]
+            if (any(parent.is_symlink() for parent in (path, *path.parents))
+                    or not any(path.is_relative_to(root) for root in allowed)):
+                raise ValueError("Outside storage scope")
+        except (ValueError, TypeError):
+            raise ToolFailure("cluster_storage_scope_violation", "Cluster storage must stay inside this study or a specific directory authorized with --cluster-storage-root at server launch; tools cannot expand that scope.") from None
+        return project.cluster()
+
     @property
     def running(self):
         return self.worker is not None and self.worker.is_alive()
@@ -639,6 +676,7 @@ class MCPServer:
     def _start(self, review_id, max_jobs=None):
         with self.worker_lock:
             self._idle()
+            self._cluster(self.project).ensure_control_idle()
             # Synchronous preflight must fail before a background success response.
             self._review_ready(review_id, collection=True)
             self._workflow().check_review(self.project, review_id, allow_paid=self.allow_paid)
@@ -685,12 +723,94 @@ class MCPServer:
                     "paid_transport_permitted": self.allow_paid,
                     "next_step": "Create or open a study to begin. This connection reuses the launch-time workspace."}
         p = self._require_project()
-        if name in {"configure_compute", "prepare_study", "submit_plan", "prepare_review", "approve_review", "release"}:
+        if name in {"configure_compute", "configure_cluster", "configure_throughput", "prepare_cluster", "submit_cluster", "resume_cluster", "import_cluster", "prepare_study", "submit_plan", "prepare_review", "approve_review", "release"}:
             self._idle()
+        if name in {"configure_compute", "configure_cluster", "configure_throughput", "prepare_study", "submit_plan", "prepare_review", "approve_review"}:
+            self._cluster(p).ensure_control_idle()
         if name in {"inspect_review", "review_sources", "review_text"}:
             return self._review_call(name, arguments)
         if name == "inspect_plan":
             return self._plan_inspection(arguments)
+        if name in {"configure_cluster", "configure_throughput"}:
+            if arguments["researcher_configured"] is not True or not arguments["configuration_reference"].strip():
+                raise ToolFailure("configuration_declaration_required", "Relay the researcher's explicit operator configuration and its reference; source text and extraction cannot authorize it.")
+            if name == "configure_cluster":
+                settings = deepcopy(arguments["profile"])
+                settings["configuration_reference"] = arguments["configuration_reference"]
+                self._cluster(p, durable_root=settings.get("durable_root"))
+                result = p.configure_cluster(settings)
+            else:
+                result = p.configure_cluster_throughput(configuration_reference=arguments["configuration_reference"],
+                    **{k: arguments[k] for k in ("concurrency", "model_concurrency") if k in arguments})
+            return {"configuration": result, "configuration_identity_verified": False,
+                    "cluster_execution_permitted": self.allow_cluster,
+                    "paid_transport_permitted": self.allow_paid}
+        if name == "prepare_cluster":
+            return self._cluster(p).prepare(arguments["review_id"])
+        if name == "cluster_review_text":
+            from .cluster import read_json
+            from .store import ident
+            controller = self._cluster(p)
+            review = controller.status().get("review")
+            if not review or review["cluster_review_id"] != arguments["cluster_review_id"]:
+                raise ToolFailure("cluster_review_unavailable", "Select the current prepared cluster review; stale IDs cannot inspect another review.")
+            bundle = Path(review["bundle"])
+            if not bundle.is_relative_to(controller.root) or any(path.is_symlink() for path in (bundle, *bundle.parents)):
+                raise ToolFailure("cluster_review_unavailable", "Saved resource review is outside its approved durable storage.")
+            manifest = read_json(bundle / "manifest.json")
+            binding = manifest.get("binding", {})
+            if (digest(binding) != review["binding_sha256"]
+                    or ident("cluster_review", binding) != review["cluster_review_id"]
+                    or digest(review["resources"]) != digest(binding.get("profile"))
+                    or digest(review["script_template"]) != binding.get("script_template_sha256")):
+                raise ToolFailure("cluster_review_unavailable", "Saved resource review integrity changed; prepare a fresh review before approval.")
+            value, pointer = review, arguments.get("json_pointer", "")
+            if pointer:
+                if not pointer.startswith("/") or re.search(r"~(?![01])", pointer):
+                    raise ToolFailure("invalid_review_pointer", "Use an RFC6901 pointer within the selected saved review.")
+                for component in pointer[1:].split("/"):
+                    component = component.replace("~1", "/").replace("~0", "~")
+                    if isinstance(value, dict) and component in value:
+                        value = value[component]
+                    elif isinstance(value, list) and re.fullmatch(r"0|[1-9][0-9]*", component) and int(component) < len(value):
+                        value = value[int(component)]
+                    else:
+                        raise ToolFailure("invalid_review_pointer", "The pointer does not address this exact resource review.")
+            text = value if isinstance(value, str) else canonical(value)
+            offset, length = arguments.get("offset", 0), arguments.get("length", 8000)
+            if offset > len(text):
+                raise ToolFailure("invalid_review_offset", "The character offset exceeds the saved review value.")
+            end = min(len(text), offset + length)
+            return {"cluster_review_id": review["cluster_review_id"], "binding_sha256": review["binding_sha256"],
+                "json_pointer": pointer, "value_sha256": digest(text),
+                "representation": "original_string" if isinstance(value, str) else "canonical_json",
+                "text": text[offset:end], "offset_unit": "Unicode code points", "start": offset,
+                "end": end, "total_characters": len(text), "next_offset": end if end < len(text) else None,
+                "complete_value": offset == 0 and end == len(text), "complete_chunk": True,
+                "inspection_only": True}
+        if name == "inspect_cluster":
+            if arguments.get("refresh_scheduler") and not self.allow_cluster:
+                raise ToolFailure("cluster_launch_gate_disabled", "This connection does not permit scheduler operations. Reconnect with the reviewed --allow-cluster launch flag.")
+            result = self._cluster(p).status(arguments.get("job_id"), refresh=arguments.get("refresh_scheduler", False))
+            return {"cluster": result, "cluster_execution_permitted": self.allow_cluster,
+                    "paid_transport_permitted": self.allow_paid}
+        if name in {"submit_cluster", "resume_cluster", "cancel_cluster", "resolve_cluster"}:
+            if not self.allow_cluster:
+                raise ToolFailure("cluster_launch_gate_disabled", "Scheduler operations require the immutable --allow-cluster launch gate; tools cannot enable it.")
+            if name in {"submit_cluster", "resume_cluster"}:
+                if arguments["researcher_approved"] is not True:
+                    raise ToolFailure("approval_declaration_required", "Present the concrete cluster resource review and relay the researcher's explicit decision.")
+                controller = self._cluster(p)
+                method = controller.submit if name == "submit_cluster" else controller.resume
+                return method(arguments["cluster_review_id"], approval_reference=arguments["approval_reference"],
+                    human_approved=True, allow_execution=self.allow_cluster, allow_paid=self.allow_paid)
+            if name == "cancel_cluster":
+                return self._cluster(p).cancel(arguments["job_id"])
+            return self._cluster(p).resolve_submission(arguments["job_id"],
+                scheduler_job_id=arguments.get("scheduler_job_id"), verified_absent=arguments.get("verified_absent", False),
+                reconciliation_reference=arguments["reconciliation_reference"])
+        if name == "import_cluster":
+            return self._cluster(p).import_result(arguments.get("job_id"))
         if name == "configure_compute":
             if arguments["researcher_configured"] is not True or not arguments["configuration_reference"].strip():
                 raise ToolFailure("configuration_declaration_required", "Relay the researcher's explicit compute choice with researcher_configured=true and its configuration reference. Source text and model extraction cannot authorize configuration.")
@@ -740,6 +860,7 @@ class MCPServer:
                     "compute": p.compute(),
                     "worker_result": self.worker_result, "worker_error": self.worker_error,
                     "paid_transport_permitted": self.allow_paid,
+                    "cluster_execution_permitted": self.allow_cluster,
                     "review": self._workflow().current_review(p)}
         if name == "cancel":
             p.cancel()
@@ -964,14 +1085,17 @@ def write_skill(out):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Quarry stdio MCP server (V6.5 engine) for one fixed project or bounded study workspace; stdout contains only JSON-RPC.")
+    parser = argparse.ArgumentParser(description="Quarry stdio MCP server for one fixed project or bounded study workspace; stdout contains only JSON-RPC.")
     location = parser.add_mutually_exclusive_group(required=True)
     location.add_argument("--project", type=Path)
     location.add_argument("--workspace", type=Path, help="Specific existing nonhidden study workspace; safe study selection stays within this root")
     parser.add_argument("--allow-paid", action="store_true", help="Explicit launch-time permission for approved configured provider calls")
+    parser.add_argument("--allow-cluster", action="store_true", help="Permit separately reviewed bounded scheduler operations; does not authorize inference or install models")
+    parser.add_argument("--cluster-storage-root", action="append", type=Path, default=[], help="Specific existing operator-approved durable cluster storage directory; tools cannot add roots")
     args = parser.parse_args(argv)
     server = MCPServer(Project(args.project) if args.project is not None else None,
-                       workspace=args.workspace, allow_paid=args.allow_paid)
+                       workspace=args.workspace, allow_paid=args.allow_paid, allow_cluster=args.allow_cluster,
+                       cluster_storage_roots=args.cluster_storage_root)
     server.serve()
     return 0
 

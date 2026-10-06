@@ -28,8 +28,10 @@ cannot enable the launch-time gate.
   inference just because its client is local.
 - `backend=institutional`: use an authenticated HTTPS gateway assigned by the
   institution, or a loopback server in the researcher's approved allocation.
-  Quarry does not grant Georgia Tech/PACE access, schedule jobs, create tunnels,
-  choose accounts/partitions, or download models. On shared hosts loopback is not
+  Compute configuration does not grant Georgia Tech/PACE access, schedule jobs,
+  create tunnels, choose accounts/partitions, or download models. The separate
+  reviewed cluster workflow can submit finite Slurm jobs after actual resource
+  approval and an enabled scheduler gate. On shared hosts loopback is not
   authentication against other local users; require site-approved isolation or
   an authenticated gateway. Never disable TLS/SSH identity checks.
 
@@ -56,6 +58,63 @@ every local request has a token bill. Configuration alone authorizes neither
 collection nor model/server/scheduler execution. Local/institutional zero token
 rates leave GPU/allocation, energy and planning-agent costs unknown and excluded.
 Keep finite source/call/retry/deadline limits even with zero per-token fees.
+
+## Existing agent controlling GT extraction
+
+Use the institution's actual Slurm-side control host and approved SSH stdio-MCP
+or terminal connection; a laptop server has no automatic remote scheduler access.
+The institution provides access, reviewed Python/runtime, node-local scratch,
+durable checkpoint storage and either an existing approved gateway or a
+preinstalled pinned vLLM runtime with reviewed pre-staged safe model files.
+Do not invent hostnames/accounts/partitions. Fixed same-job serving requires an
+actually approved `server` profile; no model downloads, arbitrary launch scripts,
+pickle weights or model-supplied Python/remote code are enabled. Keep SSH/TLS
+verification enabled and credential values out of arguments.
+
+Configure a separate validated site profile using `configure_cluster` with the
+researcher's actual decision and reference. It carries resources, walltime,
+checkpoint/shutdown grace, finite cumulative GPU-hours/submission counts,
+reviewed interpreter digest and declared model-artifact metadata. Runtime binary
+verification is distinct from declared checkpoint hashes: Quarry cannot verify
+which weights a remote gateway loaded from its name alone. The profile does not
+contain arbitrary scripts or secret values.
+
+For an existing external gateway use `server=null`, `gpus=0` and
+`max_gpu_hours=0`, retaining finite walltime/submission limits. Gateway serving
+resources remain separately unknown. For the fixed same-job vLLM launcher,
+review its pinned package version, model directory, complete artifact-file hash
+inventory, model alias, context limit, parallelism, port, memory fraction and
+bounded startup timeout. Its loopback endpoint must match the configured model
+profile. Configuration never launches it; only explicitly approved submission
+does. The worker verifies the inventory before serving and cleans up its server
+on normal stop, cancellation or failure.
+
+Complete source capture and the full collection review first. Then use
+`prepare_cluster` to create the hash-bound resource review. Relay an actual
+approval only after inspecting its complete profile, artifact inventory and
+fixed launcher. Use `cluster_review_text` to recover any previewed detail in
+hash-bound Unicode chunks; follow every continuation as described in the workflow
+reference. Then relay actual
+approval of that exact review with `submit_cluster`; keep the distinct
+`--allow-cluster` scheduler gate and `--allow-paid` real-request gate. Neither
+can be enabled by an MCP tool or a plan. A submitted worker survives agent
+disconnection; inspect its saved job before any replacement, and import the
+validated result/checkpoint before inspecting/exporting the updated inventory.
+
+An uncertain submission retains its reservation until explicit verified
+reconciliation. Resume requests another finite allocation within cumulative
+limits; it does not authorize an infinite retry loop. Node-local live SQLite
+uses consistent durable checkpoints; never share WAL state across nodes or
+copy only a writing database file. Loss after the latest completed checkpoint
+can require repeated work. Record partial coverage and uncertain outcomes.
+
+The planning harness still has its own external provider/account. Default to
+status summaries and hashes; showing source contexts through that harness may
+transmit them to its provider. Source privacy requires approved tool output and
+data-handling policy, not just the institutional backend setting.
+
+For complete setup, finite Slurm commands, profile examples and pilot boundaries,
+read the [GT workflow](https://github.com/BobbY-24/quarry/blob/main/docs/GT_COMPUTE.md).
 
 For installation, approved model-server commands and current primary-source
 links, use the [repository compute guide](https://github.com/BobbY-24/quarry/blob/main/docs/COMPUTE.md).
