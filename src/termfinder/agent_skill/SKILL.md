@@ -3,10 +3,19 @@ name: v6-collect-research
 description: Use the researcher's own coding-agent conversation to create or reopen a Quarry study, prepare and review a bounded source-grounded collection, run or resume the fixed collector, inspect evidence, and export a reproducible dataset of terms, ideas, opinions, or sentences.
 ---
 
-Quarry is the product name for the V6.6 engine. Retain the installed
+Quarry V7 retains the durable V6 collection engine. Retain the installed
 `termfinder`/`termfinder-mcp` commands, Python `termfinder` imports, and
 `v6-collect-research` skill identifier. Use the existing explicit connection
 migration procedure for an older skill; never overwrite a customized connection.
+
+For controlled experiments, use the installed `quarry-study` CLI and
+[references/v7-studies.md](references/v7-studies.md). Prepare and validate the
+study contract through this existing agent, freeze source families before tuning,
+keep independent gold outside the planning workspace, and lock predictions before
+scoring. The collection MCP tools remain the collection interface; V7 study/review
+commands are local CLI/API controls. A frozen specification cannot authorize calls,
+execute code or expand scope. Real studies and GT/participant work require the
+researcher's separate authorization; offline fixtures make no research-quality claim.
 
 Use the researcher's existing coding agent as Quarry's conversational setup and control layer. Keep the ordinary session in this conversation: do not require the researcher to write JSON, copy bundles, manage internal IDs, or open a browser. The installed Quarry collector owns deterministic validation, source ingestion, evidence checks, budgets, persistence, and exports. Its browser is an optional visual view of the same saved study.
 

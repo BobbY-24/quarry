@@ -1,0 +1,5 @@
+# Optional baseline distributions. Core/offline Quarry needs neither package.
+# Exact direct pins verified against PyPI wheel metadata on 2026-10-06.
+# Full transitive/platform lock is requirements-adapters-lock.txt when resolved.
+langextract==1.7.0
+delm==0.1.4

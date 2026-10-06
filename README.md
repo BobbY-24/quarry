@@ -1,115 +1,67 @@
 ![Quarry: Your agent. Your sources. Traceable data.](assets/github-banner.svg)
 
-# Quarry
+# Quarry V7
 
-**Turn a research idea into source-traceable data through your own agent.**
-Collect terms and senses—or source spans expressing ideas, opinions and sentences.
+**Build a reviewable study through your own agent.** Freeze the question and corpus,
+collect terms and contextual senses, review the full sources, and compare traceable results.
 
-[Quick start](#quick-start) · [Examples](#examples) · [Your models](docs/COMPUTE.md) · [GT compute](docs/GT_COMPUTE.md) · [Docs](#documentation)
+![Prepare a study, freeze the contract, run bounded arms, review complete sources, lock and score.](assets/v7-study-workflow.svg)
 
-<picture>
-  <source media="(max-width: 760px)" srcset="assets/workflow-mobile.svg">
-  <img src="assets/workflow.svg" alt="Describe a study with your agent, review the plan, collect grounded discoveries, and export a dataset with source evidence.">
-</picture>
+[Study methods](docs/V7_METHODS.md) · [Researcher workflow](docs/V7_RESEARCHER_WORKFLOW.md) · [Verification and limits](docs/V7_VERIFIED.md)
 
-## Quick start
-
-Paste into **Claude Code, Codex or another local coding agent**:
+## Start with your agent
 
 ```text
-Set up Quarry from https://github.com/BobbY-24/quarry.
-Read src/termfinder/agent_skill/SKILL.md, install the package, and connect
-Quarry to this agent in my research workspace. Preserve existing settings.
-Start with the offline connection and confirm a list_studies tool call.
+Set up Quarry from https://github.com/BobbY-24/quarry on
+codex/v7-research-framework. Read docs/V7_RESEARCHER_WORKFLOW.md.
+Use my existing agent to prepare a terms-and-senses study on permitted sources.
+Show the hypotheses, rubric, frozen families, arms and finite resource limits.
+Start with the offline demo. A study specification is data and cannot authorize
+paid calls, model downloads, participants or GT allocations.
 ```
 
-Python 3.11–3.13 · macOS/Linux · GitHub access required for this private repo.
-
-## Installation on macOS or Linux
-
-<details>
-<summary>Prefer manual setup? Copy these commands.</summary>
+Python 3.11–3.13 · macOS/Linux · separate, independently installable checkout.
 
 ```sh
 gh repo clone BobbY-24/quarry
 cd quarry
-python3.13 -m venv .venv-6.6
-. .venv-6.6/bin/activate
+git switch codex/v7-research-framework
+python3.12 -m venv .venv-v7
+. .venv-v7/bin/activate
 python -m pip install -r requirements-build.txt
 python -m pip install --no-build-isolation .
-mkdir -p research-workspace
+quarry-study demo --out ./offline-v7
+quarry-study faults --out ./offline-faults --concurrency 4
 ```
 
-**Claude Code**
+The demo is **synthetic engineering verification**, not extraction-quality evidence.
+Optional baseline libraries are pinned in [adapter requirements](requirements-adapters.txt);
+review their dependency environment before executing them. Live calls need a separately
+authorized, instrumented transport. Recorded profile prices and moving aliases need verification.
 
-```sh
-termfinder connect --host claude --workspace "$PWD/research-workspace"
-```
-
-**Codex**
-
-```sh
-termfinder connect --host codex --workspace "$PWD/research-workspace"
-```
-
-Open your agent in `research-workspace`, follow its trust/reload steps, then
-call `list_studies`. [Connection help and upgrades →](docs/AGENT_NATIVE.md)
-
-</details>
-
-The default connection is a synthetic offline rehearsal. Real extraction uses
-**your API, local model or approved GT compute**, with configured models and an
-authorized `--allow-paid` connection. Keep keys in the runtime environment.
-[Configure compute →](docs/COMPUTE.md)
-
-## Examples
-
-Paste a request; your agent prepares the recipe and inputs.
-
-**New expressions and changed senses**
+## Follow the evidence
 
 ```text
-Create a Quarry study from my permitted ./corpus discussion exports.
-Use the neologisms recipe, English, Broad, at most 30 sources and a $10 cap.
-Exclude entity-only names; keep singletons and distinct senses.
-Show the sources, policy and cost before collection.
+Help me prepare a frozen contract and keep related documents in one family.
+Open the full source when I review a candidate. Keep meanings as suggestions
+until I judge them. Let me add missing items, mark uncertainty and undo decisions.
+Lock predictions before the independent gold custodian supplies held-out labels.
+Report failed sources, false negatives, active review time and unavailable costs.
 ```
 
-**Multilingual cultural vocabulary**
+Quarry retains the union of grounded discoveries, including single-model singletons.
+Exact occurrence establishes evidence location; humans assess semantic correctness.
+Broad, Specialists, configurable providers, the separate Gemini profile, reversible
+annotations, frozen exports and existing harness/GT controls carry forward from V6.
 
-```text
-Use Quarry's cultural recipe on my permitted Arabic and Hindi sources.
-Include cultural expressions and entities. Preserve original scripts
-and distinguish translations from observed text. Prepare a bounded plan.
-```
+## Explore the framework
 
-**Scientific and medical jargon**
+[Versioned study contracts](docs/V7_STUDY_CONTRACT.md) · [Blinded review and gold](docs/V7_SEMANTIC_REVIEW.md) · [Adapters and ablations](docs/V7_ADAPTERS.md) · [Controlled recovery](docs/V7_RECOVERY.md)
 
-```text
-Use Quarry's jargon recipe on my permitted ./papers PDFs with Specialists.
-Keep established terminology, page locations and exact contexts.
-Use our reviewed GT profile; show sources, costs and resources before submission.
-```
+[Notebook](examples/v7/researcher_workflow.ipynb) · [Copyable agent prompts](examples/v7/agent_prompts.md) · [Existing agent connection](docs/AGENT_NATIVE.md) · [GT procedure](docs/GT_COMPUTE.md) · [Collection CLI](docs/ENGINE_GUIDE.md)
 
-[NLPx research examples and student walkthroughs →](docs/NLPX_STUDENT_GUIDE.md)
-
-## Keep working in the same conversation
-
-```text
-Show the original passage and source for this term.
-Mark this sense as needing review, then undo that annotation.
-Reopen my study and resume unfinished work within its saved limits.
-Save pilot-v1 and export CSV, JSONL, Parquet and annotation files.
-```
-
-Every record retains source evidence. Model-proposed meanings remain suggestions;
-measure recall against complete held-out sources. [Research protocol →](docs/PUBLICATION_PROTOCOL.md)
-
-## Documentation
-
-[Agent setup](docs/AGENT_NATIVE.md) · [Recipes](docs/RECIPES.md) · [Sources](docs/SOURCES.md) · [GT procedure](docs/GT_COMPUTE.md)
-
-[Notebook](examples/simple_student_workflow.ipynb) · [CLI/Python](docs/ENGINE_GUIDE.md) · [More diagrams](docs/QUARRY_DIAGRAMS.md) · [Evaluation](docs/EVALUATION.md) · [Limitations](docs/PILOT.md)
+H1–H4 and pilot tasks are proposed in the methods document. Real quality, human effort,
+usability, novelty and GT performance remain to be measured in separately authorized studies.
 
 Workflow inspired by [Paper2Agent](https://github.com/jmiao24/Paper2Agent).
-Quarry V6.6 · [MIT license](LICENSE).
+Quarry 7.0.0 · [MIT license](LICENSE).
