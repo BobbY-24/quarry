@@ -85,7 +85,7 @@ def main():
         parser.error("Use a fresh output directory inside verification")
     out.mkdir(parents=True)
     import termfinder
-    assert termfinder.__version__ == "6.4.0"
+    assert termfinder.__version__ == "6.5.0"
     assert Path(termfinder.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
     connections = {}
     for host in ("codex", "claude", "generic"):

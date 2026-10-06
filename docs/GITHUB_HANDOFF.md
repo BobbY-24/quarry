@@ -1,6 +1,6 @@
 # Quarry GitHub source handoff
 
-Quarry, powered by the V6.4 engine, lives at the root of the private
+Quarry, powered by the V6 engine, lives at the root of the private
 [`BobbY-24/quarry`](https://github.com/BobbY-24/quarry)
 repository. Clone it, install the independent package, and connect it to your own
 coding-agent workspace. The earlier collector and nested V6 copy remain in the
@@ -16,8 +16,8 @@ With an authenticated GitHub CLI and an installed Python 3.11–3.13:
 ```sh
 gh repo clone BobbY-24/quarry
 cd quarry
-python3.13 -m venv .venv-6.4
-. .venv-6.4/bin/activate
+python3.13 -m venv .venv-6.5
+. .venv-6.5/bin/activate
 python -m pip install -r requirements-build.txt
 python -m pip install --no-build-isolation .
 mkdir -p research-workspace
@@ -28,6 +28,10 @@ Use `--host codex` or `--host generic` as appropriate. Follow the host's normal
 trust/reload steps and verify an actual `list_studies` call. The default connection
 is offline only. [Own-agent setup](AGENT_NATIVE.md) explains connection, review,
 resume and the separately authorized real-provider gate.
+Choose each study's own API/local/institutional extraction backend using
+[compute setup](COMPUTE.md); the repository supplies no developer credential or
+Georgia Tech allocation. [6.5 verification](COMPUTE_VERIFIED.md) records the new
+installed-wheel tests and credential-audit scope.
 
 ## Publication scope and provenance
 

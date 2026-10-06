@@ -249,7 +249,7 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     inventory=self.server.project.page_inventory(offset=int(query.get("offset",["0"])[0]),limit=int(query.get("limit",["50"])[0]),query=query.get("query",[""])[0],record_id=query.get("record",[None])[0],evidence_offset=int(query.get("evidence_offset",["0"])[0]),recovery_offset=int(query.get("recovery_offset",["0"])[0])) if query.get("paged") == ["1"] else self.server.project.inventory()
                     status = self.server.project.status()
-                    result = {"status": status, "inventory": inventory, "recipe": getattr(self.server.project, "recipe", None), "profile": getattr(self.server.project, "profile", None), "versions": self.server.project.versions(), "running": status.get("status") == "running" or self.server.worker is not None and self.server.worker.is_alive(), "worker_error": self.server.worker_error, "worker_result": self.server.worker_result, "offline": not self.server.allow_paid, "review": _review_state(self.server.project), "setup_revision": _setup_revision(self.server.project)}
+                    result = {"status": status, "inventory": inventory, "recipe": getattr(self.server.project, "recipe", None), "profile": getattr(self.server.project, "profile", None), "compute": self.server.project.compute() if callable(getattr(self.server.project, "compute", None)) else {}, "versions": self.server.project.versions(), "running": status.get("status") == "running" or self.server.worker is not None and self.server.worker.is_alive(), "worker_error": self.server.worker_error, "worker_result": self.server.worker_result, "offline": not self.server.allow_paid, "review": _review_state(self.server.project), "setup_revision": _setup_revision(self.server.project)}
                 self._send(200, result)
             except ValueError:
                 self._send(400, {"error":"Invalid query or page bounds"})
@@ -309,12 +309,12 @@ class Handler(BaseHTTPRequestHandler):
                 if self.server.worker and self.server.worker.is_alive():
                     raise ValueError("Wait for collection to stop before changing its recipe")
                 profile = body.get("profile", "fake")
-                if profile not in {"fake", "glm-deepseek", "gemini"}:
-                    raise ValueError("Browser profile must be fake, glm-deepseek, or gemini; custom provider configuration uses the CLI")
+                if profile not in {"fake", "glm-deepseek", "gemini", "configured"}:
+                    raise ValueError("Select a packaged or researcher-configured profile; compute setup uses the agent or CLI")
                 recipe = _decode_json(body["recipe_text"]) if "recipe_text" in body else body["recipe"]
                 if "mode" in body:
                     recipe["mode"] = body["mode"]
-                result = project.configure(recipe, profile)
+                result = project.configure(recipe, None if profile == "configured" else profile)
             elif path == "/api/ingest":
                 metadata = _decode_json(body["metadata_text"]) if "metadata_text" in body else body.get("metadata")
                 result = {"source_ids": project.ingest(paths=body.get("paths", []), urls=body.get("urls", []), metadata=metadata)}

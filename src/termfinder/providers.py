@@ -47,7 +47,8 @@ class HTTPProvider:
     paid = True
 
     def __init__(self, profile, *, _direct=False):
-        self.profile = profile
+        from .config import load_profile
+        self.profile = load_profile(profile)
         self._direct = _direct
 
     def complete(self, request):
@@ -56,11 +57,14 @@ class HTTPProvider:
             # this provider's credential is inherited; never all of os.environ.
             model = self.profile["models"][request["expert"]["model"]]
             provider = self.profile["providers"][model["provider"]]
-            key = os.environ.get(provider["credential_env"])
-            if not key:
+            credential_name = provider["credential_env"]
+            key = os.environ.get(credential_name) if credential_name else None
+            if credential_name and not key:
                 raise ProviderError("missing_credential_environment")
             env = {"PATH":"/usr/bin:/bin", "PYTHONNOUSERSITE":"1", "PYTHONDONTWRITEBYTECODE":"1",
-                   "PYTHONPATH":str(Path(__file__).resolve().parent.parent), provider["credential_env"]:key}
+                   "PYTHONPATH":str(Path(__file__).resolve().parent.parent)}
+            if credential_name:
+                env[credential_name] = key
             try:
                 wire_request = {k:request[k] for k in ("expert","prompt","max_output_tokens","timeout_seconds")}
                 payload=json.dumps({"profile":self.profile,"request":wire_request}, ensure_ascii=False, allow_nan=False).encode()
@@ -84,17 +88,20 @@ class HTTPProvider:
         expert = request["expert"]
         model = self.profile["models"][expert["model"]]
         provider = self.profile["providers"][model["provider"]]
-        credential = os.environ.get(provider["credential_env"])
-        if not credential:
+        credential_name = provider["credential_env"]
+        credential = os.environ.get(credential_name) if credential_name else None
+        if credential_name and not credential:
             raise ProviderError("missing_credential_environment", uncertain=False)
         # Credentials stay in transport headers, never args/URLs/errors/logs.
         headers = {"Content-Type": "application/json"}
         if provider["adapter"] == "openai":
             url = provider["base_url"].rstrip("/") + "/chat/completions"
-            headers["Authorization"] = "Bearer " + credential
+            if credential is not None:
+                headers["Authorization"] = "Bearer " + credential
             body = {"model": model["model"], "messages": [{"role": "user", "content": request["prompt"]}],
-                    "temperature": 0, "max_tokens": request["max_output_tokens"],
-                    "response_format": {"type": "json_object"}}
+                    "temperature": 0, "max_tokens": request["max_output_tokens"]}
+            if provider.get("response_format", "json_object") == "json_object":
+                body["response_format"] = {"type": "json_object"}
             if model["thinking_budget"] is not None:
                 body["reasoning_effort"] = model["thinking_budget"] or "none"
         elif provider["adapter"] == "gemini":
@@ -115,6 +122,10 @@ class HTTPProvider:
                 if len(raw) > 8_000_000:
                     raise ProviderError("response_size_limit", uncertain=True)
                 payload = json.loads(raw)
+                # A buggy endpoint may echo its authentication header. Do not
+                # persist it as model text, request ID, model metadata or cache.
+                if credential and (credential.encode() in raw or credential in json.dumps(payload, ensure_ascii=False)):
+                    raise ProviderError("credential_echo_in_provider_response", uncertain=True)
         except HTTPError as e:
             # 429/400/401 are explicit rejections. 5xx may follow accepted work.
             from .resilience import parse_retry_after

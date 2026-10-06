@@ -65,11 +65,58 @@ class Project:
     def configuration(self):
         return {"recipe": self.recipe, "profile": self.profile}
 
+    def compute(self):
+        from .compute import compute_summary
+        configured = self.store.read_setting("configured_profile")
+        return compute_summary(configured or self.profile, configured=bool(configured))
+
+    def configure_compute(self, **settings):
+        """Save an operator choice, separately from untrusted research/extraction inputs."""
+        from .compute import build_compute_profile
+        profile = build_compute_profile(**settings)
+        with self._lock(), self.store.connection() as db:
+            previous = self.store.setting("configured_profile", db=db, write=False)
+            if previous != profile:
+                if self.store.count("jobs"):
+                    raise ValueError("Changing compute after extraction jobs exist requires a separate study; resume preserves the original compute and budget")
+                recipe = self.store.setting("recipe", db=db, write=False)
+                if recipe:
+                    recipe = deepcopy(recipe)
+                    recipe["model_profile"] = "configured"
+                    aliases = list(profile["models"])
+                    for index, lens in enumerate(recipe["specialist_lenses"]):
+                        lens["model"] = aliases[index % len(aliases)]
+                    ceiling = min(m["output_token_ceiling"] for m in profile["models"].values())
+                    for field in ("max_output_tokens", "recovery_output_tokens"):
+                        recipe["execution"][field] = min(recipe["execution"][field], ceiling)
+                    load_recipe(recipe)
+                    experts(recipe, profile)
+                    self.store.setting("recipe", recipe, db)
+                self.store.setting("configured_profile", profile, db)
+                self.store.setting("profile", profile, db)
+                self.store.setting("agent_setup", None, db)
+                self.store.setting("agent_proposal", None, db)
+                event = self._plan_event("compute_configured", {"profile": profile,
+                    "profile_sha256": digest(profile), "configuration_does_not_authorize_inference": True}, db)
+                self.store.setting("ui_setup_revision", event, db)
+        return self.compute()
+
+    def _planning_profile(self, brief):
+        from .agent_setup import planning_profile
+        configured = self.store.read_setting("configured_profile")
+        if configured and brief["model_profile"] != "configured":
+            raise ValueError("Research plans must use the researcher-selected compute")
+        return planning_profile(brief, configured)
+
     def configure(self, recipe, profile=None):
         recipe = load_recipe(recipe)
-        profile = load_profile(profile or recipe["model_profile"])
+        profile = load_profile(profile or (self.store.read_setting("configured_profile")
+                                          if recipe["model_profile"] == "configured" else recipe["model_profile"]))
         experts(recipe, profile)
         with self._lock(), self.store.connection() as db:
+            operator = self.store.setting("configured_profile", db=db, write=False)
+            if operator and (recipe["model_profile"] != "configured" or profile != operator):
+                raise ValueError("Use the saved configured compute; changes require configure_compute before jobs or a separate study")
             self.store.setting("recipe", recipe, db)
             self.store.setting("profile", profile, db)
             self.store.setting("cancel_requested", False, db)
@@ -94,11 +141,20 @@ class Project:
 
     def prepare_agent_setup(self, brief):
         from .agent_setup import VERSION, normalize_brief, build_prompt, template_bundle
+        brief = deepcopy(brief)
+        operator = self.store.read_setting("configured_profile")
+        if operator:
+            if brief.get("model_profile", "configured") != "configured":
+                raise ValueError("Use the researcher-configured compute profile; research plans cannot replace compute settings")
+            brief["model_profile"] = "configured"
         brief = normalize_brief(brief)
-        prompt = build_prompt(brief)
+        selected = self._planning_profile(brief)
+        prompt = build_prompt(brief, selected)
         setup = {"version": VERSION, "brief": brief, "brief_sha256": digest(brief), "prompt": prompt,
-                 "prompt_sha256": digest(prompt), "starter_bundle": template_bundle(brief), "applied": False}
+                 "prompt_sha256": digest(prompt), "starter_bundle": template_bundle(brief, selected), "applied": False}
         with self._lock(), self.store.connection() as db:
+            if self.store.setting("configured_profile", db=db, write=False) != operator:
+                raise ValueError("Compute changed during preparation; prepare the study again")
             setup["event_sha256"] = self._plan_event("brief_prepared", setup, db)
             self.store.setting("agent_setup", setup, db)
             self.store.setting("agent_proposal", None, db)
@@ -110,7 +166,7 @@ class Project:
         setup = self.agent_setup()
         if not setup:
             raise ValueError("Describe the study and create an agent request first")
-        report = validate_bundle(bundle, setup["brief"])
+        report = validate_bundle(bundle, setup["brief"], self._planning_profile(setup["brief"]))
         with self._lock(), self.store.connection() as db:
             # Rejected objects can contain credentials. Preserve diagnostics and
             # safe hashes only, never their raw content or exception bodies.
@@ -126,14 +182,14 @@ class Project:
         setup = self.agent_setup()
         if not setup:
             raise ValueError("Create an agent request first")
-        report = validate_bundle(bundle, setup["brief"])
+        report = validate_bundle(bundle, setup["brief"], self._planning_profile(setup["brief"]))
         if not report["valid"]:
             raise ValueError("Plan is not ready. Validate it and send the repair prompt to your agent.")
         recipe = load_recipe(bundle["recipe"])
-        profile = load_profile(setup["brief"]["model_profile"])
+        profile = self._planning_profile(setup["brief"])
         with self._lock(), self.store.connection() as db:
             current = self.store.setting("agent_setup", db=db, write=False)
-            if current["brief_sha256"] != setup["brief_sha256"]:
+            if not current or current["brief_sha256"] != setup["brief_sha256"]:
                 raise ValueError("Brief changed during plan review; validate against the latest request")
             self.store.setting("recipe", recipe, db)
             self.store.setting("profile", profile, db)
@@ -167,7 +223,7 @@ class Project:
             raise ValueError("Apply a validated plan before ingesting its sources")
         if digest(self.recipe) != setup["recipe_sha256"] or digest(self.profile) != setup["profile_sha256"]:
             raise ValueError("Configuration changed since plan approval; create or reapply a reviewed plan")
-        report = validate_bundle(setup["bundle"], setup["brief"])
+        report = validate_bundle(setup["bundle"], setup["brief"], self._planning_profile(setup["brief"]))
         if not report["valid"]:
             raise ValueError("Approved inputs changed or are no longer valid; validate the plan again")
         source_ids, failures, staged = [], [], []
@@ -669,6 +725,7 @@ class Project:
             return self._snapshot_unlocked(name)
 
     def _snapshot_unlocked(self, name):
+        from . import __version__
         self._configured()
         if not isinstance(name,str) or not name.strip() or len(name)>128:
             raise ValueError("dataset name required")
@@ -678,7 +735,7 @@ class Project:
             raise ValueError("Cannot freeze a dataset while a run is active")
         version_id = "dataset_" + uuid.uuid4().hex
         value = {"schema_version":1,"version_id":version_id,"name":name,"created_at":now(),
-            "engine_version":"6.4.0","recipe":self.recipe,"profile":self.profile,
+            "engine_version":__version__,"recipe":self.recipe,"profile":self.profile,
             "prompts":prompts.manifest(),**inventory,"coverage":status["coverage"],
             "failures":[a for a in inventory["audit"] if a.get("stage") == "parsing"],"constraints":[{"source_id":s["source_id"],"constraints":s.get("constraints")} for s in inventory["sources"]]}
         value["agent_workflow"] = {"events": self.store.read_setting("agent_workflow") or [],
