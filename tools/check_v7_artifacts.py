@@ -25,6 +25,9 @@ for path in [root/'README.md', *sorted((root/'docs').glob('V7_*.md'))]:
         if target and not (path.parent/target).exists(): missing.append([path.name,target])
 assert not missing,missing
 notebook=json.loads((root/'examples/v7/researcher_workflow.ipynb').read_text())
+cell_ids=[cell['id'] for cell in notebook['cells']]
+assert len(cell_ids)==len(set(cell_ids))
+assert all(re.fullmatch(r'[A-Za-z0-9_-]{1,64}',cell_id) for cell_id in cell_ids)
 for cell in notebook['cells']:
     if cell['cell_type']=='code':
         assert cell['execution_count'] is None and cell['outputs']==[]
