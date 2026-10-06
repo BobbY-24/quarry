@@ -90,7 +90,7 @@ def main():
             stream.write(published)
         inventory.append({"path": relative.as_posix(), "source_sha256": digest(source),
                           "published_sha256": digest(published), "documentation_adapted": source != published})
-    manifest = {"schema_version": 1, "package_version": "6.4.0", "origin": "source_publication_preparation",
+    manifest = {"schema_version": 1, "package_version": "6.5.0", "origin": "source_publication_preparation",
         "collector_code_changed": False, "files": inventory, "raw_data_uploaded": False,
         "excluded": ["environments", "wheelhouses", "build outputs", "raw verification", "studies and datasets",
                      "credentials and host settings", "generated handoff", "legacy integration", "internal coordination"]}

@@ -15,7 +15,7 @@ import tempfile
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, required=True)
-    parser.add_argument("--expect-version", choices=("6.3.0", "6.4.0"), default="6.3.0")
+    parser.add_argument("--expect-version", choices=("6.3.0", "6.4.0", "6.5.0"), default="6.3.0")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     report_path = args.report.resolve()
