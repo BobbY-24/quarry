@@ -1,4 +1,4 @@
-# V6 connected-agent workflow and terminal/API fallback
+# Quarry connected-agent workflow and terminal/API fallback
 
 ## Connect once, then conduct each session in conversation
 
@@ -28,10 +28,10 @@ No global settings, hooks, persistent services, credentials or collection are
 installed. Matching repeats are idempotent. Changed interpreter, studies root,
 paid gate, customized skill or conflicting `v6` connection receive a diagnostic
 rather than automatic replacement. Use a fresh specific workspace or explicitly
-inspect and relocate/remove only V6's old artifacts before reconnecting; never
+inspect and relocate/remove only Quarry's old artifacts before reconnecting; never
 replace unrelated host configuration. Inline credential-bearing configurations
 are refused. Never dump their contents to diagnose a conflict.
-Close configuration editors while connecting: V6's lock coordinates its own
+Close configuration editors while connecting: Quarry's lock coordinates its own
 installers, not other applications. After a crash, inspect `.v6-connect.lock`
 and confirm the setup stopped before explicitly removing a stale lock.
 

@@ -1,9 +1,14 @@
 ---
 name: v6-collect-research
-description: Use the researcher's own coding-agent conversation to create or reopen a V6 study, prepare and review a bounded source-grounded collection, run or resume the fixed collector, inspect evidence, and export a reproducible dataset of terms, ideas, opinions, or sentences.
+description: Use the researcher's own coding-agent conversation to create or reopen a Quarry study, prepare and review a bounded source-grounded collection, run or resume the fixed collector, inspect evidence, and export a reproducible dataset of terms, ideas, opinions, or sentences.
 ---
 
-Use the researcher's existing coding agent as V6's conversational setup and control layer. Keep the ordinary session in this conversation: do not require the researcher to write JSON, copy bundles, manage internal IDs, or open a browser. The installed V6 collector owns deterministic validation, source ingestion, evidence checks, budgets, persistence, and exports. Its browser is an optional visual view of the same saved study.
+Quarry is the product name for the V6.4 engine. Retain the installed
+`termfinder`/`termfinder-mcp` commands, Python `termfinder` imports, and
+`v6-collect-research` skill identifier. Use the existing explicit connection
+migration procedure for an older skill; never overwrite a customized connection.
+
+Use the researcher's existing coding agent as Quarry's conversational setup and control layer. Keep the ordinary session in this conversation: do not require the researcher to write JSON, copy bundles, manage internal IDs, or open a browser. The installed Quarry collector owns deterministic validation, source ingestion, evidence checks, budgets, persistence, and exports. Its browser is an optional visual view of the same saved study.
 
 This skill does not grant paid-service authorization, host trust, account access, or permission to install global settings, hooks or services. When the researcher explicitly requests initial setup, follow the reviewed local package's `termfinder connect` procedure in [references/workflow.md](references/workflow.md). A generated configuration is not a verified connection: call `list_studies` after the host enables it. Do not run a remote installer pipe or print, copy, or configure credential values.
 
@@ -11,7 +16,7 @@ This skill does not grant paid-service authorization, host trust, account access
 
 Infer ordinary choices from the conversation. Ask only for a missing research decision that blocks a concrete plan: the collection unit, inclusion boundaries, permitted sources, or a finite spending limit. Preserve previously granted authorization. If no real collection is authorized, use the `fake` profile for a clearly labeled offline rehearsal; never substitute fake results for research findings.
 
-Prefer the connected V6 MCP tools. A workspace connection is bound to one launch-time studies root and initially has no study selected. Call `list_studies`, then `open_study` for an existing study or `create_study` for a new one. Choose a safe descriptive lowercase slug such as `ev-language`; do not supply paths as slugs or overwrite an existing folder. Each later session opens the saved study rather than reinstalling V6. Selection stays inside the connected root and cannot switch during active collection. An older fixed `--project` connection has no workspace selection tools; use its existing project.
+Prefer the connected Quarry MCP tools. A workspace connection is bound to one launch-time studies root and initially has no study selected. Call `list_studies`, then `open_study` for an existing study or `create_study` for a new one. Choose a safe descriptive lowercase slug such as `ev-language`; do not supply paths as slugs or overwrite an existing folder. Each later session opens the saved study rather than reinstalling Quarry. Selection stays inside the connected root and cannot switch during active collection. An older fixed `--project` connection has no workspace selection tools; use its existing project.
 
 The server's launch-time paid gate is immutable. Tools cannot execute scripts, change credentials, open unrelated filesystem paths, enlarge approved source scope, or enable a disabled gate. `prepare_study` can prepare a changed brief when authorized; changes invalidate the old concrete review. If MCP is unavailable but local terminal/file tools are available, use the documented CLI/API fallback. Ordinary web chat without local tools uses the explicit file-handoff fallback, not pretend tool calls.
 

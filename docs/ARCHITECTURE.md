@@ -1,13 +1,16 @@
-# Architecture and guarantees
+# Quarry architecture and guarantees
 
-V6 is an independent Python package. It does not import V3, V4, V5, sibling
+Quarry uses the V6.4 collector engine. The [four diagrams](QUARRY_DIAGRAMS.md)
+show its workflow, components, evidence lineage and independent evaluation.
+
+Quarry is an independent Python package. It does not import V3, V4, V5, sibling
 virtual environments, existing output folders, or personal absolute paths.
 `Project` owns a SQLite database in a researcher-chosen directory. The database
 is the durable authority; exported files are derived from immutable snapshots.
 
 ```mermaid
 flowchart LR
-    Q[Researcher idea and bounded brief] --> U[Own coding agent with V6 skill or MCP]
+    Q[Researcher idea and bounded brief] --> U[Own coding agent with Quarry skill or MCP]
     U --> J[Inert source and recipe proposal]
     J --> C[Validated Plan and hash-bound approval]
     C --> R
@@ -165,7 +168,7 @@ does not alter saved versions.
 
 Agent setup is a data handoff, not an autonomous external-agent runtime. The
 researcher controls type, question, languages, communities, dates, domains, corpus
-folders, mode/profile, source cap, and budget in a plain-language form. V6 saves a
+folders, mode/profile, source cap, and budget in a plain-language form. Quarry saves a
 versioned prompt and complete JSON template. The external agent may propose
 examples, attributes, a finite source list, selection history, sampling and
 evaluation settings. Deterministic validation rejects scope/budget expansion,
@@ -183,7 +186,7 @@ snapshots and exports. This is an integrity aid, not an authenticated signature.
 Before any extraction job is planned for the selected source content,
 `freeze_agent_corpus` creates a corpus snapshot, source-family splits, and blank
 complete-source annotation packets. This reduces candidate-review leakage; it
-cannot verify what annotators saw outside V6. Frozen publication audits join
+cannot verify what annotators saw outside Quarry. Frozen publication audits join
 sources, plans, records, exact evidence, jobs and provenance without fetching or
 calling models. Missing original-byte archives, unresolved source rights and
 unfinished coverage remain visible review findings. Original bytes must be
