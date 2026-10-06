@@ -1,0 +1,2 @@
+# Preserve exact synthetic PDF fixture bytes.
+*.pdf binary

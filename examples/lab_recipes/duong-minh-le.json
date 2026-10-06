@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "id": "duong-minh-le-vocabulary",
+  "version": "1.0.0",
+  "research_question": "Which entities and domain expressions occur in each side of a declared parallel-document corpus, and what span or sense differences need bilingual review?",
+  "inclusion_criteria": [
+    "Include named entities and domain-specific multiword expressions relevant to the downstream label inventory; cultural novelty is not required.",
+    "Collect each language version independently with exact local spans; keep externally annotated alignments separate from extraction suggestions."
+  ],
+  "exclusion_criteria": [
+    "Exclude general vocabulary outside the declared entity/domain label inventory.",
+    "Do not infer a cross-language alignment or label projection merely because two expressions translate similarly."
+  ],
+  "languages": [
+    "en",
+    "es"
+  ],
+  "communities": [
+    "parallel-document-terminology"
+  ],
+  "dates": {
+    "start": null,
+    "end": null,
+    "unknown": "include"
+  },
+  "source_scope": {
+    "domains": [
+      "local-only.invalid"
+    ],
+    "local": true
+  },
+  "examples": {
+    "positive": [
+      {
+        "text": "The article identifies Banco Central as the institution responsible for the announcement.",
+        "expression": "Banco Central",
+        "language": "es",
+        "sense": "the institution named in this article",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Synthetic span example; real entity identity and parallel alignment need bilingual review."
+      }
+    ],
+    "negative": [
+      {
+        "text": "The article includes a word.",
+        "expression": "word",
+        "language": "en",
+        "sense": null,
+        "reason": "SYNTHETIC GUIDE EXAMPLE. General vocabulary outside the selected label inventory."
+      }
+    ],
+    "boundary": [
+      {
+        "text": "The English source uses bank while its Spanish counterpart uses banco.",
+        "expression": "bank",
+        "language": "en",
+        "sense": null,
+        "reason": "SYNTHETIC GUIDE EXAMPLE. The counterpart must be grounded in its own source; source association alone does not validate sense alignment."
+      }
+    ]
+  },
+  "output": {
+    "required_fields": [
+      "expression",
+      "language",
+      "sense",
+      "context"
+    ],
+    "attributes": {
+      "label_family": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested downstream entity or span-label family; no automatic projection."
+      },
+      "domain_category": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested technical or entity category."
+      },
+      "alignment_note": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested issue for bilingual review; not a validated alignment."
+      }
+    },
+    "translations": true
+  },
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "specialist_lenses": [
+    {
+      "id": "glm-duong-minh-le",
+      "model": "glm",
+      "lens": "Attend to exact named-entity boundaries and multiword domain expressions.",
+      "communities": [
+        "parallel-document-terminology"
+      ]
+    },
+    {
+      "id": "deepseek-duong-minh-le",
+      "model": "deepseek",
+      "lens": "Attend to language-specific morphology and sense distinctions that complicate bilingual span review.",
+      "communities": [
+        "parallel-document-terminology"
+      ]
+    }
+  ],
+  "discovery": {
+    "enabled": false,
+    "queries": [
+      "Which entities and domain expressions occur in each side of a declared parallel-document corpus, and what span or sense differences need bilingual review?"
+    ],
+    "max_sources": 30,
+    "max_hops": 0,
+    "max_requests": 60,
+    "max_cost_usd": 0,
+    "search_cost_usd": 0,
+    "fetch_cost_usd": 0
+  },
+  "execution": {
+    "budget_usd": 0,
+    "stage_budgets": {
+      "discovery": 0,
+      "parsing": 0,
+      "extraction": 0,
+      "specialist": 0,
+      "translation": 0
+    },
+    "max_calls": 200,
+    "concurrency": 2,
+    "timeout_seconds": 60,
+    "max_retries": 1,
+    "deadline_seconds": 1800,
+    "window_chars": 3000,
+    "overlap_chars": 960,
+    "split_depth": 2,
+    "max_output_tokens": 8192,
+    "recovery_output_tokens": 16384
+  },
+  "exports": {
+    "formats": [
+      "csv",
+      "jsonl",
+      "parquet"
+    ],
+    "annotation": true
+  }
+}

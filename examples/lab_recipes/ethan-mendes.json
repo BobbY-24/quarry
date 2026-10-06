@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "id": "ethan-mendes-vocabulary",
+  "version": "1.0.0",
+  "research_question": "Which technical concepts appear in permitted expert solutions, and how do source-grounded vocabularies differ from separately identified generated reasoning traces?",
+  "inclusion_criteria": [
+    "Include domain concepts, mathematical terms and multiword technical expressions in declared expert-solution documents.",
+    "Preserve expert, community-authored and model-generated source origins through constraints and separate corpus groupings."
+  ],
+  "exclusion_criteria": [
+    "Exclude arbitrary full reasoning sequences and ordinary answer words without a domain-specific sense.",
+    "Do not infer proof correctness, expert authorship or learning effectiveness from term occurrence."
+  ],
+  "languages": [
+    "en"
+  ],
+  "communities": [
+    "expert-solution-vocabulary"
+  ],
+  "dates": {
+    "start": null,
+    "end": null,
+    "unknown": "include"
+  },
+  "source_scope": {
+    "domains": [
+      "local-only.invalid"
+    ],
+    "local": true
+  },
+  "examples": {
+    "positive": [
+      {
+        "text": "The illustrative proof uses an invariant to state a property that remains true after each step.",
+        "expression": "invariant",
+        "language": "en",
+        "sense": "a property that remains true after each step",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Synthetic proof-vocabulary example; neither proof correctness nor DAIL training is performed."
+      }
+    ],
+    "negative": [
+      {
+        "text": "The student wrote an answer.",
+        "expression": "answer",
+        "language": "en",
+        "sense": null,
+        "reason": "SYNTHETIC GUIDE EXAMPLE. General vocabulary without a technical local sense."
+      }
+    ],
+    "boundary": [
+      {
+        "text": "The word solution refers to an answer in this mathematical explanation.",
+        "expression": "solution",
+        "language": "en",
+        "sense": "an answer to a mathematical problem",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Do not merge with a chemical-solution sense from a different corpus/community."
+      }
+    ]
+  },
+  "output": {
+    "required_fields": [
+      "expression",
+      "language",
+      "sense",
+      "context"
+    ],
+    "attributes": {
+      "concept_domain": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested technical domain or subdomain."
+      },
+      "concept_role": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested definition, invariant, lemma or other local role."
+      },
+      "source_definition_note": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested locally supported meaning; no reasoning validation."
+      }
+    },
+    "translations": false
+  },
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "specialist_lenses": [
+    {
+      "id": "glm-ethan-mendes",
+      "model": "glm",
+      "lens": "Attend to technical concepts, named principles and full mathematical expressions.",
+      "communities": [
+        "expert-solution-vocabulary"
+      ]
+    },
+    {
+      "id": "deepseek-ethan-mendes",
+      "model": "deepseek",
+      "lens": "Attend to domain-specific senses and definitions within solution steps.",
+      "communities": [
+        "expert-solution-vocabulary"
+      ]
+    }
+  ],
+  "discovery": {
+    "enabled": false,
+    "queries": [
+      "Which technical concepts appear in permitted expert solutions, and how do source-grounded vocabularies differ from separately identified generated reasoning traces?"
+    ],
+    "max_sources": 30,
+    "max_hops": 0,
+    "max_requests": 60,
+    "max_cost_usd": 0,
+    "search_cost_usd": 0,
+    "fetch_cost_usd": 0
+  },
+  "execution": {
+    "budget_usd": 0,
+    "stage_budgets": {
+      "discovery": 0,
+      "parsing": 0,
+      "extraction": 0,
+      "specialist": 0,
+      "translation": 0
+    },
+    "max_calls": 200,
+    "concurrency": 2,
+    "timeout_seconds": 60,
+    "max_retries": 1,
+    "deadline_seconds": 1800,
+    "window_chars": 3000,
+    "overlap_chars": 960,
+    "split_depth": 2,
+    "max_output_tokens": 8192,
+    "recovery_output_tokens": 16384
+  },
+  "exports": {
+    "formats": [
+      "csv",
+      "jsonl",
+      "parquet"
+    ],
+    "annotation": true
+  }
+}

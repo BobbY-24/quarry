@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "id": "jonathan-zheng-vocabulary",
+  "version": "1.0.0",
+  "research_question": "Which new expressions and shifted senses occur in a specified English community corpus during the declared collection period?",
+  "inclusion_criteria": [
+    "Include lexical, morphological and semantic neologism candidates, including a familiar spelling used with a community-specific sense.",
+    "Retain singleton discoveries and contradictory proposed senses with their exact evidence; investigate historical novelty separately."
+  ],
+  "exclusion_criteria": [
+    "Exclude proper names used only as names, ordinary unchanged senses, and incidental typos without contextual use.",
+    "Do not infer coinage dates, widespread adoption or historical novelty from an extraction or retrieval date."
+  ],
+  "languages": [
+    "en"
+  ],
+  "communities": [
+    "ev-community-vocabulary"
+  ],
+  "dates": {
+    "start": null,
+    "end": null,
+    "unknown": "include"
+  },
+  "source_scope": {
+    "domains": [
+      "local-only.invalid"
+    ],
+    "local": true
+  },
+  "examples": {
+    "positive": [
+      {
+        "text": "Residents use ice for a petrol car occupying an electric-vehicle charging space.",
+        "expression": "ice",
+        "language": "en",
+        "sense": "a petrol car occupying an electric-vehicle charging space",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Synthetic illustration of a shifted sense discussed in NEO-BENCH; actual research needs its own observed context."
+      }
+    ],
+    "negative": [
+      {
+        "text": "Ice melted in the kitchen sink.",
+        "expression": "Ice",
+        "language": "en",
+        "sense": "frozen water",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. An unchanged everyday sense is outside this proposed neologism policy."
+      }
+    ],
+    "boundary": [
+      {
+        "text": "The writer calls doomscrolling a habit of repeatedly reading upsetting news.",
+        "expression": "doomscrolling",
+        "language": "en",
+        "sense": "repeatedly reading upsetting news",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. A plausible term candidate is not evidence of recent coinage; independently research chronology."
+      }
+    ]
+  },
+  "output": {
+    "required_fields": [
+      "expression",
+      "language",
+      "sense",
+      "context"
+    ],
+    "attributes": {
+      "innovation_type": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested lexical, morphological or semantic innovation; a human must confirm novelty."
+      },
+      "novelty_evidence_note": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested evidence needed to investigate historical novelty; never fabricate external evidence."
+      }
+    },
+    "translations": false
+  },
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "specialist_lenses": [
+    {
+      "id": "glm-jonathan-zheng",
+      "model": "glm",
+      "lens": "Attend to new forms, compounds and morphological innovations in the declared community.",
+      "communities": [
+        "ev-community-vocabulary"
+      ]
+    },
+    {
+      "id": "deepseek-jonathan-zheng",
+      "model": "deepseek",
+      "lens": "Attend to familiar forms with new senses; compare the expression with its exact local context.",
+      "communities": [
+        "ev-community-vocabulary"
+      ]
+    }
+  ],
+  "discovery": {
+    "enabled": false,
+    "queries": [
+      "Which new expressions and shifted senses occur in a specified English community corpus during the declared collection period?"
+    ],
+    "max_sources": 30,
+    "max_hops": 0,
+    "max_requests": 60,
+    "max_cost_usd": 0,
+    "search_cost_usd": 0,
+    "fetch_cost_usd": 0
+  },
+  "execution": {
+    "budget_usd": 0,
+    "stage_budgets": {
+      "discovery": 0,
+      "parsing": 0,
+      "extraction": 0,
+      "specialist": 0,
+      "translation": 0
+    },
+    "max_calls": 200,
+    "concurrency": 2,
+    "timeout_seconds": 60,
+    "max_retries": 1,
+    "deadline_seconds": 1800,
+    "window_chars": 3000,
+    "overlap_chars": 960,
+    "split_depth": 2,
+    "max_output_tokens": 8192,
+    "recovery_output_tokens": 16384
+  },
+  "exports": {
+    "formats": [
+      "csv",
+      "jsonl",
+      "parquet"
+    ],
+    "annotation": true
+  }
+}

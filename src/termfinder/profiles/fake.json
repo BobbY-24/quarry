@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "id": "fake",
+  "version": "1.0.0",
+  "providers": {
+    "fake": {
+      "adapter": "fake",
+      "base_url": null,
+      "credential_env": null
+    }
+  },
+  "models": {
+    "glm": {
+      "provider": "fake",
+      "model": "accounts/fireworks/models/glm-5p3-flash",
+      "version": "synthetic-v1",
+      "thinking_budget": 1024,
+      "input_per_million": 0,
+      "output_per_million": 0,
+      "input_token_ceiling": 1048576,
+      "output_token_ceiling": 131072,
+      "price_source": "offline",
+      "prices_recorded_at": "2026-10-05",
+      "price_note": "Synthetic offline fake: no provider cost or quality measurement."
+    },
+    "deepseek": {
+      "provider": "fake",
+      "model": "accounts/fireworks/models/deepseek-v4p1-flash",
+      "version": "synthetic-v1",
+      "thinking_budget": 0,
+      "input_per_million": 0,
+      "output_per_million": 0,
+      "input_token_ceiling": 1048576,
+      "output_token_ceiling": 1048576,
+      "price_source": "offline",
+      "prices_recorded_at": "2026-10-05",
+      "price_note": "Synthetic offline fake: no provider cost or quality measurement."
+    }
+  },
+  "broad": [
+    {
+      "id": "glm-general",
+      "model": "glm",
+      "lens": "General enumeration of all qualifying expressions and senses.",
+      "communities": [
+        "*"
+      ]
+    },
+    {
+      "id": "deepseek-general",
+      "model": "deepseek",
+      "lens": "Independent general enumeration of all qualifying expressions and senses.",
+      "communities": [
+        "*"
+      ]
+    }
+  ]
+}

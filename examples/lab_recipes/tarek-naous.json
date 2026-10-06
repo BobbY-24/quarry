@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "id": "tarek-naous-vocabulary",
+  "version": "1.0.0",
+  "research_question": "Which culturally situated entities appear in unmasked multilingual source passages, and what contextual evidence supports their local association?",
+  "inclusion_criteria": [
+    "Include foods, beverages, authors, person names, locations and sports clubs when relevant to the declared study; established entities are eligible.",
+    "Retain original scripts, transliterations and ambiguous associations without replacing original evidence with generated translations."
+  ],
+  "exclusion_criteria": [
+    "Exclude generic expressions without project-relevant cultural context.",
+    "Do not infer cultural identity from a person's name or language alone; a masked-out entity has no observed occurrence."
+  ],
+  "languages": [
+    "zh",
+    "ja",
+    "ko",
+    "vi",
+    "ur",
+    "hi",
+    "ml",
+    "mr",
+    "gu",
+    "en"
+  ],
+  "communities": [
+    "camellia-cultural-entities"
+  ],
+  "dates": {
+    "start": null,
+    "end": null,
+    "unknown": "include"
+  },
+  "source_scope": {
+    "domains": [
+      "local-only.invalid"
+    ],
+    "local": true
+  },
+  "examples": {
+    "positive": [
+      {
+        "text": "In this illustrative Urdu-language study, Nihari names a dish described in a Pakistani food account.",
+        "expression": "Nihari",
+        "language": "ur",
+        "sense": "a dish named in this food account",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Synthetic illustration anchored in Camellia's discussion; association must be verified in real context."
+      }
+    ],
+    "negative": [
+      {
+        "text": "The person opened a window.",
+        "expression": "window",
+        "language": "en",
+        "sense": null,
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Generic vocabulary without cultural association."
+      }
+    ],
+    "boundary": [
+      {
+        "text": "This account mentions a person named 지우 without giving a cultural affiliation.",
+        "expression": "지우",
+        "language": "ko",
+        "sense": null,
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Names can be eligible entities, while cultural association remains unknown without evidence."
+      }
+    ]
+  },
+  "output": {
+    "required_fields": [
+      "expression",
+      "language",
+      "sense",
+      "context"
+    ],
+    "attributes": {
+      "entity_category": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested food, beverage, author, person_name, location or sports_club category."
+      },
+      "cultural_association": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested contextual association, requiring native human adjudication; do not infer demographics."
+      },
+      "transliteration": {
+        "type": "string",
+        "required": false,
+        "description": "Optional generated transliteration, not original source evidence."
+      }
+    },
+    "translations": true
+  },
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "specialist_lenses": [
+    {
+      "id": "glm-tarek-naous",
+      "model": "glm",
+      "lens": "Attend to original-script cultural entities, uncommon spellings and transliterations.",
+      "communities": [
+        "camellia-cultural-entities"
+      ]
+    },
+    {
+      "id": "deepseek-tarek-naous",
+      "model": "deepseek",
+      "lens": "Attend to culturally situated entity uses and ambiguous associations across contexts.",
+      "communities": [
+        "camellia-cultural-entities"
+      ]
+    }
+  ],
+  "discovery": {
+    "enabled": false,
+    "queries": [
+      "Which culturally situated entities appear in unmasked multilingual source passages, and what contextual evidence supports their local association?"
+    ],
+    "max_sources": 30,
+    "max_hops": 0,
+    "max_requests": 60,
+    "max_cost_usd": 0,
+    "search_cost_usd": 0,
+    "fetch_cost_usd": 0
+  },
+  "execution": {
+    "budget_usd": 0,
+    "stage_budgets": {
+      "discovery": 0,
+      "parsing": 0,
+      "extraction": 0,
+      "specialist": 0,
+      "translation": 0
+    },
+    "max_calls": 200,
+    "concurrency": 2,
+    "timeout_seconds": 60,
+    "max_retries": 1,
+    "deadline_seconds": 1800,
+    "window_chars": 3000,
+    "overlap_chars": 960,
+    "split_depth": 2,
+    "max_output_tokens": 8192,
+    "recovery_output_tokens": 16384
+  },
+  "exports": {
+    "formats": [
+      "csv",
+      "jsonl",
+      "parquet"
+    ],
+    "annotation": true
+  }
+}

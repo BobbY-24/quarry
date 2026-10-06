@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-10-05",
+  "purpose": "Proposed V6 workflows inspired by publicly documented research; not student assignments or reproductions.",
+  "rosters": [
+    "https://cocoxu.github.io/#students",
+    "https://aritter.github.io/index.html"
+  ],
+  "examples_origin": "All few-shot sentences are synthetic illustrations written for this guide; cited papers motivate the tasks, not original evidence.",
+  "budget_policy": "No live dispatch is possible under the zero-dollar templates; review and set finite total/stage budgets before explicitly authorized real collection.",
+  "students": [
+    {
+      "name": "Jonathan Zheng",
+      "slug": "jonathan-zheng",
+      "starter": "neologisms",
+      "recipe": "jonathan-zheng.json",
+      "metadata": "jonathan-zheng.metadata.json",
+      "community": "ev-community-vocabulary",
+      "domain": "community-neologisms",
+      "paper": "https://arxiv.org/html/2402.12261v4"
+    },
+    {
+      "name": "Tarek Naous",
+      "slug": "tarek-naous",
+      "starter": "cultural",
+      "recipe": "tarek-naous.json",
+      "metadata": "tarek-naous.metadata.json",
+      "community": "camellia-cultural-entities",
+      "domain": "cultural-entities",
+      "paper": "https://arxiv.org/abs/2510.05291"
+    },
+    {
+      "name": "Geyang Guo",
+      "slug": "geyang-guo",
+      "starter": "cultural",
+      "recipe": "geyang-guo.json",
+      "metadata": "geyang-guo.metadata.json",
+      "community": "care-cultural-questions",
+      "domain": "cultural-norms",
+      "paper": "https://arxiv.org/abs/2504.05154"
+    },
+    {
+      "name": "Duong Minh Le",
+      "slug": "duong-minh-le",
+      "starter": "cultural",
+      "recipe": "duong-minh-le.json",
+      "metadata": "duong-minh-le.metadata.json",
+      "community": "parallel-document-terminology",
+      "domain": "multilingual-label-projection",
+      "paper": "https://arxiv.org/abs/2402.03131"
+    },
+    {
+      "name": "Jiayi (Ivy) He",
+      "slug": "jiayi-ivy-he",
+      "starter": "jargon",
+      "recipe": "jiayi-ivy-he.json",
+      "metadata": "jiayi-ivy-he.metadata.json",
+      "community": "multilingual-reasoning-prompts",
+      "domain": "cross-lingual-reasoning",
+      "paper": "https://arxiv.org/abs/2606.26466"
+    },
+    {
+      "name": "Junmo Kang",
+      "slug": "junmo-kang",
+      "starter": "jargon",
+      "recipe": "junmo-kang.json",
+      "metadata": "junmo-kang.metadata.json",
+      "community": "schema-domain-vocabulary",
+      "domain": "ml-chemistry-schema-design",
+      "paper": "https://arxiv.org/html/2305.14336v5"
+    },
+    {
+      "name": "Jungsoo Park",
+      "slug": "jungsoo-park",
+      "starter": "jargon",
+      "recipe": "jungsoo-park.json",
+      "metadata": "jungsoo-park.metadata.json",
+      "community": "llm-evaluation-literature",
+      "domain": "llm-methods-literature",
+      "paper": "https://arxiv.org/html/2502.18791v3"
+    },
+    {
+      "name": "Hyungjoo Chae",
+      "slug": "hyungjoo-chae",
+      "starter": "jargon",
+      "recipe": "hyungjoo-chae.json",
+      "metadata": "hyungjoo-chae.metadata.json",
+      "community": "web-agent-ui-vocabulary",
+      "domain": "website-action-language",
+      "paper": "https://arxiv.org/abs/2603.10505"
+    },
+    {
+      "name": "Ruohao Guo",
+      "slug": "ruohao-guo",
+      "starter": "neologisms",
+      "recipe": "ruohao-guo.json",
+      "metadata": "ruohao-guo.metadata.json",
+      "community": "implicit-premise-language",
+      "domain": "lexical-cues-and-misinformation",
+      "paper": "https://arxiv.org/abs/2503.09598"
+    },
+    {
+      "name": "Ethan Mendes",
+      "slug": "ethan-mendes",
+      "starter": "jargon",
+      "recipe": "ethan-mendes.json",
+      "metadata": "ethan-mendes.metadata.json",
+      "community": "expert-solution-vocabulary",
+      "domain": "expert-reasoning-terminology",
+      "paper": "https://arxiv.org/abs/2602.02405"
+    },
+    {
+      "name": "Nghia (Max) Le",
+      "slug": "nghia-max-le",
+      "starter": "jargon",
+      "recipe": "nghia-max-le.json",
+      "metadata": "nghia-max-le.metadata.json",
+      "community": "chemical-protocol-vocabulary",
+      "domain": "scientific-protocols",
+      "paper": "https://arxiv.org/html/2210.03690v2"
+    }
+  ]
+}

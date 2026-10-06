@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "legal-idea-pilot",
+  "data_type": "idea",
+  "starter_recipe": "jargon",
+  "research_question": "Which explicit obligations, procedural claims and case facts occur in our permitted legal documents, as evidence for a separately adjudicated coverage study?",
+  "inclusion_criteria": [
+    "Exact contiguous passages expressing an explicit obligation, procedural claim or case fact.",
+    "Preserve qualifiers, negation, attribution and document context; generated summaries remain suggestions."
+  ],
+  "exclusion_criteria": [
+    "A paraphrase presented as observed evidence.",
+    "Unsupported legal conclusions, inferred obligations, or unrelated bibliography metadata."
+  ],
+  "languages": [
+    "en"
+  ],
+  "communities": [
+    "legal-document-pilot"
+  ],
+  "domains": [
+    "local-only.invalid"
+  ],
+  "local_roots": [
+    "./corpus"
+  ],
+  "budget_usd": 0,
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "max_sources": 15,
+  "dates": {
+    "start": null,
+    "end": null,
+    "unknown": "include"
+  }
+}

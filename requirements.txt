@@ -1,0 +1,3 @@
+# Direct dependencies. No external model code or provider SDK is executed.
+pypdf==6.19.0
+pyarrow==25.0.1

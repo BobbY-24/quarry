@@ -1,0 +1,21 @@
+{
+  "language": "mul",
+  "community": "multilingual-reasoning-prompts",
+  "domain": "cross-lingual-reasoning",
+  "publication_date": null,
+  "publication_date_reason": "researcher_must_supply_available_publication_date",
+  "constraints": {
+    "content_origin": null,
+    "content_origin_reason": "confirm human-authored, published, synthetic, or model-generated source origin before ingestion",
+    "license": null,
+    "license_reason": "record the applicable source license or permission",
+    "permitted_use": null,
+    "permitted_use_reason": "record the actual authorized research use",
+    "redistribution": null,
+    "redistribution_reason": "record the applicable restriction; do not assume public text is freely redistributable",
+    "external_document_id": null,
+    "external_document_id_reason": "record original paper/thread/problem identifier if available",
+    "document_family": null,
+    "document_family_reason": "record family and join an external source-ID mapping for grouped splits"
+  }
+}

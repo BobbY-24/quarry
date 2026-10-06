@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "id": "jiayi-ivy-he-vocabulary",
+  "version": "1.0.0",
+  "research_question": "Which technical or ambiguous expressions could affect interpretation of paired English and Chinese reasoning prompts?",
+  "inclusion_criteria": [
+    "Include domain expressions, units and locally ambiguous senses relevant to reasoning-prompt interpretation.",
+    "Retain equivalent-looking expressions in each language as independent evidence; bilingual sense equivalence is a human annotation."
+  ],
+  "exclusion_criteria": [
+    "Exclude arbitrary full reasoning traces and everyday words lacking a relevant ambiguity or domain sense.",
+    "Do not equate lexical matching with soft-token alignment or reasoning correctness."
+  ],
+  "languages": [
+    "en",
+    "zh"
+  ],
+  "communities": [
+    "multilingual-reasoning-prompts"
+  ],
+  "dates": {
+    "start": null,
+    "end": null,
+    "unknown": "include"
+  },
+  "source_scope": {
+    "domains": [
+      "local-only.invalid"
+    ],
+    "local": true
+  },
+  "examples": {
+    "positive": [
+      {
+        "text": "The mathematical prompt uses mean for the arithmetic average of the listed values.",
+        "expression": "mean",
+        "language": "en",
+        "sense": "arithmetic average",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Synthetic illustration of a domain-sensitive sense; not a quoted SOLAR prompt."
+      }
+    ],
+    "negative": [
+      {
+        "text": "The solver wrote a sentence.",
+        "expression": "sentence",
+        "language": "en",
+        "sense": null,
+        "reason": "SYNTHETIC GUIDE EXAMPLE. No relevant technical or ambiguous use."
+      }
+    ],
+    "boundary": [
+      {
+        "text": "The Chinese prompt uses 平均数 while the English version uses mean.",
+        "expression": "平均数",
+        "language": "zh",
+        "sense": "arithmetic average",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Cross-language equivalence requires bilingual review and separate source spans."
+      }
+    ]
+  },
+  "output": {
+    "required_fields": [
+      "expression",
+      "language",
+      "sense",
+      "context"
+    ],
+    "attributes": {
+      "reasoning_domain": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested mathematical or task-domain category."
+      },
+      "ambiguity_note": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested contextual ambiguity to adjudicate."
+      },
+      "unit_or_quantity": {
+        "type": "string",
+        "required": false,
+        "description": "Source-supported unit or quantity expression if present; otherwise null."
+      }
+    },
+    "translations": true
+  },
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "specialist_lenses": [
+    {
+      "id": "glm-jiayi-ivy-he",
+      "model": "glm",
+      "lens": "Attend to technical multiword expressions, quantities and units in each prompt language.",
+      "communities": [
+        "multilingual-reasoning-prompts"
+      ]
+    },
+    {
+      "id": "deepseek-jiayi-ivy-he",
+      "model": "deepseek",
+      "lens": "Attend to familiar words with domain-specific or ambiguous mathematical senses.",
+      "communities": [
+        "multilingual-reasoning-prompts"
+      ]
+    }
+  ],
+  "discovery": {
+    "enabled": false,
+    "queries": [
+      "Which technical or ambiguous expressions could affect interpretation of paired English and Chinese reasoning prompts?"
+    ],
+    "max_sources": 30,
+    "max_hops": 0,
+    "max_requests": 60,
+    "max_cost_usd": 0,
+    "search_cost_usd": 0,
+    "fetch_cost_usd": 0
+  },
+  "execution": {
+    "budget_usd": 0,
+    "stage_budgets": {
+      "discovery": 0,
+      "parsing": 0,
+      "extraction": 0,
+      "specialist": 0,
+      "translation": 0
+    },
+    "max_calls": 200,
+    "concurrency": 2,
+    "timeout_seconds": 60,
+    "max_retries": 1,
+    "deadline_seconds": 1800,
+    "window_chars": 3000,
+    "overlap_chars": 960,
+    "split_depth": 2,
+    "max_output_tokens": 8192,
+    "recovery_output_tokens": 16384
+  },
+  "exports": {
+    "formats": [
+      "csv",
+      "jsonl",
+      "parquet"
+    ],
+    "annotation": true
+  }
+}

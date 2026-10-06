@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools==84.0.0", "wheel==0.48.0", "packaging==26.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nlpx-termfinder"
+version = "6.4.0"
+description = "Recipe-driven, evidence-backed research term collection"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = ["pypdf==6.19.0", "pyarrow==25.0.1"]
+license = "MIT"
+
+[project.scripts]
+termfinder = "termfinder.cli:main"
+termfinder-mcp = "termfinder.mcp_server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+termfinder = ["recipes/*.json", "profiles/*.json", "fixtures/*", "static/*", "schemas/*.json", "agent_skill/*", "agent_skill/references/*"]

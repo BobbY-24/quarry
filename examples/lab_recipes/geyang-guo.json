@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "id": "geyang-guo-vocabulary",
+  "version": "1.0.0",
+  "research_question": "Which culture-specific expressions appear in human-authored Chinese, Arabic, Japanese and comparison English explanatory sources, and where are vocabulary coverage gaps?",
+  "inclusion_criteria": [
+    "Include culturally situated expressions used in discussion of entities, opinions, norms, commonsense and cultural literacy.",
+    "Preserve context-sensitive senses and record human-authored versus model-generated source origins in source constraints."
+  ],
+  "exclusion_criteria": [
+    "Exclude generic words with no culturally situated interpretation in the declared corpus.",
+    "Do not assign universal sentiment or human preferences from an expression alone; do not create preference-training pairs."
+  ],
+  "languages": [
+    "zh",
+    "ar",
+    "ja",
+    "en"
+  ],
+  "communities": [
+    "care-cultural-questions"
+  ],
+  "dates": {
+    "start": null,
+    "end": null,
+    "unknown": "include"
+  },
+  "source_scope": {
+    "domains": [
+      "local-only.invalid"
+    ],
+    "local": true
+  },
+  "examples": {
+    "positive": [
+      {
+        "text": "In this fictional account, 老外 is discussed as a context-sensitive way to refer to foreigners.",
+        "expression": "老外",
+        "language": "zh",
+        "sense": "a context-sensitive reference to foreigners",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Synthetic illustration; CARE discusses laowai and native judgment depends on context."
+      }
+    ],
+    "negative": [
+      {
+        "text": "The person wrote a message.",
+        "expression": "message",
+        "language": "en",
+        "sense": null,
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Generic vocabulary without a culturally situated use."
+      }
+    ],
+    "boundary": [
+      {
+        "text": "A speaker describes 老外 as friendly in one exchange and unwelcome in another.",
+        "expression": "老外",
+        "language": "zh",
+        "sense": null,
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Do not infer universal sentiment; preserve separate contexts for native interpretation."
+      }
+    ]
+  },
+  "output": {
+    "required_fields": [
+      "expression",
+      "language",
+      "sense",
+      "context"
+    ],
+    "attributes": {
+      "cultural_category": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested entity, opinion, norm, commonsense or literacy category; human adjudication required."
+      },
+      "associated_culture": {
+        "type": "string",
+        "required": false,
+        "description": "Context-supported suggested cultural association; not an identity inference."
+      },
+      "geographic_scope": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested local, subnational, national or wider scope if context supports it."
+      }
+    },
+    "translations": true
+  },
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "specialist_lenses": [
+    {
+      "id": "glm-geyang-guo",
+      "model": "glm",
+      "lens": "Attend to original-language expressions about norms and customs that English paraphrases may omit.",
+      "communities": [
+        "care-cultural-questions"
+      ]
+    },
+    {
+      "id": "deepseek-geyang-guo",
+      "model": "deepseek",
+      "lens": "Attend to regional and context-sensitive senses; keep meanings and preference judgments separate.",
+      "communities": [
+        "care-cultural-questions"
+      ]
+    }
+  ],
+  "discovery": {
+    "enabled": false,
+    "queries": [
+      "Which culture-specific expressions appear in human-authored Chinese, Arabic, Japanese and comparison English explanatory sources, and where are vocabulary coverage gaps?"
+    ],
+    "max_sources": 30,
+    "max_hops": 0,
+    "max_requests": 60,
+    "max_cost_usd": 0,
+    "search_cost_usd": 0,
+    "fetch_cost_usd": 0
+  },
+  "execution": {
+    "budget_usd": 0,
+    "stage_budgets": {
+      "discovery": 0,
+      "parsing": 0,
+      "extraction": 0,
+      "specialist": 0,
+      "translation": 0
+    },
+    "max_calls": 200,
+    "concurrency": 2,
+    "timeout_seconds": 60,
+    "max_retries": 1,
+    "deadline_seconds": 1800,
+    "window_chars": 3000,
+    "overlap_chars": 960,
+    "split_depth": 2,
+    "max_output_tokens": 8192,
+    "recovery_output_tokens": 16384
+  },
+  "exports": {
+    "formats": [
+      "csv",
+      "jsonl",
+      "parquet"
+    ],
+    "annotation": true
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "id": "nghia-max-le-vocabulary",
+  "version": "1.0.0",
+  "research_question": "Which materials, operations and technical noun phrases occur in a declared chemical-protocol corpus, and which contextual references need separate anaphora annotation?",
+  "inclusion_criteria": [
+    "Include reagent names, instruments, operations and technical noun phrases with exact step or page evidence.",
+    "Include established vocabulary and preserve context-sensitive expressions; coreference annotations are external human/model research outputs."
+  ],
+  "exclusion_criteria": [
+    "Exclude generic anaphors such as the mixture from a reagent glossary unless the study explicitly includes them as reference expressions.",
+    "Do not infer unobserved antecedents, reaction results or chemical instructions from extracted terms."
+  ],
+  "languages": [
+    "en"
+  ],
+  "communities": [
+    "chemical-protocol-vocabulary"
+  ],
+  "dates": {
+    "start": null,
+    "end": null,
+    "unknown": "include"
+  },
+  "source_scope": {
+    "domains": [
+      "local-only.invalid"
+    ],
+    "local": true
+  },
+  "examples": {
+    "positive": [
+      {
+        "text": "The protocol identifies Bromoacetyl bromide as a reagent.",
+        "expression": "Bromoacetyl bromide",
+        "language": "en",
+        "sense": "a reagent named in this protocol",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Synthetic illustration using a material named in the MICE paper; no experimental procedure is supplied."
+      }
+    ],
+    "negative": [
+      {
+        "text": "The protocol contains a word.",
+        "expression": "word",
+        "language": "en",
+        "sense": null,
+        "reason": "SYNTHETIC GUIDE EXAMPLE. General vocabulary is outside the protocol glossary."
+      }
+    ],
+    "boundary": [
+      {
+        "text": "The next sentence refers to the mixture without naming its components.",
+        "expression": "the mixture",
+        "language": "en",
+        "sense": null,
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Occurrence is inspectable, but antecedent identity needs an external coreference annotation."
+      }
+    ]
+  },
+  "output": {
+    "required_fields": [
+      "expression",
+      "language",
+      "sense",
+      "context"
+    ],
+    "attributes": {
+      "protocol_term_type": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested material, instrument, operation or technical_noun_phrase category."
+      },
+      "step_role": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested local step role if supported by text."
+      },
+      "reference_note": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested unresolved reference issue; not a validated antecedent."
+      }
+    },
+    "translations": false
+  },
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "specialist_lenses": [
+    {
+      "id": "glm-nghia-max-le",
+      "model": "glm",
+      "lens": "Attend to full reagent names, instruments and operations in protocol text.",
+      "communities": [
+        "chemical-protocol-vocabulary"
+      ]
+    },
+    {
+      "id": "deepseek-nghia-max-le",
+      "model": "deepseek",
+      "lens": "Attend to context-sensitive technical noun phrases and reference expressions, without resolving antecedents automatically.",
+      "communities": [
+        "chemical-protocol-vocabulary"
+      ]
+    }
+  ],
+  "discovery": {
+    "enabled": false,
+    "queries": [
+      "Which materials, operations and technical noun phrases occur in a declared chemical-protocol corpus, and which contextual references need separate anaphora annotation?"
+    ],
+    "max_sources": 30,
+    "max_hops": 0,
+    "max_requests": 60,
+    "max_cost_usd": 0,
+    "search_cost_usd": 0,
+    "fetch_cost_usd": 0
+  },
+  "execution": {
+    "budget_usd": 0,
+    "stage_budgets": {
+      "discovery": 0,
+      "parsing": 0,
+      "extraction": 0,
+      "specialist": 0,
+      "translation": 0
+    },
+    "max_calls": 200,
+    "concurrency": 2,
+    "timeout_seconds": 60,
+    "max_retries": 1,
+    "deadline_seconds": 1800,
+    "window_chars": 3000,
+    "overlap_chars": 960,
+    "split_depth": 2,
+    "max_output_tokens": 8192,
+    "recovery_output_tokens": 16384
+  },
+  "exports": {
+    "formats": [
+      "csv",
+      "jsonl",
+      "parquet"
+    ],
+    "annotation": true
+  }
+}

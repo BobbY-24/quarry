@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "id": "junmo-kang-vocabulary",
+  "version": "1.0.0",
+  "research_question": "Which dataset names, metrics, assay properties and methods occur in a declared paper corpus and should inform downstream extraction schemas or specialization data?",
+  "inclusion_criteria": [
+    "Include established technical expressions, datasets, metrics and assay properties when relevant to the declared domains.",
+    "Preserve acronym/full-form variants, units and domain-specific senses with table-block or page evidence."
+  ],
+  "exclusion_criteria": [
+    "Exclude bibliographic author names and unrelated generic prose.",
+    "Do not treat a term occurrence as a complete experimental row, score record or automatic expert-model specialization."
+  ],
+  "languages": [
+    "en"
+  ],
+  "communities": [
+    "schema-domain-vocabulary"
+  ],
+  "dates": {
+    "start": null,
+    "end": null,
+    "unknown": "include"
+  },
+  "source_scope": {
+    "domains": [
+      "local-only.invalid"
+    ],
+    "local": true
+  },
+  "examples": {
+    "positive": [
+      {
+        "text": "The table reports IC₅₀ as an assay property.",
+        "expression": "IC₅₀",
+        "language": "en",
+        "sense": "an assay property named in this table",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Synthetic illustration using terminology discussed in schema-driven IE; no numeric cell record is inferred."
+      }
+    ],
+    "negative": [
+      {
+        "text": "The references list an author surname.",
+        "expression": "surname",
+        "language": "en",
+        "sense": null,
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Bibliographic metadata alone is outside this inventory."
+      }
+    ],
+    "boundary": [
+      {
+        "text": "F₁ denotes a model evaluation metric in this experiment.",
+        "expression": "F₁",
+        "language": "en",
+        "sense": "a model evaluation metric",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. An established metric is eligible; preserve the exact subscript and do not extract a score without observed evidence."
+      }
+    ]
+  },
+  "output": {
+    "required_fields": [
+      "expression",
+      "language",
+      "sense",
+      "context"
+    ],
+    "attributes": {
+      "term_category": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested metric, dataset, assay_property, method or other technical category."
+      },
+      "source_expansion": {
+        "type": "string",
+        "required": false,
+        "description": "Exact source-supported expansion if supplied; otherwise null."
+      },
+      "unit": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested source unit for an assay property, if observed; otherwise null."
+      }
+    },
+    "translations": false
+  },
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "specialist_lenses": [
+    {
+      "id": "glm-junmo-kang",
+      "model": "glm",
+      "lens": "Attend to metrics, dataset names, abbreviations and technical terminology in table text.",
+      "communities": [
+        "schema-domain-vocabulary"
+      ]
+    },
+    {
+      "id": "deepseek-junmo-kang",
+      "model": "deepseek",
+      "lens": "Attend to chemical assay properties, units and context-specific acronym senses.",
+      "communities": [
+        "schema-domain-vocabulary"
+      ]
+    }
+  ],
+  "discovery": {
+    "enabled": false,
+    "queries": [
+      "Which dataset names, metrics, assay properties and methods occur in a declared paper corpus and should inform downstream extraction schemas or specialization data?"
+    ],
+    "max_sources": 30,
+    "max_hops": 0,
+    "max_requests": 60,
+    "max_cost_usd": 0,
+    "search_cost_usd": 0,
+    "fetch_cost_usd": 0
+  },
+  "execution": {
+    "budget_usd": 0,
+    "stage_budgets": {
+      "discovery": 0,
+      "parsing": 0,
+      "extraction": 0,
+      "specialist": 0,
+      "translation": 0
+    },
+    "max_calls": 200,
+    "concurrency": 2,
+    "timeout_seconds": 60,
+    "max_retries": 1,
+    "deadline_seconds": 1800,
+    "window_chars": 3000,
+    "overlap_chars": 960,
+    "split_depth": 2,
+    "max_output_tokens": 8192,
+    "recovery_output_tokens": 16384
+  },
+  "exports": {
+    "formats": [
+      "csv",
+      "jsonl",
+      "parquet"
+    ],
+    "annotation": true
+  }
+}

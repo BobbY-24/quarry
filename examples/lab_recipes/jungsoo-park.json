@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "id": "jungsoo-park-vocabulary",
+  "version": "1.0.0",
+  "research_question": "How does prompting and evaluation terminology change across a versioned inventory of LLM research papers?",
+  "inclusion_criteria": [
+    "Include prompting methods, model or benchmark names, evaluation metrics and experimental-setting expressions relevant to the declared literature study.",
+    "Preserve operational senses of zero-shot, few-shot and related terms rather than merging solely by spelling."
+  ],
+  "exclusion_criteria": [
+    "Exclude irrelevant bibliographic names and generic prose.",
+    "Do not infer numerical result tuples, benchmark trends or new benchmark instances from terminology alone."
+  ],
+  "languages": [
+    "en"
+  ],
+  "communities": [
+    "llm-evaluation-literature"
+  ],
+  "dates": {
+    "start": null,
+    "end": null,
+    "unknown": "include"
+  },
+  "source_scope": {
+    "domains": [
+      "local-only.invalid"
+    ],
+    "local": true
+  },
+  "examples": {
+    "positive": [
+      {
+        "text": "The study describes Chain-of-Thought as an explicit intermediate-reasoning prompting approach.",
+        "expression": "Chain-of-Thought",
+        "language": "en",
+        "sense": "an intermediate-reasoning prompting approach",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Synthetic illustration using terminology in LLMEvalDB; not a reported benchmark outcome."
+      }
+    ],
+    "negative": [
+      {
+        "text": "The paper contains a paragraph.",
+        "expression": "paragraph",
+        "language": "en",
+        "sense": null,
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Generic document structure is not a method term."
+      }
+    ],
+    "boundary": [
+      {
+        "text": "In this experiment, zero-shot means that no demonstrations are included in the prompt.",
+        "expression": "zero-shot",
+        "language": "en",
+        "sense": "no prompt demonstrations",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Retain the local operational definition; another study may use a different sense."
+      }
+    ]
+  },
+  "output": {
+    "required_fields": [
+      "expression",
+      "language",
+      "sense",
+      "context"
+    ],
+    "attributes": {
+      "term_category": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested method, model, benchmark, metric or experimental_setting category."
+      },
+      "operational_definition": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested local operational meaning, supported by a source quotation where available."
+      },
+      "abbreviation_expansion": {
+        "type": "string",
+        "required": false,
+        "description": "Exact source-supported expansion if present; otherwise null."
+      }
+    },
+    "translations": false
+  },
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "specialist_lenses": [
+    {
+      "id": "glm-jungsoo-park",
+      "model": "glm",
+      "lens": "Attend to method names, acronyms, benchmarks and experiment terminology.",
+      "communities": [
+        "llm-evaluation-literature"
+      ]
+    },
+    {
+      "id": "deepseek-jungsoo-park",
+      "model": "deepseek",
+      "lens": "Attend to different operational meanings of familiar experimental-setting expressions.",
+      "communities": [
+        "llm-evaluation-literature"
+      ]
+    }
+  ],
+  "discovery": {
+    "enabled": false,
+    "queries": [
+      "How does prompting and evaluation terminology change across a versioned inventory of LLM research papers?"
+    ],
+    "max_sources": 30,
+    "max_hops": 0,
+    "max_requests": 60,
+    "max_cost_usd": 0,
+    "search_cost_usd": 0,
+    "fetch_cost_usd": 0
+  },
+  "execution": {
+    "budget_usd": 0,
+    "stage_budgets": {
+      "discovery": 0,
+      "parsing": 0,
+      "extraction": 0,
+      "specialist": 0,
+      "translation": 0
+    },
+    "max_calls": 200,
+    "concurrency": 2,
+    "timeout_seconds": 60,
+    "max_retries": 1,
+    "deadline_seconds": 1800,
+    "window_chars": 3000,
+    "overlap_chars": 960,
+    "split_depth": 2,
+    "max_output_tokens": 8192,
+    "recovery_output_tokens": 16384
+  },
+  "exports": {
+    "formats": [
+      "csv",
+      "jsonl",
+      "parquet"
+    ],
+    "annotation": true
+  }
+}

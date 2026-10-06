@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "id": "ruohao-guo-vocabulary",
+  "version": "1.0.0",
+  "research_question": "Which lexical expressions and contextual senses appear in questions with potentially misleading presuppositions or distinct language styles?",
+  "inclusion_criteria": [
+    "Include topic expressions, euphemisms and lexical cues relevant to the declared question/style corpus; recent coinage is not required.",
+    "Preserve benign and misleading-context uses with separate senses and source-origin labels; judgments require a separate rubric."
+  ],
+  "exclusion_criteria": [
+    "Exclude arbitrary whole claims or generic words without a project-relevant lexical role.",
+    "Do not classify factual truth, harmfulness or a person's intent from occurrence grounding; do not reproduce private disclosures."
+  ],
+  "languages": [
+    "en"
+  ],
+  "communities": [
+    "implicit-premise-language"
+  ],
+  "dates": {
+    "start": null,
+    "end": null,
+    "unknown": "include"
+  },
+  "source_scope": {
+    "domains": [
+      "local-only.invalid"
+    ],
+    "local": true
+  },
+  "examples": {
+    "positive": [
+      {
+        "text": "The fictional analysis identifies 5G radiation as the topic expression in a misleadingly framed question.",
+        "expression": "5G radiation",
+        "language": "en",
+        "sense": "a topic expression in the analyzed question",
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Synthetic illustration inspired by EchoMist's topic; no factual or medical judgment is established."
+      }
+    ],
+    "negative": [
+      {
+        "text": "The report has a page.",
+        "expression": "page",
+        "language": "en",
+        "sense": null,
+        "reason": "SYNTHETIC GUIDE EXAMPLE. Generic vocabulary unrelated to the selected cues."
+      }
+    ],
+    "boundary": [
+      {
+        "text": "The same phrase 5G radiation occurs in a neutral technical explanation.",
+        "expression": "5G radiation",
+        "language": "en",
+        "sense": null,
+        "reason": "SYNTHETIC GUIDE EXAMPLE. A phrase alone cannot establish misinformation; context and a separate factual rubric matter."
+      }
+    ]
+  },
+  "output": {
+    "required_fields": [
+      "expression",
+      "language",
+      "sense",
+      "context"
+    ],
+    "attributes": {
+      "cue_function": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested lexical or presupposition role; human adjudication required."
+      },
+      "topic": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested topic label."
+      },
+      "interpretation_note": {
+        "type": "string",
+        "required": false,
+        "description": "Suggested contextual issue; not a factual truth or harm label."
+      }
+    },
+    "translations": false
+  },
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "specialist_lenses": [
+    {
+      "id": "glm-ruohao-guo",
+      "model": "glm",
+      "lens": "Attend to community expressions, euphemisms and lexical topic cues.",
+      "communities": [
+        "implicit-premise-language"
+      ]
+    },
+    {
+      "id": "deepseek-ruohao-guo",
+      "model": "deepseek",
+      "lens": "Attend to shifts in contextual sense and presupposition without treating occurrence as a truth judgment.",
+      "communities": [
+        "implicit-premise-language"
+      ]
+    }
+  ],
+  "discovery": {
+    "enabled": false,
+    "queries": [
+      "Which lexical expressions and contextual senses appear in questions with potentially misleading presuppositions or distinct language styles?"
+    ],
+    "max_sources": 30,
+    "max_hops": 0,
+    "max_requests": 60,
+    "max_cost_usd": 0,
+    "search_cost_usd": 0,
+    "fetch_cost_usd": 0
+  },
+  "execution": {
+    "budget_usd": 0,
+    "stage_budgets": {
+      "discovery": 0,
+      "parsing": 0,
+      "extraction": 0,
+      "specialist": 0,
+      "translation": 0
+    },
+    "max_calls": 200,
+    "concurrency": 2,
+    "timeout_seconds": 60,
+    "max_retries": 1,
+    "deadline_seconds": 1800,
+    "window_chars": 3000,
+    "overlap_chars": 960,
+    "split_depth": 2,
+    "max_output_tokens": 8192,
+    "recovery_output_tokens": 16384
+  },
+  "exports": {
+    "formats": [
+      "csv",
+      "jsonl",
+      "parquet"
+    ],
+    "annotation": true
+  }
+}

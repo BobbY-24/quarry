@@ -1,0 +1,889 @@
+{
+  "schema_version": 1,
+  "package_version": "6.4.0",
+  "origin": "source_publication_preparation",
+  "collector_code_changed": false,
+  "files": [
+    {
+      "path": "README.md",
+      "source_sha256": "5028a19c24160a8f2571f70c58ac806019cf70086d571de7cda520b7ef0bf657",
+      "published_sha256": "5028a19c24160a8f2571f70c58ac806019cf70086d571de7cda520b7ef0bf657",
+      "documentation_adapted": false
+    },
+    {
+      "path": "LICENSE",
+      "source_sha256": "acd60bdc41df8cae5ba741943040e695dbbbebf256cf330f015182bf4abd7cf3",
+      "published_sha256": "acd60bdc41df8cae5ba741943040e695dbbbebf256cf330f015182bf4abd7cf3",
+      "documentation_adapted": false
+    },
+    {
+      "path": "pyproject.toml",
+      "source_sha256": "18e231d9f97d23fef4039ff985aca9b7fe16104b6411411d3bb97b8673d525de",
+      "published_sha256": "18e231d9f97d23fef4039ff985aca9b7fe16104b6411411d3bb97b8673d525de",
+      "documentation_adapted": false
+    },
+    {
+      "path": "requirements.txt",
+      "source_sha256": "99f45d2ce05f8498cd8f5b53db80859842d345aec327374fb8d1f87b8a42e4d0",
+      "published_sha256": "99f45d2ce05f8498cd8f5b53db80859842d345aec327374fb8d1f87b8a42e4d0",
+      "documentation_adapted": false
+    },
+    {
+      "path": "requirements-build.txt",
+      "source_sha256": "96fb7ae1dbb43aab5bc11e30228647c3789f32fc63e5d3afa1d087a53c82820e",
+      "published_sha256": "96fb7ae1dbb43aab5bc11e30228647c3789f32fc63e5d3afa1d087a53c82820e",
+      "documentation_adapted": false
+    },
+    {
+      "path": ".gitignore",
+      "source_sha256": "b413dc230726bbd88064c88070f50f569e704efef0b84c11c9da89d4119015de",
+      "published_sha256": "c4c13180cc60f6333ec5eea010d6be76e3130cde97b07df82b38cd9a8c428666",
+      "documentation_adapted": true
+    },
+    {
+      "path": "src/termfinder/__init__.py",
+      "source_sha256": "b19108e78f43b9d1d738f91c5a106d9903e82603c5d1589aeef406dbcdd4da0d",
+      "published_sha256": "b19108e78f43b9d1d738f91c5a106d9903e82603c5d1589aeef406dbcdd4da0d",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/__main__.py",
+      "source_sha256": "307299fda7b77d22c64cb51430ec75e5f59d78e9c948786afb3b2544fe45e4b7",
+      "published_sha256": "307299fda7b77d22c64cb51430ec75e5f59d78e9c948786afb3b2544fe45e4b7",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/agent_setup.py",
+      "source_sha256": "1065cd171c34842617bee5520121cae36d8783a9f1d3ba58f05cf8bdda7e4324",
+      "published_sha256": "1065cd171c34842617bee5520121cae36d8783a9f1d3ba58f05cf8bdda7e4324",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/agent_skill/SKILL.md",
+      "source_sha256": "5e9a0366edbeabf41bb20bd0a8b4deb056b565d36ecc2ab4ec04f75ac2758cf3",
+      "published_sha256": "5e9a0366edbeabf41bb20bd0a8b4deb056b565d36ecc2ab4ec04f75ac2758cf3",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/agent_skill/references/workflow.md",
+      "source_sha256": "e3b67132be856650c0dab010a5835f14e30ff656b0fd86984c435db054629353",
+      "published_sha256": "e3b67132be856650c0dab010a5835f14e30ff656b0fd86984c435db054629353",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/cli.py",
+      "source_sha256": "9d623a9afeadfc894d50c14a49f28e9be09e52bd2ef2f0ee870596a9c1208196",
+      "published_sha256": "9d623a9afeadfc894d50c14a49f28e9be09e52bd2ef2f0ee870596a9c1208196",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/config.py",
+      "source_sha256": "11b1096d32a83b000a032e17de347523bf658cb167ef511782afab3a09d6f475",
+      "published_sha256": "11b1096d32a83b000a032e17de347523bf658cb167ef511782afab3a09d6f475",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/costs.py",
+      "source_sha256": "869df60004ef5f68089ef044d6d2639a1b8d422b2b259a7abe63ee5212d55ab4",
+      "published_sha256": "869df60004ef5f68089ef044d6d2639a1b8d422b2b259a7abe63ee5212d55ab4",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/discovery.py",
+      "source_sha256": "673ad1082e179ce62eec76f2739cef67fbfebeb5928833023d46328b932e1489",
+      "published_sha256": "673ad1082e179ce62eec76f2739cef67fbfebeb5928833023d46328b932e1489",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/engine.py",
+      "source_sha256": "c34f4ebe4aae6b0612cc7c634a424f65e4bd43e07cfd628b444151a72c92d5dc",
+      "published_sha256": "c34f4ebe4aae6b0612cc7c634a424f65e4bd43e07cfd628b444151a72c92d5dc",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/evaluation.py",
+      "source_sha256": "c6026cc80107caccc54ea6e21c0c3c82c204391fb04d6d1a32ef5ad4b6f2b00a",
+      "published_sha256": "c6026cc80107caccc54ea6e21c0c3c82c204391fb04d6d1a32ef5ad4b6f2b00a",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/exports.py",
+      "source_sha256": "1c75ad63f52bdf61df8e7b3c6945a751696825778dec92fbadf3a9714b22cce2",
+      "published_sha256": "1c75ad63f52bdf61df8e7b3c6945a751696825778dec92fbadf3a9714b22cce2",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/fixtures/README.md",
+      "source_sha256": "f3b8bba53a320cdc533b7718136b6142c716c161e9f1245fbcf6ce974e769272",
+      "published_sha256": "f3b8bba53a320cdc533b7718136b6142c716c161e9f1245fbcf6ce974e769272",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/fixtures/broken.pdf",
+      "source_sha256": "c9d085f6a1c01f7e987cf46052a6b6131f88835fa460084c44a34176bcf4e0e0",
+      "published_sha256": "c9d085f6a1c01f7e987cf46052a6b6131f88835fa460084c44a34176bcf4e0e0",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/fixtures/community.html",
+      "source_sha256": "2a4de52909964e055f44f6817225820c8f4f4f15f868816499ee1f9f1f2fab8c",
+      "published_sha256": "2a4de52909964e055f44f6817225820c8f4f4f15f868816499ee1f9f1f2fab8c",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/fixtures/cultural.md",
+      "source_sha256": "34c3a9419450861108ec0c53c9ebd19fae47f4090f0a2806598618c72228dd30",
+      "published_sha256": "34c3a9419450861108ec0c53c9ebd19fae47f4090f0a2806598618c72228dd30",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/fixtures/expectations.json",
+      "source_sha256": "e6cddeab2335ab2ac54beab0597d27122d382f857d679293d5b89f68e3c0675a",
+      "published_sha256": "e6cddeab2335ab2ac54beab0597d27122d382f857d679293d5b89f68e3c0675a",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/fixtures/jargon.pdf",
+      "source_sha256": "f00669cb47d867837bf5d07e00da700b409541c23445ab82e05801fcc09555db",
+      "published_sha256": "f00669cb47d867837bf5d07e00da700b409541c23445ab82e05801fcc09555db",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/fixtures/jargon.txt",
+      "source_sha256": "0154205f5edbb49cb432a994d06830af22a2c3921c8e5d94ca2ef0c7ffb329d4",
+      "published_sha256": "0154205f5edbb49cb432a994d06830af22a2c3921c8e5d94ca2ef0c7ffb329d4",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/grounding.py",
+      "source_sha256": "c4d860be15ba481241cec34c7c8aea4bd2dbf6f742abed18671ef29cff312b23",
+      "published_sha256": "c4d860be15ba481241cec34c7c8aea4bd2dbf6f742abed18671ef29cff312b23",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/harness.py",
+      "source_sha256": "40cabc53e63ae3ffcbfd22a6efe6b6886fd7cc605af5077774c03d679674e5c3",
+      "published_sha256": "40cabc53e63ae3ffcbfd22a6efe6b6886fd7cc605af5077774c03d679674e5c3",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/mcp_server.py",
+      "source_sha256": "8f38b2d457e1682d5b7aa984dc02a11bf203adfb6232f34e3185dacddd907069",
+      "published_sha256": "8f38b2d457e1682d5b7aa984dc02a11bf203adfb6232f34e3185dacddd907069",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/pdf_worker.py",
+      "source_sha256": "68302146b36209aa855cc7ced814d1ab2a1bdcc375082d6122b179a3a9d55400",
+      "published_sha256": "68302146b36209aa855cc7ced814d1ab2a1bdcc375082d6122b179a3a9d55400",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/profiles/fake.json",
+      "source_sha256": "bbca127db626ebdee60860cf96213a84e5e984ee6bd40f19c585c4bb8a82dfe7",
+      "published_sha256": "bbca127db626ebdee60860cf96213a84e5e984ee6bd40f19c585c4bb8a82dfe7",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/profiles/gemini.json",
+      "source_sha256": "cfc6f0c845b6ce579c50c69fd4a60beaa0a933c506bb16781c67188edfeb708c",
+      "published_sha256": "cfc6f0c845b6ce579c50c69fd4a60beaa0a933c506bb16781c67188edfeb708c",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/profiles/glm-deepseek.json",
+      "source_sha256": "be443bdf760a9cbd9ac700b09c9f5ff10ac90731e3130b023c30ea59ec4d52ff",
+      "published_sha256": "be443bdf760a9cbd9ac700b09c9f5ff10ac90731e3130b023c30ea59ec4d52ff",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/project.py",
+      "source_sha256": "4239a1cf5b789a81e39bf2145e784cbd3bb4b498f999c15c1b3f0146b499d0a6",
+      "published_sha256": "4239a1cf5b789a81e39bf2145e784cbd3bb4b498f999c15c1b3f0146b499d0a6",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/prompts.py",
+      "source_sha256": "a22ffac206ed122819f9c18dcced330080ca9f62f00d0e5e485ff226acd274f5",
+      "published_sha256": "a22ffac206ed122819f9c18dcced330080ca9f62f00d0e5e485ff226acd274f5",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/providers.py",
+      "source_sha256": "692a2b0860c5260e37b5675b5c95a4a929d1996c52bb99f8dd6891b02264c87f",
+      "published_sha256": "692a2b0860c5260e37b5675b5c95a4a929d1996c52bb99f8dd6891b02264c87f",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/publication.py",
+      "source_sha256": "0c4fb28055f66edc5c192bea891cd0d2af6186dbc2694ea358a2d66502abc94e",
+      "published_sha256": "0c4fb28055f66edc5c192bea891cd0d2af6186dbc2694ea358a2d66502abc94e",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/recipes/cultural.json",
+      "source_sha256": "07f2e7e7f20f9fd6296183726d911ebddcfac5a26b8614cf17d2b9240c3354a6",
+      "published_sha256": "07f2e7e7f20f9fd6296183726d911ebddcfac5a26b8614cf17d2b9240c3354a6",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/recipes/jargon.json",
+      "source_sha256": "9e617f38e7c4c5b7113b1ee89634242b1303dd1b52275045fee150e0f93d4c70",
+      "published_sha256": "9e617f38e7c4c5b7113b1ee89634242b1303dd1b52275045fee150e0f93d4c70",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/recipes/neologisms.json",
+      "source_sha256": "4d9af8b1066bef6b8b0755086929f36cf6140a960eecd352d3999b6232aca629",
+      "published_sha256": "4d9af8b1066bef6b8b0755086929f36cf6140a960eecd352d3999b6232aca629",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/resilience.py",
+      "source_sha256": "4ee00bf37b344ea6e5a2ced3375389de99106af1338630e3dca92adc6bc120bd",
+      "published_sha256": "4ee00bf37b344ea6e5a2ced3375389de99106af1338630e3dca92adc6bc120bd",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/sources.py",
+      "source_sha256": "b96de8c5aa478269ec2f9c85634e3c311073dea02f3c7b82b51915c500966637",
+      "published_sha256": "b96de8c5aa478269ec2f9c85634e3c311073dea02f3c7b82b51915c500966637",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/static/app.js",
+      "source_sha256": "54cefba092da2789a2495d36567d6254f0deb543790c4b79f8fed2edd303249c",
+      "published_sha256": "54cefba092da2789a2495d36567d6254f0deb543790c4b79f8fed2edd303249c",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/static/index.html",
+      "source_sha256": "2d7593737fa88f8004aa049e895ec00f85e40a423a590b98900fbdc7e9be730c",
+      "published_sha256": "2d7593737fa88f8004aa049e895ec00f85e40a423a590b98900fbdc7e9be730c",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/static/style.css",
+      "source_sha256": "a99661428f5522557cc3d1d1b0afe8ef98ef6e59d567bd4871008b63b49cfb11",
+      "published_sha256": "a99661428f5522557cc3d1d1b0afe8ef98ef6e59d567bd4871008b63b49cfb11",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/store.py",
+      "source_sha256": "f20d2a26d1daad81d5407e9dc8e04246aea3a7e31ddb99ac3c6b6435e4abe365",
+      "published_sha256": "f20d2a26d1daad81d5407e9dc8e04246aea3a7e31ddb99ac3c6b6435e4abe365",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/transport_worker.py",
+      "source_sha256": "2a4680b3c37687a0449b9fc2814a1e8caddeaf6e0088c0e14ba26363e4e11af5",
+      "published_sha256": "2a4680b3c37687a0449b9fc2814a1e8caddeaf6e0088c0e14ba26363e4e11af5",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/web.py",
+      "source_sha256": "71297d29dea4307d82c58e230de820290126b4d635b1378d6905f6caf848016b",
+      "published_sha256": "71297d29dea4307d82c58e230de820290126b4d635b1378d6905f6caf848016b",
+      "documentation_adapted": false
+    },
+    {
+      "path": "src/termfinder/workflow.py",
+      "source_sha256": "43c5395b398dba00af8355b0309d3bffcf176d3b4664b8cd4db963af144db5c1",
+      "published_sha256": "43c5395b398dba00af8355b0309d3bffcf176d3b4664b8cd4db963af144db5c1",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/ACCEPTANCE.md",
+      "source_sha256": "c8d7dc8ce29c364eed4719e5fc9255dbd36fabff9a8c6965991e6f28d9fd6c2c",
+      "published_sha256": "c8d7dc8ce29c364eed4719e5fc9255dbd36fabff9a8c6965991e6f28d9fd6c2c",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/AGENT_NATIVE.md",
+      "source_sha256": "1fcac1f42c9464d77c42a658044803484f2f8d4412a073082174a5fa8657044a",
+      "published_sha256": "1fcac1f42c9464d77c42a658044803484f2f8d4412a073082174a5fa8657044a",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/AGENT_WORKFLOW.md",
+      "source_sha256": "da05fcd2cfd86c3151d8c395afff3c26d7ff1d592ebb43e012bc49a50f72e64b",
+      "published_sha256": "da05fcd2cfd86c3151d8c395afff3c26d7ff1d592ebb43e012bc49a50f72e64b",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "source_sha256": "54c566ad0f51fabce6e91f0d3da9e7707211caad31514af91daf5a621c819d2c",
+      "published_sha256": "54c566ad0f51fabce6e91f0d3da9e7707211caad31514af91daf5a621c819d2c",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/EVALUATION.md",
+      "source_sha256": "1de1645bdb6d14ff7a6df6cea21dee662875468c7f6d432580b58427b6d08359",
+      "published_sha256": "1de1645bdb6d14ff7a6df6cea21dee662875468c7f6d432580b58427b6d08359",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/GITHUB_HANDOFF.md",
+      "source_sha256": "c1cf96e1a8bd79e22eea19ebe9b13bc84da3e432fc70eedd1eadc204e40f5131",
+      "published_sha256": "c1cf96e1a8bd79e22eea19ebe9b13bc84da3e432fc70eedd1eadc204e40f5131",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/HARNESS_VERIFIED.md",
+      "source_sha256": "82b579b0f863a657b0d93c728cc1aacb95bfd1e6f07f9a204b08e10cfffda707",
+      "published_sha256": "82b579b0f863a657b0d93c728cc1aacb95bfd1e6f07f9a204b08e10cfffda707",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/LAB_EXAMPLES_VERIFIED.md",
+      "source_sha256": "4df7463ccbb747430f60709435a1348deaf2ca4748b08222045371cf6793ac2d",
+      "published_sha256": "17fcd74badc76f8f4933089ff1e3d363221483ce43ddaff887500d11673ddd62",
+      "documentation_adapted": true
+    },
+    {
+      "path": "docs/LAB_PROTOCOL.md",
+      "source_sha256": "4826b75b1923b223c4ce8ecd01d28d341ace7763953582cdbda15b1238a4d23b",
+      "published_sha256": "4826b75b1923b223c4ce8ecd01d28d341ace7763953582cdbda15b1238a4d23b",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/LONG_RUNS.md",
+      "source_sha256": "c52fbe496cf6193266031cc278f452f6b9aba13ed8c0b67a78c6db72384d8c5d",
+      "published_sha256": "c52fbe496cf6193266031cc278f452f6b9aba13ed8c0b67a78c6db72384d8c5d",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/NLPX_STUDENT_GUIDE.md",
+      "source_sha256": "17181c2a794b7090ff93e1c1f27e3eb0e61b7a1c30d8e0a5d40a4c50cc9f30d6",
+      "published_sha256": "17181c2a794b7090ff93e1c1f27e3eb0e61b7a1c30d8e0a5d40a4c50cc9f30d6",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/PILOT.md",
+      "source_sha256": "06b212dfbb0e087719a600092875d5c57175dc7bd3a82a5de605a6fda1ae5f4e",
+      "published_sha256": "06b212dfbb0e087719a600092875d5c57175dc7bd3a82a5de605a6fda1ae5f4e",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/PUBLICATION_PROTOCOL.md",
+      "source_sha256": "363f1df08424821625fe2dc0a389afd23317f7911b35a23e41aca4c34efc0545",
+      "published_sha256": "363f1df08424821625fe2dc0a389afd23317f7911b35a23e41aca4c34efc0545",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/RECIPES.md",
+      "source_sha256": "02818cc4f1d7936cce7b1b15d71e047813183c33ae6c741a166cd7f8abc76d60",
+      "published_sha256": "02818cc4f1d7936cce7b1b15d71e047813183c33ae6c741a166cd7f8abc76d60",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/RESEARCH.md",
+      "source_sha256": "a0b50789e4eca82cb43af71407ad252bdded244129f38948932f2890b3591723",
+      "published_sha256": "a0b50789e4eca82cb43af71407ad252bdded244129f38948932f2890b3591723",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/RESILIENCE_VERIFIED.md",
+      "source_sha256": "d17b9a5558cc7cf6aa2b38b5ec48af554d1f249f54bdfc8a3bb20f584a68e1dc",
+      "published_sha256": "60db520de2d069892b051ed62054ec5e96e5acbb84b5f9827006beff9c045de4",
+      "documentation_adapted": true
+    },
+    {
+      "path": "docs/SIMPLE_WORKFLOW.md",
+      "source_sha256": "e6f620816f329c1989b7ffed8f49ccc6af2bc38017a2109b2d2a47f4bbab575a",
+      "published_sha256": "e6f620816f329c1989b7ffed8f49ccc6af2bc38017a2109b2d2a47f4bbab575a",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/SIMPLIFICATION_VERIFIED.md",
+      "source_sha256": "43166dac973a7f6dee71ca0c76d7203fbb63e574f62843f553f06beb433593eb",
+      "published_sha256": "928399dd676f85872ea7ab0d65da24d546abd90fc804cb70c526d074205f0d14",
+      "documentation_adapted": true
+    },
+    {
+      "path": "docs/SOURCES.md",
+      "source_sha256": "3ae438ac4442da0f6aae68a6f7f57dfda023f9681cb6f50e333ab06ffe159786",
+      "published_sha256": "3ae438ac4442da0f6aae68a6f7f57dfda023f9681cb6f50e333ab06ffe159786",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/VERIFICATION.md",
+      "source_sha256": "bdee141a2f08feb28af6b8da39b499c52f9412b61ad833c21203812946f16f3a",
+      "published_sha256": "bdee141a2f08feb28af6b8da39b499c52f9412b61ad833c21203812946f16f3a",
+      "documentation_adapted": false
+    },
+    {
+      "path": "docs/VERIFIED.md",
+      "source_sha256": "6878b174fa0c2f66ce3cbf3b80cb51769bfd55c40da3188e6f8dd9ce811ef1aa",
+      "published_sha256": "6878b174fa0c2f66ce3cbf3b80cb51769bfd55c40da3188e6f8dd9ce811ef1aa",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/fixtures/ui_definition_records.json",
+      "source_sha256": "cd9e78e67e0a8ecdf85e8b6cadfc31a46025601bb9e6928a2f5ed26ecd1507ed",
+      "published_sha256": "cd9e78e67e0a8ecdf85e8b6cadfc31a46025601bb9e6928a2f5ed26ecd1507ed",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_acceptance.py",
+      "source_sha256": "bb3c77061b1a833b12a432cea7af98573fec8759e3852e63b74e0da64f99ac52",
+      "published_sha256": "bb3c77061b1a833b12a432cea7af98573fec8759e3852e63b74e0da64f99ac52",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_agent_setup.py",
+      "source_sha256": "88a20f51bd49982b9579240944102cb5cb7c7bf6cf71c05a7b5771b8824584ed",
+      "published_sha256": "88a20f51bd49982b9579240944102cb5cb7c7bf6cf71c05a7b5771b8824584ed",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_agent_setup_ui.py",
+      "source_sha256": "f2a72a289d08745b47b711483ecd1b6db003cd911fc7be70e810e2ac43727f46",
+      "published_sha256": "f2a72a289d08745b47b711483ecd1b6db003cd911fc7be70e810e2ac43727f46",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_collection_types.py",
+      "source_sha256": "e63f8ed1ca9b456154e4a96afb69be51e05cdafec26239e178ecfe12b75e2a31",
+      "published_sha256": "e63f8ed1ca9b456154e4a96afb69be51e05cdafec26239e178ecfe12b75e2a31",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_discovery.py",
+      "source_sha256": "102ed57026c7b6009f495e6c8b1cacb2a30523cc3e3c9f8a960c4b2687afc4fd",
+      "published_sha256": "102ed57026c7b6009f495e6c8b1cacb2a30523cc3e3c9f8a960c4b2687afc4fd",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_engine.py",
+      "source_sha256": "75b09ea06700ac9dc173b74d9257f4167cb5d60c16073771d3a0c15c71255a1f",
+      "published_sha256": "75b09ea06700ac9dc173b74d9257f4167cb5d60c16073771d3a0c15c71255a1f",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_evaluation.py",
+      "source_sha256": "0ac82429f2ff8f4eeaa8b935f3c07845fd9e7804c82a25b00b815d3b4ee9d331",
+      "published_sha256": "0ac82429f2ff8f4eeaa8b935f3c07845fd9e7804c82a25b00b815d3b4ee9d331",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_exports.py",
+      "source_sha256": "039e48c5b1db415637e4a2d53684533bed08adfdf52baea0f4e386dec952271f",
+      "published_sha256": "039e48c5b1db415637e4a2d53684533bed08adfdf52baea0f4e386dec952271f",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_harness.py",
+      "source_sha256": "81f67123165cf6858640ec6ecbc02a445eb23cf3b55d632e614ffc10159e7bf1",
+      "published_sha256": "81f67123165cf6858640ec6ecbc02a445eb23cf3b55d632e614ffc10159e7bf1",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_interfaces.py",
+      "source_sha256": "d92fa46a02bfb2c0baae07ba4d665e3a0661093348aec72bd73c1754ce2c75d1",
+      "published_sha256": "d92fa46a02bfb2c0baae07ba4d665e3a0661093348aec72bd73c1754ce2c75d1",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_mcp_server.py",
+      "source_sha256": "0d3294fc238f6297264907321bb3262b798e825ba978ea2ebfa12c7146100bb0",
+      "published_sha256": "0d3294fc238f6297264907321bb3262b798e825ba978ea2ebfa12c7146100bb0",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_publication_audit.py",
+      "source_sha256": "cebc441c3e2ee5e46c87f211a6461cedc9857fd259da58518a46d61d12616111",
+      "published_sha256": "cebc441c3e2ee5e46c87f211a6461cedc9857fd259da58518a46d61d12616111",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_resilience.py",
+      "source_sha256": "0a15095280a5511bba2d4008b32665a796473eb76ab507bba9f567dbac795556",
+      "published_sha256": "0a15095280a5511bba2d4008b32665a796473eb76ab507bba9f567dbac795556",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_simple_ui.py",
+      "source_sha256": "e80d27b268ed0ce7beefc9f46d09454b430bbd25d4f0fef52abab04d9a2f8613",
+      "published_sha256": "e80d27b268ed0ce7beefc9f46d09454b430bbd25d4f0fef52abab04d9a2f8613",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_sources.py",
+      "source_sha256": "7b76e25b719c642d6e66ad658187f855e0d9233c0de5f7acc019ff41baf6dd30",
+      "published_sha256": "7b76e25b719c642d6e66ad658187f855e0d9233c0de5f7acc019ff41baf6dd30",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_workflow.py",
+      "source_sha256": "4dda067cdc17bf1e02acd90c01ae60bb6f9c512763bc82c8825f82df3239e8dd",
+      "published_sha256": "4dda067cdc17bf1e02acd90c01ae60bb6f9c512763bc82c8825f82df3239e8dd",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tests/test_workflow_readiness.py",
+      "source_sha256": "46f794bec284cc44185becb68d7c0a57756b1e23c8f61b0da21f9c8c33e6302a",
+      "published_sha256": "46f794bec284cc44185becb68d7c0a57756b1e23c8f61b0da21f9c8c33e6302a",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/agent_workflow/README.md",
+      "source_sha256": "f86da284a678d04497723de02217939daafb3f576001ecabe4430f61ed29ee98",
+      "published_sha256": "f86da284a678d04497723de02217939daafb3f576001ecabe4430f61ed29ee98",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/agent_workflow/geyang-cultural-opinions.brief.json",
+      "source_sha256": "6a0368543b6f236bb59f3edde8ac700c8dad3845e4433a2e59d6bab48823a462",
+      "published_sha256": "6a0368543b6f236bb59f3edde8ac700c8dad3845e4433a2e59d6bab48823a462",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/agent_workflow/jonathan-neologisms.brief.json",
+      "source_sha256": "bb2014b5ec0ba045d7313ed3022a42a055b34a53b858506d8b688fc619688ce7",
+      "published_sha256": "bb2014b5ec0ba045d7313ed3022a42a055b34a53b858506d8b688fc619688ce7",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/agent_workflow/legal-ideas.brief.json",
+      "source_sha256": "8d5e80901014b56c1b4382a1dccf681a8fb8f7b32e9243593ca0fe6e06d3cdf5",
+      "published_sha256": "8d5e80901014b56c1b4382a1dccf681a8fb8f7b32e9243593ca0fe6e06d3cdf5",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/agent_workflow/medical-sentences.brief.json",
+      "source_sha256": "ab1453d5b760ee3ffc179c775ff7bc1c565593aeb814d3e029dec5d1ac3b80f5",
+      "published_sha256": "ab1453d5b760ee3ffc179c775ff7bc1c565593aeb814d3e029dec5d1ac3b80f5",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/agent_workflow/offline_demo.py",
+      "source_sha256": "61d7a60f684744aa91b29d50dce76f4dc131dbaca04802d66748dd7ce9be89fd",
+      "published_sha256": "61d7a60f684744aa91b29d50dce76f4dc131dbaca04802d66748dd7ce9be89fd",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/agent_workflow/researcher_agent_workflow.ipynb",
+      "source_sha256": "6a3cd4e2e9b68d331f8fed5549a647863c817cb868883d752777b4bcaa76d1eb",
+      "published_sha256": "6a3cd4e2e9b68d331f8fed5549a647863c817cb868883d752777b4bcaa76d1eb",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/agent_workflow/tarek-cultural-entities.brief.json",
+      "source_sha256": "9285e24c9ff03928a24530d4d1685f8bd715f6decdabd50d736596cba8901719",
+      "published_sha256": "9285e24c9ff03928a24530d4d1685f8bd715f6decdabd50d736596cba8901719",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/discovery.json",
+      "source_sha256": "5acbe6b6323ee64180a9f610c5887c9e53cc527c4f3d26416bb29f86df5d9315",
+      "published_sha256": "5acbe6b6323ee64180a9f610c5887c9e53cc527c4f3d26416bb29f86df5d9315",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/gold_specs.json",
+      "source_sha256": "37ce1dc7b551f0a547f0ec2a05927ed5eec4be5d7dcd90746527009be226da8e",
+      "published_sha256": "37ce1dc7b551f0a547f0ec2a05927ed5eec4be5d7dcd90746527009be226da8e",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/README.md",
+      "source_sha256": "214cb9ff7e8917f1af1e4ab205143e47022445626acf42a33b82c6ad85333b39",
+      "published_sha256": "214cb9ff7e8917f1af1e4ab205143e47022445626acf42a33b82c6ad85333b39",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/catalog.json",
+      "source_sha256": "5bf7fe8fc1144b6a6623edd45fe9381273441aac872f1b6a4fa1a237287df4a3",
+      "published_sha256": "5bf7fe8fc1144b6a6623edd45fe9381273441aac872f1b6a4fa1a237287df4a3",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/duong-minh-le.json",
+      "source_sha256": "3d7bf5848e156c7dd2300b1a6d214e78c210a9dfc7a89f1acbc88e238fd8fb80",
+      "published_sha256": "3d7bf5848e156c7dd2300b1a6d214e78c210a9dfc7a89f1acbc88e238fd8fb80",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/duong-minh-le.metadata.json",
+      "source_sha256": "99c2c8dfada990ee62b11a0cc7abecc819dd838291f3efd939d70613e96f4c10",
+      "published_sha256": "99c2c8dfada990ee62b11a0cc7abecc819dd838291f3efd939d70613e96f4c10",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/ethan-mendes.json",
+      "source_sha256": "1341ec23e55165c52989c5ed2cd992ebfa2e0c138a942840658d1075224da8eb",
+      "published_sha256": "1341ec23e55165c52989c5ed2cd992ebfa2e0c138a942840658d1075224da8eb",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/ethan-mendes.metadata.json",
+      "source_sha256": "8a8a098bf1107555228f479c372c3b418d24cb005aab249338d1ac86c872b08e",
+      "published_sha256": "8a8a098bf1107555228f479c372c3b418d24cb005aab249338d1ac86c872b08e",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/geyang-guo.json",
+      "source_sha256": "d8cca84cf0983e75d75132321697ded16723e89a02d421dbf4046b51f8ae3077",
+      "published_sha256": "d8cca84cf0983e75d75132321697ded16723e89a02d421dbf4046b51f8ae3077",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/geyang-guo.metadata.json",
+      "source_sha256": "5536f4153bfa778ba4c2b50bc06fda51c3f791f24a8d78f0a7ad51220213f96f",
+      "published_sha256": "5536f4153bfa778ba4c2b50bc06fda51c3f791f24a8d78f0a7ad51220213f96f",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/hyungjoo-chae.json",
+      "source_sha256": "0060b769396ee7850fad947adddd67863d474cced3034b688ffeb05538275335",
+      "published_sha256": "0060b769396ee7850fad947adddd67863d474cced3034b688ffeb05538275335",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/hyungjoo-chae.metadata.json",
+      "source_sha256": "5255d700c6f4e6bc5c678556a406148a6aa6cdb9c867b7dd165315627eca1369",
+      "published_sha256": "5255d700c6f4e6bc5c678556a406148a6aa6cdb9c867b7dd165315627eca1369",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/jiayi-ivy-he.json",
+      "source_sha256": "1e53a5b7de2186343a7332630c8e1d8eceebc27f28d605c783618fb72ad33c0d",
+      "published_sha256": "1e53a5b7de2186343a7332630c8e1d8eceebc27f28d605c783618fb72ad33c0d",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/jiayi-ivy-he.metadata.json",
+      "source_sha256": "807b0be8a77ce860b3eb858cd79fbb4f6655a7163324d4d2e14de05c040c3471",
+      "published_sha256": "807b0be8a77ce860b3eb858cd79fbb4f6655a7163324d4d2e14de05c040c3471",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/jonathan-zheng.json",
+      "source_sha256": "2d7fae86a1d51c8b615c4a1c2f06c9eb7a51c2ecae447741f847f13dc89941f8",
+      "published_sha256": "2d7fae86a1d51c8b615c4a1c2f06c9eb7a51c2ecae447741f847f13dc89941f8",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/jonathan-zheng.metadata.json",
+      "source_sha256": "4a5ff98bc15d55666523847493578694f66593c1f09c11290776f276425eda66",
+      "published_sha256": "4a5ff98bc15d55666523847493578694f66593c1f09c11290776f276425eda66",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/jungsoo-park.json",
+      "source_sha256": "0a91f02081ac8da9a729b64f3393ca320700970e87200d85a653133d4f418851",
+      "published_sha256": "0a91f02081ac8da9a729b64f3393ca320700970e87200d85a653133d4f418851",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/jungsoo-park.metadata.json",
+      "source_sha256": "921812faa58134e32b2f93203a947e52b4a0780a9880c71feaa65ebecbdb7ad5",
+      "published_sha256": "921812faa58134e32b2f93203a947e52b4a0780a9880c71feaa65ebecbdb7ad5",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/junmo-kang.json",
+      "source_sha256": "3c4d622c28e000073f78dd559e9f9ed2adf8ad7cbf28f53dfa2c4c458535ec9f",
+      "published_sha256": "3c4d622c28e000073f78dd559e9f9ed2adf8ad7cbf28f53dfa2c4c458535ec9f",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/junmo-kang.metadata.json",
+      "source_sha256": "6716fbcc3a85288d4a66a186e11cf4615b1d85e7ee097b1377b88adc3898fb65",
+      "published_sha256": "6716fbcc3a85288d4a66a186e11cf4615b1d85e7ee097b1377b88adc3898fb65",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/nghia-max-le.json",
+      "source_sha256": "ca5c905d5899126dbd1f7717c041a24b44d0ff1b9d8edca0c10148d4d9f596a2",
+      "published_sha256": "ca5c905d5899126dbd1f7717c041a24b44d0ff1b9d8edca0c10148d4d9f596a2",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/nghia-max-le.metadata.json",
+      "source_sha256": "b2a76b00964dcf9fc28b2f8ea6e2c68cbf23a7be9c727ab20860295a1bcaeb4c",
+      "published_sha256": "b2a76b00964dcf9fc28b2f8ea6e2c68cbf23a7be9c727ab20860295a1bcaeb4c",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/ruohao-guo.json",
+      "source_sha256": "a3a27a5013ff56366beee64809232f6ef75de53b3957b821eebf9afb7617e544",
+      "published_sha256": "a3a27a5013ff56366beee64809232f6ef75de53b3957b821eebf9afb7617e544",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/ruohao-guo.metadata.json",
+      "source_sha256": "9756577ec9fc76470a2d3269772db51a9afb97096cfd520347c51f8a897b9de7",
+      "published_sha256": "9756577ec9fc76470a2d3269772db51a9afb97096cfd520347c51f8a897b9de7",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/tarek-naous.json",
+      "source_sha256": "9a18dcb87dcd04a4b7e309cc0d70e73a39956254fa0d0bed3edfacd860740f92",
+      "published_sha256": "9a18dcb87dcd04a4b7e309cc0d70e73a39956254fa0d0bed3edfacd860740f92",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/lab_recipes/tarek-naous.metadata.json",
+      "source_sha256": "5fa46f3d2ebc1ee46fdbec00cecb880fc2cb97dd0bbe771dfbc682bfab3ee726",
+      "published_sha256": "5fa46f3d2ebc1ee46fdbec00cecb880fc2cb97dd0bbe771dfbc682bfab3ee726",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/offline_demo.py",
+      "source_sha256": "f95e6dcc9c7f7c9517a626ea7378ee32b5c47d2d707dcd2f546c7173d9c37f99",
+      "published_sha256": "f95e6dcc9c7f7c9517a626ea7378ee32b5c47d2d707dcd2f546c7173d9c37f99",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/researcher_workflow.ipynb",
+      "source_sha256": "892e64e3751c933acafaf08b65033202494e7c20e4196537629edba4eb7dd4a7",
+      "published_sha256": "892e64e3751c933acafaf08b65033202494e7c20e4196537629edba4eb7dd4a7",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/simple_student_workflow.ipynb",
+      "source_sha256": "eb1eebfbc38fd7f50755410a7276e4d716ca5ea78b2fd89616737f52ae7028fa",
+      "published_sha256": "eb1eebfbc38fd7f50755410a7276e4d716ca5ea78b2fd89616737f52ae7028fa",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/simple_workflow_demo.py",
+      "source_sha256": "f4f84120f39a64ec016a525ee835a67c9e7369f0e484c9c53589956abd30d401",
+      "published_sha256": "f4f84120f39a64ec016a525ee835a67c9e7369f0e484c9c53589956abd30d401",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/source_metadata.json",
+      "source_sha256": "2d959a26e93fc9327b86402d9981daaaa9a8b7fb9e2966900961435ec80d255a",
+      "published_sha256": "2d959a26e93fc9327b86402d9981daaaa9a8b7fb9e2966900961435ec80d255a",
+      "documentation_adapted": false
+    },
+    {
+      "path": "examples/urls.txt",
+      "source_sha256": "ce7004531b08bf3254096c64d27051a5ec93a34d07202f86c24798d7090244b0",
+      "published_sha256": "ce7004531b08bf3254096c64d27051a5ec93a34d07202f86c24798d7090244b0",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/agent_browser_demo.py",
+      "source_sha256": "049b92b9581e46c10ad4bd5e0effa928c5903c1475c1f6f6931681d34568743c",
+      "published_sha256": "049b92b9581e46c10ad4bd5e0effa928c5903c1475c1f6f6931681d34568743c",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/agent_browser_launcher.py",
+      "source_sha256": "f0d745f059ee89891e946b0f781f998f8f5c5dfd4699778c117f954cc46c8d1f",
+      "published_sha256": "f0d745f059ee89891e946b0f781f998f8f5c5dfd4699778c117f954cc46c8d1f",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/browser_demo.py",
+      "source_sha256": "4d3816d45e167be80d9ffd29c9f58ba119a73cda55fae4bc96f5c64ec168ef2e",
+      "published_sha256": "4d3816d45e167be80d9ffd29c9f58ba119a73cda55fae4bc96f5c64ec168ef2e",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/browser_launcher.py",
+      "source_sha256": "db3c500faddfdaac11a8594d87e26180a8c6f9f2ff2b4e9d11164a9c1bf61373",
+      "published_sha256": "db3c500faddfdaac11a8594d87e26180a8c6f9f2ff2b4e9d11164a9c1bf61373",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/check_lab_examples.py",
+      "source_sha256": "653182d80ab8b915d32aaf12770a3911bb1b690f015ea8c0aaac7e160e950081",
+      "published_sha256": "653182d80ab8b915d32aaf12770a3911bb1b690f015ea8c0aaac7e160e950081",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/check_simple_browser.py",
+      "source_sha256": "5703c2983a05205f9a6ff0c889cd07edf32e4d8270e0e0da516298d4cd9934a0",
+      "published_sha256": "5703c2983a05205f9a6ff0c889cd07edf32e4d8270e0e0da516298d4cd9934a0",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/offline.sb",
+      "source_sha256": "b633ddb0e04a982403c98dd1adab5ee41140924f5d57c53f6f0979dc5d824a79",
+      "published_sha256": "b633ddb0e04a982403c98dd1adab5ee41140924f5d57c53f6f0979dc5d824a79",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/prepare_github_upload.py",
+      "source_sha256": "087d9ab3c2b891c4f05fc491297c544397c564b6db8350533a5a1ddaf470a6a4",
+      "published_sha256": "087d9ab3c2b891c4f05fc491297c544397c564b6db8350533a5a1ddaf470a6a4",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/resilience_browser_seed.py",
+      "source_sha256": "eb9a66de80904add0402990e8875bb05fd2686ca64af5e9c9804a6be93f74f64",
+      "published_sha256": "eb9a66de80904add0402990e8875bb05fd2686ca64af5e9c9804a6be93f74f64",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/simple_browser_plan.py",
+      "source_sha256": "f4fbe27e0f86d4bd1e6c37f7f51add2fb289a51f71bd6ac875920086699861cd",
+      "published_sha256": "f4fbe27e0f86d4bd1e6c37f7f51add2fb289a51f71bd6ac875920086699861cd",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/smoke_agent_installed.py",
+      "source_sha256": "e9b99669cab9ace577ce18a79839e55e8912f9ae444aeb138561ed9b66a0519e",
+      "published_sha256": "e9b99669cab9ace577ce18a79839e55e8912f9ae444aeb138561ed9b66a0519e",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/smoke_harness_installed.py",
+      "source_sha256": "118cc2d69a300c6ad0d8884e60833fddffd439d1e7744433ee70c9f26cd40e0f",
+      "published_sha256": "118cc2d69a300c6ad0d8884e60833fddffd439d1e7744433ee70c9f26cd40e0f",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/smoke_installed.py",
+      "source_sha256": "0a62d86e590b06d7d8d83a08bdda4b918aee576a8c2043b7761cfd3d71daa498",
+      "published_sha256": "0a62d86e590b06d7d8d83a08bdda4b918aee576a8c2043b7761cfd3d71daa498",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/smoke_simple_installed.py",
+      "source_sha256": "7fad82255ad61f61240ef0df8fac3343816fd0ecd84f024d93545ccd9f893af4",
+      "published_sha256": "7fad82255ad61f61240ef0df8fac3343816fd0ecd84f024d93545ccd9f893af4",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/soak_resilience.py",
+      "source_sha256": "68242f9aec83df273845d1fea8d70ce9ca29b44c9e0e557f83cb1a78db9d4bc1",
+      "published_sha256": "68242f9aec83df273845d1fea8d70ce9ca29b44c9e0e557f83cb1a78db9d4bc1",
+      "documentation_adapted": false
+    },
+    {
+      "path": "tools/verify_offline.py",
+      "source_sha256": "20cd111cad3678da3d7dca683e6f0e96573b91c1bcf8f01133881be1b773d732",
+      "published_sha256": "20cd111cad3678da3d7dca683e6f0e96573b91c1bcf8f01133881be1b773d732",
+      "documentation_adapted": false
+    }
+  ],
+  "raw_data_uploaded": false,
+  "excluded": [
+    "environments",
+    "wheelhouses",
+    "build outputs",
+    "raw verification",
+    "studies and datasets",
+    "credentials and host settings",
+    "generated handoff",
+    "legacy integration",
+    "internal coordination"
+  ],
+  "publication_generated_files": [
+    {
+      "path": ".gitattributes",
+      "sha256": "69a04bcb1dbd371b28a9655de1cdd61fd5dbd43ec8d2d9b8c245798773b79e7d",
+      "purpose": "Preserve exact synthetic PDF fixture bytes"
+    }
+  ],
+  "snapshot_commit": "76228401e2d14cab6ed859e32d1141bad8294572",
+  "scope_note": "Historical source publication snapshot in the original repository, not a rolling checksum manifest or a commit in the standalone repository. Later original-repository edits precede the standalone import recorded in STANDALONE_REPOSITORY_MANIFEST.json.",
+  "snapshot_repository": "https://github.com/BobbY-24/community-term-collector",
+  "snapshot_subdirectory": "V6-community-term-finder"
+}

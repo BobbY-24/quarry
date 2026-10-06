@@ -1,0 +1,4 @@
+# Example URL-list syntax only. Ingestion fetches these when explicitly invoked.
+# Change the recipe domain scope and this list together for an authorized corpus.
+https://example.org/community/article
+https://example.org/community/followup

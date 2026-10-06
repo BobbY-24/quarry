@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "tarek-cultural-entity-pilot",
+  "data_type": "term",
+  "starter_recipe": "cultural",
+  "research_question": "Which established and emerging culturally associated food expressions and entities occur in permitted Urdu food descriptions?",
+  "inclusion_criteria": [
+    "Food expressions and entities with contextual cultural association, including established names.",
+    "Retain original scripts and source contexts; treat transliteration, meaning and cultural association as suggestions until reviewed."
+  ],
+  "exclusion_criteria": [
+    "Generic words with no contextual association in the research rubric.",
+    "Masked answers absent from the supplied text; invented transliterations and unsupported cultural origins."
+  ],
+  "languages": [
+    "ur",
+    "en"
+  ],
+  "communities": [
+    "urdu-food-pilot"
+  ],
+  "domains": [
+    "local-only.invalid"
+  ],
+  "local_roots": [
+    "./corpus"
+  ],
+  "budget_usd": 0,
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "max_sources": 15,
+  "dates": {
+    "start": null,
+    "end": null,
+    "unknown": "include"
+  }
+}
