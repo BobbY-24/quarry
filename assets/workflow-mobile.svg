@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1370" viewBox="0 0 720 1370" role="img" aria-labelledby="title description">
+  <title id="title">Quarry workflow — narrow-screen view</title>
+  <desc id="description">The same five numbered workflow steps in a vertical layout: agent drafting, source validation and capture, researcher review, model proposals, and grounding. Persistent inventory, exports and independent whole-source human evaluation follow.</desc>
+  <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="m0 0 8 4-8 4" fill="#95745e"/></marker></defs>
+  <rect x="1" y="1" width="718" height="1368" rx="20" fill="#fffcf7" stroke="#e8d8ca"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="36" y="51" font-size="34" font-weight="700" fill="#3a2c24">From question to traceable data</text>
+    <text x="36" y="85" font-size="28" fill="#705444">Draft. Review. Collect. Inspect. Export.</text>
+    <g fill="none" stroke="#95745e" stroke-width="3" marker-end="url(#arrow)">
+      <path d="M360 272V294"/>
+      <path d="M360 464V486"/>
+      <path d="M360 656V678"/>
+      <path d="M360 848V870"/>
+    </g>
+    <rect x="36" y="110" width="648" height="162" rx="14" fill="#f6ede4" stroke="#d6bfae"/>
+    <rect x="36" y="302" width="648" height="162" rx="14" fill="#f8e6d8" stroke="#c98966"/>
+    <rect x="36" y="494" width="648" height="162" rx="14" fill="#fff0cf" stroke="#cda463"/>
+    <rect x="36" y="686" width="648" height="162" rx="14" fill="#f6ede4" stroke="#d6bfae"/>
+    <rect x="36" y="878" width="648" height="162" rx="14" fill="#f8e6d8" stroke="#c98966"/>
+    <g font-size="28" font-weight="700" fill="#8c4025">
+      <text x="60" y="145">01 · YOUR AGENT</text><text x="60" y="337">02 · QUARRY</text><text x="60" y="529">03 · RESEARCHER</text><text x="60" y="721">04 · MODELS</text><text x="60" y="913">05 · QUARRY</text>
+    </g>
+    <g font-size="32" font-weight="700" fill="#3a2c24">
+      <text x="60" y="186">Describe &amp; draft</text><text x="60" y="378">Validate &amp; capture</text><text x="60" y="570">Review the plan</text><text x="60" y="762">Propose discoveries</text><text x="60" y="954">Ground &amp; preserve</text>
+    </g>
+    <g font-size="28" fill="#705444">
+      <text x="60" y="222">Question, policy, sources</text><text x="60" y="251">Bounded structured inputs</text>
+      <text x="60" y="414">Scope, source hashes, costs</text><text x="60" y="443">Frozen source packets</text>
+      <text x="60" y="606">Complete sources &amp; budget</text><text x="60" y="635">Approve this concrete plan</text>
+      <text x="60" y="798">Broad or Specialists</text><text x="60" y="827">Independent discoveries</text>
+      <text x="60" y="990">Exact spans + sense records</text><text x="60" y="1019">Audit unresolved proposals</text>
+    </g>
+    <rect x="36" y="1070" width="648" height="126" rx="12" fill="#3a2c24"/>
+    <text x="60" y="1106" font-size="28" font-weight="700" fill="#fffcf7">Inventory → Optional reversible annotation</text>
+    <text x="60" y="1137" font-size="28" font-weight="700" fill="#fffcf7">Frozen dataset → Export</text>
+    <text x="60" y="1173" font-size="28" fill="#f1d7c3">CSV · JSONL · Parquet · Annotation files</text>
+    <rect x="36" y="1220" width="648" height="118" rx="12" fill="#fffcf7" stroke="#d6bfae" stroke-dasharray="5 4"/>
+    <text x="60" y="1254" font-size="28" font-weight="700" fill="#3a2c24">Independent human evaluation</text>
+    <text x="60" y="1287" font-size="28" fill="#705444">Complete held-out sources; grouped splits.</text>
+    <text x="60" y="1317" font-size="28" fill="#705444">Precision, recall and false negatives.</text>
+  </g>
+</svg>

@@ -1,39 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="390" viewBox="0 0 1200 390" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title description">
   <title id="title">Quarry — research collection through your own agent</title>
-  <desc id="description">An original Quarry banner connecting a research question, a researcher's coding agent and a traceable dataset. Terms and senses remain the primary output.</desc>
-  <defs>
-    <linearGradient id="background" x2="1" y2="1"><stop stop-color="#0c142b"/><stop offset="1" stop-color="#172e45"/></linearGradient>
-    <linearGradient id="accent"><stop stop-color="#72edd2"/><stop offset="1" stop-color="#9bc5ff"/></linearGradient>
-  </defs>
-  <rect width="1200" height="390" rx="24" fill="url(#background)"/>
-  <g fill="none" stroke="#456177" opacity=".3">
-    <path d="M30 330H1170M30 270H1170M30 210H1170M30 150H1170M30 90H1170"/>
-    <path d="M90 25V365M210 25V365M330 25V365M450 25V365M570 25V365M690 25V365M810 25V365M930 25V365M1050 25V365M1170 25V365"/>
+  <desc id="description">Quarry's original terracotta strata mark and wordmark on a light ivory background. Your agent. Your sources. Traceable data.</desc>
+  <rect x="1" y="1" width="1198" height="318" rx="20" fill="#fffcf7" stroke="#e8d8ca"/>
+  <g transform="translate(60 89)" aria-hidden="true">
+    <path d="M0 0H102V33H0Z" fill="#a64b2a"/>
+    <path d="M0 45H77V78H0Z" fill="#c67846"/>
+    <path d="M0 90H52V123H0Z" fill="#e3a768"/>
   </g>
   <g font-family="Arial, Helvetica, sans-serif">
-    <rect x="52" y="42" width="226" height="30" rx="15" fill="#233d51"/>
-    <text x="68" y="62" font-size="13" letter-spacing="1.5" fill="#a9efdf">RESEARCH COLLECTOR</text>
-    <text x="49" y="168" font-size="86" font-weight="700" fill="url(#accent)">Quarry</text>
-    <text x="52" y="220" font-size="30" font-weight="700" fill="#f3f7fc">Ask your agent.</text>
-    <text x="52" y="259" font-size="30" font-weight="700" fill="#f3f7fc">Build datasets you can trace.</text>
-    <text x="52" y="309" font-size="17" fill="#b5c9d9">Terms and senses · Exact source spans · Reproducible exports</text>
-    <text x="52" y="344" font-size="14" fill="#8faabc">V6.4 engine · Local skill + MCP · Your coding harness</text>
-    <g transform="translate(694 60)">
-      <rect width="448" height="272" rx="20" fill="#0d1b2b" stroke="#39566d"/>
-      <circle cx="27" cy="29" r="5" fill="#72edd2"/>
-      <text x="42" y="34" font-size="14" fill="#a3bdcf">ONE WORKSPACE · MANY STUDIES</text>
-      <rect x="22" y="54" width="404" height="57" rx="10" fill="#20394d"/>
-      <text x="39" y="77" font-size="12" fill="#9cc1d8">YOUR QUESTION</text>
-      <text x="39" y="98" font-size="17" fill="#f3f7fc">What vocabulary is changing in this community?</text>
-      <path d="M224 119v15m-5-5 5 5 5-5" fill="none" stroke="#72edd2" stroke-width="2"/>
-      <rect x="22" y="144" width="191" height="53" rx="10" fill="#17364a" stroke="#42657b"/>
-      <rect x="229" y="144" width="197" height="53" rx="10" fill="#183b3c" stroke="#3d7f74"/>
-      <text x="38" y="166" font-size="15" font-weight="700" fill="#b6d9ff">Your coding agent</text>
-      <text x="38" y="185" font-size="12" fill="#b4c9d9">Draft · Explain · Operate tools</text>
-      <text x="245" y="166" font-size="15" font-weight="700" fill="#a2eddb">Quarry collector</text>
-      <text x="245" y="185" font-size="12" fill="#b4d5ce">Validate · Ground · Preserve</text>
-      <path d="M224 203v13m-5-5 5 5 5-5" fill="none" stroke="#72edd2" stroke-width="2"/>
-      <text x="23" y="245" font-size="16" fill="#f3f7fc">Plan → Collect → Inspect → Resume → Export</text>
-    </g>
+    <text x="204" y="177" font-size="140" font-weight="700" letter-spacing="-5" fill="#a64b2a">Quarry</text>
+    <text x="211" y="243" font-size="46" fill="#3a2c24">Your agent. Your sources. Traceable data.</text>
   </g>
 </svg>
