@@ -8,6 +8,18 @@ the implemented architecture. The existing `termfinder` commands, Python API and
 ## 1. Researcher workflow
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#f6ede4"
+    primaryTextColor: "#3a2c24"
+    textColor: "#3a2c24"
+    lineColor: "#95745e"
+    edgeLabelBackground: "#fffcf7"
+    clusterBkg: "#fff7ef"
+    clusterBorder: "#d6bfae"
+---
 flowchart TD
     Q["Researcher describes the study<br/>Data type, question, corpus and limits"] --> A["Own coding agent drafts the inputs<br/>Recipe, examples, sources and fields"]
     A --> P["Quarry validates the proposed plan<br/>Schema, source scope and finite budget"]
@@ -19,6 +31,12 @@ flowchart TD
     I --> E["Save a dataset version and export<br/>CSV, JSONL, Parquet and annotation files"]
     C -->|"Interrupted, capped or unresolved"| J["Saved progress and unfinished work<br/>Pending, partial, failed or uncertain"]
     J -->|"Resume eligible work<br/>Under saved recovery policy"| C
+    classDef default fill:#f6ede4,stroke:#d6bfae,color:#3a2c24,stroke-width:1.5px;
+    classDef human fill:#fff0cf,stroke:#cda463,color:#3a2c24;
+    classDef collector fill:#f8e6d8,stroke:#c98966,color:#3a2c24;
+    class Q,R,I human;
+    class P,C,G collector;
+    linkStyle default stroke:#95745e,color:#705444,stroke-width:1.5px;
 ```
 
 The connection starts with a synthetic fake-provider gate. Real collection needs
@@ -32,6 +50,18 @@ uncertain requests may incur duplicate charges.
 ## 2. Components and responsibilities
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#f6ede4"
+    primaryTextColor: "#3a2c24"
+    textColor: "#3a2c24"
+    lineColor: "#95745e"
+    edgeLabelBackground: "#fffcf7"
+    clusterBkg: "#fff7ef"
+    clusterBorder: "#d6bfae"
+---
 flowchart TD
     subgraph U["Researcher interfaces"]
         A["Own coding agent<br/>Project skill + local MCP"]
@@ -62,6 +92,14 @@ flowchart TD
     J --> D
     P --> X
     D --> X
+    classDef default fill:#f6ede4,stroke:#d6bfae,color:#3a2c24,stroke-width:1.5px;
+    classDef human fill:#fff0cf,stroke:#cda463,color:#3a2c24;
+    classDef collector fill:#f8e6d8,stroke:#c98966,color:#3a2c24;
+    class A,B human;
+    class P,V,J,G collector;
+    style U fill:#fffcf7,stroke:#d6bfae,color:#3a2c24;
+    style K fill:#fff7ef,stroke:#d6bfae,color:#3a2c24;
+    linkStyle default stroke:#95745e,color:#705444,stroke-width:1.5px;
 ```
 
 Agent planning and model generation remain nondeterministic. The collector
@@ -75,6 +113,18 @@ discovery disabled. Explicit bounded discovery is an advanced engine capability.
 ## 3. Evidence and reproducibility
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#f6ede4"
+    primaryTextColor: "#3a2c24"
+    textColor: "#3a2c24"
+    lineColor: "#95745e"
+    edgeLabelBackground: "#fffcf7"
+    clusterBkg: "#fff7ef"
+    clusterBorder: "#d6bfae"
+---
 flowchart TD
     T["Collected record<br/>Term or sense, idea, opinion or sentence"] --> O["Occurrence or evidence record<br/>Original spelling, exact context and source span"]
     O --> S["Frozen parsed source<br/>Unicode offsets, available PDF page and text hash"]
@@ -91,6 +141,12 @@ flowchart TD
     H --> V
     V --> E["Reproducible export<br/>Saved records, manifests, costs, failures and coverage"]
     E -->|"Same saved version; no model calls"| E2["Same exported dataset records"]
+    classDef default fill:#f6ede4,stroke:#d6bfae,color:#3a2c24,stroke-width:1.5px;
+    classDef human fill:#fff0cf,stroke:#cda463,color:#3a2c24;
+    classDef collector fill:#f8e6d8,stroke:#c98966,color:#3a2c24;
+    class H human;
+    class V,E,E2 collector;
+    linkStyle default stroke:#95745e,color:#705444,stroke-width:1.5px;
 ```
 
 Offsets refer to frozen parsed text, not byte positions in the original PDF or
@@ -101,6 +157,18 @@ not correctness of a proposed meaning, truth, novelty or recall.
 ## 4. Source-level evaluation
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#f6ede4"
+    primaryTextColor: "#3a2c24"
+    textColor: "#3a2c24"
+    lineColor: "#95745e"
+    edgeLabelBackground: "#fffcf7"
+    clusterBkg: "#fff7ef"
+    clusterBorder: "#d6bfae"
+---
 flowchart LR
     S["Held-out complete sources<br/>Group related sources in the same split"] --> H["Independent human annotation<br/>Label every eligible occurrence"]
     S --> Q["Quarry extraction<br/>Frozen policy and model profile"]
@@ -110,6 +178,12 @@ flowchart LR
     C --> R["Recall and false negatives<br/>Which eligible records were missed?"]
     P --> D["Report by domain and language"]
     R --> D
+    classDef default fill:#f6ede4,stroke:#d6bfae,color:#3a2c24,stroke-width:1.5px;
+    classDef human fill:#fff0cf,stroke:#cda463,color:#3a2c24;
+    classDef collector fill:#f8e6d8,stroke:#c98966,color:#3a2c24;
+    class H human;
+    class Q,C collector;
+    linkStyle default stroke:#95745e,color:#705444,stroke-width:1.5px;
 ```
 
 Reviewing extracted candidates alone cannot measure missed records. Candidate

@@ -1,29 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="460" viewBox="0 0 1200 460" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="738" viewBox="0 0 1200 738" role="img" aria-labelledby="title description">
   <title id="title">From a research question to source-traceable data</title>
-  <desc id="description">The researcher's agent prepares bounded inputs. Quarry validates and captures evidence, the researcher reviews the plan, models propose discoveries, deterministic grounding retains exact source occurrences, and frozen versions preserve data. Independent whole-source human evaluation measures false negatives.</desc>
-  <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="m0 0 8 4-8 4" fill="#72889f"/></marker></defs>
-  <rect width="1200" height="460" rx="20" fill="#f4f7fb"/>
+  <desc id="description">Five numbered steps: the researcher's agent drafts bounded inputs; Quarry validates and captures sources; the researcher reviews and approves the concrete plan; models propose discoveries; Quarry grounds and preserves them. Saved versions retain evidence and unfinished work. Independent whole-source human evaluation measures false negatives.</desc>
+  <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="m0 0 8 4-8 4" fill="#95745e"/></marker></defs>
+  <rect x="1" y="1" width="1198" height="736" rx="20" fill="#fffcf7" stroke="#e8d8ca"/>
   <g font-family="Arial, Helvetica, sans-serif">
-    <text x="30" y="43" font-size="24" font-weight="700" fill="#15314b">A flexible agent interface. A fixed, inspectable collector.</text>
-    <text x="30" y="73" font-size="16" fill="#536b80">Researchers decide scope. Models propose data. Quarry preserves source evidence and unfinished work.</text>
-    <g fill="none" stroke="#72889f" stroke-width="2" marker-end="url(#arrow)">
-      <path d="M235 177h20M470 177h20M705 177h20M940 177h20"/>
+    <text x="34" y="53" font-size="34" font-weight="700" fill="#3a2c24">From a research question to traceable data</text>
+    <text x="34" y="88" font-size="22" fill="#705444">Your agent prepares. You approve. Quarry collects and preserves evidence.</text>
+    <g fill="none" stroke="#95745e" stroke-width="2.5" marker-end="url(#arrow)">
+      <path d="M390 202H414"/>
+      <path d="M780 202H804"/>
+      <path d="M991 284V309H404V325"/>
+      <path d="M583 414H607"/>
     </g>
-    <g>
-      <rect x="30" y="110" width="205" height="139" rx="14" fill="#e5eefb" stroke="#b0c7e4"/>
-      <rect x="265" y="110" width="205" height="139" rx="14" fill="#e6f5f0" stroke="#a4d4c3"/>
-      <rect x="500" y="110" width="205" height="139" rx="14" fill="#fff4d9" stroke="#e7cd8a"/>
-      <rect x="735" y="110" width="205" height="139" rx="14" fill="#e5eefb" stroke="#b0c7e4"/>
-      <rect x="970" y="110" width="200" height="139" rx="14" fill="#e6f5f0" stroke="#a4d4c3"/>
-      <g font-size="11" font-weight="700" letter-spacing="1" fill="#637b92"><text x="47" y="136">01 · YOUR AGENT</text><text x="282" y="136">02 · QUARRY</text><text x="517" y="136">03 · RESEARCHER</text><text x="752" y="136">04 · MODELS</text><text x="987" y="136">05 · QUARRY</text></g>
-      <g font-size="18" font-weight="700" fill="#18364f"><text x="47" y="168">Describe &amp; draft</text><text x="282" y="168">Validate &amp; capture</text><text x="517" y="168">Review the plan</text><text x="752" y="168">Propose discoveries</text><text x="987" y="168">Ground &amp; preserve</text></g>
-      <g font-size="14" fill="#4a667c"><text x="47" y="196">Question, policy, sources</text><text x="47" y="219">Bounded structured inputs</text><text x="282" y="196">Scope, source hashes, costs</text><text x="282" y="219">Frozen source packets</text><text x="517" y="196">Complete sources &amp; budget</text><text x="517" y="219">Approve this concrete plan</text><text x="752" y="196">Broad + specialist lenses</text><text x="752" y="219">Independent discoveries</text><text x="987" y="196">Exact spans + sense records</text><text x="987" y="219">Audit unresolved proposals</text></g>
+    <rect x="34" y="120" width="356" height="164" rx="14" fill="#f6ede4" stroke="#d6bfae"/>
+    <rect x="424" y="120" width="356" height="164" rx="14" fill="#f8e6d8" stroke="#c98966"/>
+    <rect x="814" y="120" width="352" height="164" rx="14" fill="#fff0cf" stroke="#cda463"/>
+    <rect x="226" y="332" width="356" height="164" rx="14" fill="#f6ede4" stroke="#d6bfae"/>
+    <rect x="618" y="332" width="356" height="164" rx="14" fill="#f8e6d8" stroke="#c98966"/>
+    <g font-size="20" font-weight="700" fill="#8c4025">
+      <text x="54" y="151">01 · YOUR AGENT</text><text x="444" y="151">02 · QUARRY</text><text x="834" y="151">03 · RESEARCHER</text>
+      <text x="246" y="363">04 · MODELS</text><text x="638" y="363">05 · QUARRY</text>
     </g>
-    <rect x="30" y="276" width="1140" height="65" rx="12" fill="#17364b"/>
-    <text x="50" y="301" font-size="17" font-weight="700" fill="#ffffff">Persistent inventory → Optional reversible annotation → Frozen dataset → CSV · JSONL · Parquet</text>
-    <text x="50" y="325" font-size="14" fill="#bdd5e5">Collector stages retain provenance, processing outcomes and applicable costs. Saved exports need no new model calls.</text>
-    <rect x="30" y="361" width="1140" height="69" rx="12" fill="#ffffff" stroke="#bdcddb" stroke-dasharray="5 4"/>
-    <text x="50" y="387" font-size="17" font-weight="700" fill="#17364b">Independent human evaluation</text>
-    <text x="50" y="411" font-size="15" fill="#536b80">Annotate complete held-out sources. Group related sources in one split. Measure precision, recall and false negatives.</text>
+    <g font-size="28" font-weight="700" fill="#3a2c24">
+      <text x="54" y="192">Describe &amp; draft</text><text x="444" y="192">Validate &amp; capture</text><text x="834" y="192">Review the plan</text>
+      <text x="246" y="404">Propose discoveries</text><text x="638" y="404">Ground &amp; preserve</text>
+    </g>
+    <g font-size="22" fill="#705444">
+      <text x="54" y="227">Question, policy, sources</text><text x="54" y="256">Bounded structured inputs</text>
+      <text x="444" y="227">Scope, source hashes, costs</text><text x="444" y="256">Frozen source packets</text>
+      <text x="834" y="227">Complete sources &amp; budget</text><text x="834" y="256">Approve this concrete plan</text>
+      <text x="246" y="439">Broad or Specialists</text><text x="246" y="468">Independent discoveries</text>
+      <text x="638" y="439">Exact spans + sense records</text><text x="638" y="468">Audit unresolved proposals</text>
+    </g>
+    <rect x="34" y="526" width="1132" height="78" rx="12" fill="#3a2c24"/>
+    <text x="54" y="557" font-size="24" font-weight="700" fill="#fffcf7">Inventory → Optional reversible annotation → Frozen dataset → Export</text>
+    <text x="54" y="585" font-size="20" fill="#f1d7c3">CSV · JSONL · Parquet · Annotation files · Saved progress and provenance</text>
+    <rect x="34" y="626" width="1132" height="80" rx="12" fill="#fffcf7" stroke="#d6bfae" stroke-dasharray="5 4"/>
+    <text x="54" y="657" font-size="24" font-weight="700" fill="#3a2c24">Independent human evaluation</text>
+    <text x="54" y="687" font-size="20" fill="#705444">Complete held-out sources · Source-grouped splits · Precision, recall and false negatives</text>
   </g>
 </svg>
