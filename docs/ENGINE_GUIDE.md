@@ -1,13 +1,15 @@
-# V6 engine and interface guide
+# Quarry engine and interface guide
 
 Detailed CLI, API, cost and data-format reference preserved from the V6.4 introduction.
+Quarry is the product name; the V6.4 engine retains the `termfinder` CLI/Python
+namespace and `v6-collect-research` packaged skill identifier.
 
-# V6 — NLPx research collector
+## Quarry — NLPx research collector
 
-V6 collects **terms and senses with inspectable source evidence**, plus exact
+Quarry collects **terms and senses with inspectable source evidence**, plus exact
 source spans expressing ideas, opinions, or sentences. Start with a research
 question in plain language. Your own coding agent drafts a plan;
-V6 validates its scope and inputs, collects with Broad or Specialists, resumes
+Quarry validates its scope and inputs, collects with Broad or Specialists, resumes
 unfinished work, and saves a reproducible dataset version. It is intended for PhD
 students and research assistants in Georgia Tech's NLPx lab working with [name removed]
 and [name removed]. Their publications guide the product; this implementation is
@@ -15,7 +17,7 @@ not a requested lab deployment or a reproduction of their datasets.
 
 V5 supplies the GLM + DeepSeek broad route, additive community specialist lenses,
 grounded union, exact-occurrence deduplication, bounded split recovery, recorded
-rates, and a separate Gemini direction. V6 implements a new independent package
+rates, and a separate Gemini direction. Quarry implements an independent package
 around those principles: editable recipes, HTML/text/PDF ingestion, bounded
 discovery, durable SQLite projects, API/CLI/browser workflows, reversible review,
 immutable exports, and complete-source evaluation. V3, V4, V5, and existing
@@ -23,7 +25,7 @@ outputs are not dependencies and are preserved.
 
 ## Install and connect once; use your own agent for each study
 
-V6's default interface is **your existing coding-agent conversation**. Install
+Quarry's default interface is **your existing coding-agent conversation**. Install
 the collector and its project-local skill/MCP connection once. Then ask that
 agent to create or reopen a study, prepare its sources and recipe, show a
 concrete cost review, collect or resume, inspect exact evidence, and deliver the
@@ -33,14 +35,14 @@ the session. The optional browser provides a visual evidence workspace.
 For an agent that has local terminal and file tools, paste this setup request.
 Replace the paths and choose `codex`, `claude`, or `generic` for the host:
 
-> Read the reviewed local V6 package at `<V6_DIR>`, including this README and
+> Read the reviewed local Quarry package at `<QUARRY_DIR>`, including README.md and
 > `src/termfinder/agent_skill/SKILL.md`. Install it in a fresh isolated Python
 > 3.11–3.13 environment using its pinned dependencies. Enable the project-local
 > `v6-collect-research` skill and local MCP connection for this harness in
 > `<WORKSPACE>`, with studies in `<STUDIES_ROOT>`, using `termfinder connect`.
 > Preserve existing settings and studies. Keep the default offline launch gate;
 > make no paid collection calls. Verify the connection with `list_studies`.
-> Run subsequent V6 sessions here in conversation; use the browser only if I
+> Run subsequent Quarry sessions here in conversation; use the browser only if I
 > request a visual view. Do not download an installer into an interpreter or
 > put credentials in arguments, configuration files, or reports.
 
@@ -55,28 +57,28 @@ Use `--host claude` for Claude Code or `--host generic` for another harness.
 The connection is scoped to the chosen workspace and a bounded studies root;
 it does not edit home/global settings, install hooks, or run a background
 service. Follow the command's host-specific result, reload or restart the agent
-if necessary, and verify an actual V6 tool call. Generic setup provides local
+if necessary, and verify an actual Quarry tool call. Generic setup provides local
 skill/stdio instructions; a custom host may need its own registration step.
 [Connection details](AGENT_NATIVE.md) cover artifacts and verification.
-The chosen workspace must already exist; V6 can create its default studies
+The chosen workspace must already exist; Quarry can create its default studies
 folder. The default connection is offline only. Real collection needs a
 separately authorized paid launch gate and the approved finite plan.
 
 Once connected, a student's request can be:
 
-> Use V6 to create `ev-language` for new expressions and changed senses in my
+> Use Quarry to create `ev-language` for new expressions and changed senses in my
 > permitted `/path/to/ev-corpus` exports. Exclude names used only as names and
 > retain singleton uses. Use English, Broad, the GLM + DeepSeek profile, at most
 > 30 sources, and a $10 cap. Show the complete sources, problems, and estimate
 > here before collection. Do not start a paid run until I approve this plan.
 
-The agent prepares and pages through the complete plan using V6 tools, presents
+The agent prepares and pages through the complete plan using Quarry tools, presents
 it in conversation, and relays your actual approval. It handles progress,
 cancellation, resume, exact source inspection, and named reproducible exports.
 On a later day, say: “Open `ev-language`, show unfinished work and costs, and
 resume the approved plan.” The launch gate, finite budget, and approval binding
 continue to apply. Your personal agent session's cost is separate and unknown
-to V6. Offline fake is a rehearsal, not an extractor for arbitrary research.
+to Quarry. Offline fake is a rehearsal, not an extractor for arbitrary research.
 
 [The student procedure](SIMPLE_WORKFLOW.md) includes NEO-BENCH, Camellia,
 CARE, and MedReadMe-inspired examples. The [11 student walkthroughs](NLPX_STUDENT_GUIDE.md)
@@ -101,7 +103,7 @@ CLI/API/manual configuration remains available.
 The conversational entry follows the skill-and-connected-tool direction of
 [Paper2Agent](https://github.com/jmiao24/Paper2Agent); the visual annotation view
 draws on [Thresh](https://aclanthology.org/2023.emnlp-demo.30/) by [name removed],
-[name removed], and [name removed]. V6 supplies its own fixed collector; it has no dependency
+[name removed], and [name removed]. Quarry supplies its own fixed collector; it has no dependency
 on either project. Real harness usability and real provider quality still need
 field verification.
 
@@ -114,7 +116,7 @@ opt in with `termfinder --project STUDY large-run`; spending and source scope
 remain researcher-controlled. See [the long-run procedure](LONG_RUNS.md)
 and [release verification](RESILIENCE_VERIFIED.md).
 
-V6 preserves existing inventories and the earlier wheels/environments.
+Quarry preserves existing inventories and the earlier wheels/environments.
 The revised extraction prompt has a new version, so earlier prompt responses are
 not reused for new extraction jobs. Re-exporting a saved version needs no model
 calls; running new extraction requires its own reviewed scope and budget.
@@ -127,10 +129,10 @@ not semantic correctness, representative sampling, or recall.
 ## Installation on macOS or Linux
 
 Select an installed Python 3.11, 3.12, or 3.13 first; a machine's default
-`python3` may point to an unsupported version. Clone the standalone **v6-research-collector** repository, then run with a supported interpreter (the example uses Python 3.13):
+`python3` may point to an unsupported version. Clone the standalone **BobbY-24/quarry** repository, then run with a supported interpreter (the example uses Python 3.13):
 
 ```sh
-cd v6-research-collector
+cd quarry
 python3.13 -m venv .venv-6.4
 . .venv-6.4/bin/activate
 python -m pip install -r requirements-build.txt
@@ -382,7 +384,8 @@ The [V6.4 harness verification results](HARNESS_VERIFIED.md) record the complete
 artifact paths, wheel hash, and platform scope.
 
 [Architecture](ARCHITECTURE.md) explains record identity, durability, recovery,
-cache contracts, costs, and interface boundaries. [Pilot guidance](PILOT.md)
+cache contracts, costs, and interface boundaries. [Quarry diagrams](QUARRY_DIAGRAMS.md)
+illustrate the researcher workflow and evidence pipeline. [Pilot guidance](PILOT.md)
 lists known limitations and the remaining steps for a separately authorized
 real-world collection. Full table-record extraction, conversation preference
 datasets, and automatic benchmark generation remain documented extension points.

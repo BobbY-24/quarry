@@ -17,7 +17,7 @@ def _recipe(value):
 
 
 def parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="termfinder", description="Research term collection with durable evidence, resume, and frozen datasets")
+    p = argparse.ArgumentParser(prog="termfinder", description="Quarry: research collection with durable evidence, resume, and frozen datasets")
     p.add_argument("--project", default=".", help="Project directory containing project.sqlite3 (default: current directory)")
     sub = p.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init", help="Configure a project from a validated starter recipe or JSON file")
@@ -101,9 +101,9 @@ def parser() -> argparse.ArgumentParser:
     release.add_argument("name", nargs="?", default="research-release")
     release.add_argument("--version", help="Existing saved dataset version to re-export without model calls")
     release.add_argument("--formats", default="csv,jsonl,parquet,annotation")
-    skill = sub.add_parser("agent-skill", help="Copy the packaged V6 collector skill to a fresh directory; never install globally")
+    skill = sub.add_parser("agent-skill", help="Copy the packaged Quarry collector skill to a fresh directory; never install globally")
     skill.add_argument("--out", type=Path, required=True)
-    connect = sub.add_parser("connect", help="Install the V6 skill and tool connection in your chosen agent workspace")
+    connect = sub.add_parser("connect", help="Install the Quarry skill and tool connection in your chosen agent workspace")
     connect.add_argument("--host", choices=("codex", "claude", "generic"), required=True,
                          help="Project-local host configuration, or a generic connection bundle")
     connect.add_argument("--workspace", type=Path, required=True,

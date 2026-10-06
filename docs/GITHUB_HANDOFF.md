@@ -1,6 +1,7 @@
-# Standalone GitHub source handoff
+# Quarry GitHub source handoff
 
-V6.4 lives at the root of the private [`BobbY-24/v6-research-collector`](https://github.com/BobbY-24/v6-research-collector)
+Quarry, powered by the V6.4 engine, lives at the root of the private
+[`BobbY-24/quarry`](https://github.com/BobbY-24/quarry)
 repository. Clone it, install the independent package, and connect it to your own
 coding-agent workspace. The earlier collector and nested V6 copy remain in the
 separate [`community-term-collector`](https://github.com/BobbY-24/community-term-collector)
@@ -13,8 +14,8 @@ Use GitHub's normal authenticated HTTPS/SSH workflow; never put a token in a URL
 With an authenticated GitHub CLI and an installed Python 3.11–3.13:
 
 ```sh
-gh repo clone BobbY-24/v6-research-collector
-cd v6-research-collector
+gh repo clone BobbY-24/quarry
+cd quarry
 python3.13 -m venv .venv-6.4
 . .venv-6.4/bin/activate
 python -m pip install -r requirements-build.txt
@@ -32,9 +33,11 @@ resume and the separately authorized real-provider gate.
 
 This is a source-only import of `V6-community-term-finder/` from the original
 repository's published commit `4e9b32922d08fdea2b668f96e7dab16bc2a98526`.
-The package, recipes, profiles, prompts, skill, tests and synthetic fixtures retain
-their bytes. Documentation adapts the repository URL and root installation path.
-The original banner and workflow graphic are included.
+At import, the package, recipes, profiles, prompts, skill, tests and synthetic
+fixtures retained their bytes. Documentation adapted the repository URL and root
+installation path. Later Quarry naming, documentation and diagram updates are
+recorded in this repository's Git history; the import manifests describe the
+original snapshots rather than the current branding.
 
 The [standalone preparation manifest](STANDALONE_REPOSITORY_MANIFEST.json) records
 the exact upstream repository/commit/subdirectory and copied-file hashes. It
