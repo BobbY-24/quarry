@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "medical-sentence-pilot",
+  "data_type": "sentence",
+  "starter_recipe": "jargon",
+  "research_question": "Which complete sentences containing medical jargon occur in our permitted patient-facing documents, for a separate human readability study?",
+  "inclusion_criteria": [
+    "Exact complete sentence spans containing medical jargon under a fixed domain rubric.",
+    "Retain full source contexts, page locations and any explicit definitions."
+  ],
+  "exclusion_criteria": [
+    "Fragments concatenated into generated sentences.",
+    "Medical advice, a model readability rating treated as human truth, or inferred patient attributes."
+  ],
+  "languages": [
+    "en"
+  ],
+  "communities": [
+    "patient-information-pilot"
+  ],
+  "domains": [
+    "local-only.invalid"
+  ],
+  "local_roots": [
+    "./corpus"
+  ],
+  "budget_usd": 0,
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "max_sources": 15,
+  "dates": {
+    "start": null,
+    "end": null,
+    "unknown": "include"
+  }
+}

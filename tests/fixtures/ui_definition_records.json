@@ -1,0 +1,40 @@
+[
+  {
+    "term_id": "term-quote-present",
+    "expression": "moonstep",
+    "language": "en",
+    "sense": "a pause",
+    "source_supported_definition": {
+      "text": "a pause 🧪",
+      "reason": null,
+      "occurrence_id": "synthetic-occurrence-1",
+      "semantic_entailment_verified": false
+    }
+  },
+  {
+    "term_id": "record-quote-absent",
+    "record_type": "opinion",
+    "expression": "I prefer this approach.",
+    "language": "en",
+    "sense": "a stated preference",
+    "source_supported_definition": {
+      "text": null,
+      "reason": "no_exact_definition_quote",
+      "occurrence_id": null,
+      "semantic_entailment_verified": false
+    }
+  },
+  {
+    "term_id": "record-quote-whitespace",
+    "record_type": "idea",
+    "expression": "Consider another route.",
+    "language": "en",
+    "sense": "a suggested alternative",
+    "source_supported_definition": {
+      "text": " \n ",
+      "reason": "no_exact_definition_quote",
+      "occurrence_id": null,
+      "semantic_entailment_verified": false
+    }
+  }
+]

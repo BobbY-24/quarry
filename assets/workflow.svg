@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="460" viewBox="0 0 1200 460" role="img" aria-labelledby="title description">
+  <title id="title">From a research question to source-traceable data</title>
+  <desc id="description">The researcher's agent prepares bounded inputs. V6 validates and captures evidence, the researcher reviews the plan, models propose discoveries, deterministic grounding retains exact source occurrences, and frozen versions preserve data. Independent whole-source human evaluation measures false negatives.</desc>
+  <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="m0 0 8 4-8 4" fill="#72889f"/></marker></defs>
+  <rect width="1200" height="460" rx="20" fill="#f4f7fb"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="30" y="43" font-size="24" font-weight="700" fill="#15314b">A flexible agent interface. A fixed, inspectable collector.</text>
+    <text x="30" y="73" font-size="16" fill="#536b80">Researchers decide scope. Models propose data. V6 preserves source evidence and unfinished work.</text>
+    <g fill="none" stroke="#72889f" stroke-width="2" marker-end="url(#arrow)">
+      <path d="M235 177h20M470 177h20M705 177h20M940 177h20"/>
+    </g>
+    <g>
+      <rect x="30" y="110" width="205" height="139" rx="14" fill="#e5eefb" stroke="#b0c7e4"/>
+      <rect x="265" y="110" width="205" height="139" rx="14" fill="#e6f5f0" stroke="#a4d4c3"/>
+      <rect x="500" y="110" width="205" height="139" rx="14" fill="#fff4d9" stroke="#e7cd8a"/>
+      <rect x="735" y="110" width="205" height="139" rx="14" fill="#e5eefb" stroke="#b0c7e4"/>
+      <rect x="970" y="110" width="200" height="139" rx="14" fill="#e6f5f0" stroke="#a4d4c3"/>
+      <g font-size="11" font-weight="700" letter-spacing="1" fill="#637b92"><text x="47" y="136">01 · YOUR AGENT</text><text x="282" y="136">02 · V6</text><text x="517" y="136">03 · RESEARCHER</text><text x="752" y="136">04 · MODELS</text><text x="987" y="136">05 · V6</text></g>
+      <g font-size="18" font-weight="700" fill="#18364f"><text x="47" y="168">Describe &amp; draft</text><text x="282" y="168">Validate &amp; capture</text><text x="517" y="168">Review the plan</text><text x="752" y="168">Propose discoveries</text><text x="987" y="168">Ground &amp; preserve</text></g>
+      <g font-size="14" fill="#4a667c"><text x="47" y="196">Question, policy, sources</text><text x="47" y="219">Bounded structured inputs</text><text x="282" y="196">Scope, source hashes, costs</text><text x="282" y="219">Frozen source packets</text><text x="517" y="196">Complete sources &amp; budget</text><text x="517" y="219">Approve this concrete plan</text><text x="752" y="196">Broad + specialist lenses</text><text x="752" y="219">Independent discoveries</text><text x="987" y="196">Exact spans + sense records</text><text x="987" y="219">Audit unresolved proposals</text></g>
+    </g>
+    <rect x="30" y="276" width="1140" height="65" rx="12" fill="#17364b"/>
+    <text x="50" y="301" font-size="17" font-weight="700" fill="#ffffff">Persistent inventory → Optional reversible annotation → Frozen dataset → CSV · JSONL · Parquet</text>
+    <text x="50" y="325" font-size="14" fill="#bdd5e5">Collector stages retain provenance, processing outcomes and applicable costs. Saved exports need no new model calls.</text>
+    <rect x="30" y="361" width="1140" height="69" rx="12" fill="#ffffff" stroke="#bdcddb" stroke-dasharray="5 4"/>
+    <text x="50" y="387" font-size="17" font-weight="700" fill="#17364b">Independent human evaluation</text>
+    <text x="50" y="411" font-size="15" fill="#536b80">Annotate complete held-out sources. Group related sources in one split. Measure precision, recall and false negatives.</text>
+  </g>
+</svg>

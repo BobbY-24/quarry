@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "id": "cultural",
+  "version": "1.0.0",
+  "research_question": "Which culturally situated expressions and entities occur in multilingual sources, and how do their local contexts describe them?",
+  "inclusion_criteria": [
+    "Collect culturally meaningful vocabulary, practices, foods, celebrations, and named entities when their association is supported by context.",
+    "Retain original scripts, spelling, code-switching, transliterations, and distinct community senses; describe cultural association as a suggestion requiring human review.",
+    "Include established expressions and named entities. Cultural relevance does not require novelty or a minimum frequency.",
+    "Keep original context separate from any generated translation and keep human annotations separate from model suggestions."
+  ],
+  "exclusion_criteria": [
+    "Exclude generic everyday expressions when the source supplies no culturally situated use.",
+    "Do not infer a person's identity, belief, or culture solely from their name or the language of a document.",
+    "Do not replace original text with a translation or claim that a model-proposed cultural association is source-confirmed."
+  ],
+  "languages": ["en", "zh", "ar", "ja", "hi", "ko", "vi", "ur", "gu", "mr", "ml"],
+  "communities": ["multilingual-community"],
+  "dates": {"start": null, "end": null, "unknown": "include"},
+  "source_scope": {"domains": ["example.org"], "local": true},
+  "examples": {
+    "positive": [
+      {"text": "春节是这段家庭记录中庆祝农历新年的节日。", "expression": "春节", "language": "zh", "sense": "a celebration of the lunar new year in this family account", "reason": "Original-script cultural entity explicitly described in context."},
+      {"text": "In this family account, お花見 names a gathering to view cherry blossoms.", "expression": "お花見", "language": "ja", "sense": "a gathering to view cherry blossoms", "reason": "Established cultural practice is included without a novelty requirement."}
+    ],
+    "negative": [
+      {"text": "The person opened a window.", "expression": "window", "language": "en", "sense": null, "reason": "No cultural association is supplied."},
+      {"text": "Mina posted a message.", "expression": "Mina", "language": "en", "sense": null, "reason": "A name alone does not establish cultural identity or association."}
+    ],
+    "boundary": [
+      {"text": "At the local café, volunteers organize a fictional neighborhood poetry gathering.", "expression": "café", "language": "fr", "sense": null, "reason": "A borrowed word is not automatically culturally diagnostic; retain only a project-relevant contextual association."},
+      {"text": "The source uses a transliteration alongside the original name.", "expression": "transliteration", "language": "en", "sense": null, "reason": "Aliases may be linked reversibly; a transliteration must not silently replace original-script evidence."}
+    ]
+  },
+  "output": {
+    "required_fields": ["expression", "language", "sense", "context"],
+    "attributes": {
+      "cultural_association": {"type": "string", "required": false, "description": "Model suggestion of locally supported association; not a demographic inference."},
+      "entity_type": {"type": "string", "required": false, "description": "Model suggestion: practice, celebration, food, place, person, artifact, or other."},
+      "transliteration": {"type": "string", "required": false, "description": "Optional generated transliteration; never original evidence."}
+    },
+    "translations": true
+  },
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "specialist_lenses": [
+    {"id": "glm-cultural-entities", "model": "glm", "lens": "Attend to original-script cultural entities, transliterations, and code-switched vocabulary while retaining all qualifying terms.", "communities": ["multilingual-community"]},
+    {"id": "deepseek-cultural-senses", "model": "deepseek", "lens": "Attend to culturally situated senses and practices whose names look familiar while retaining all qualifying terms.", "communities": ["multilingual-community"]}
+  ],
+  "discovery": {"enabled": false, "queries": ["cultural vocabulary local account"], "max_sources": 30, "max_hops": 1, "max_requests": 60, "max_cost_usd": 0.0, "search_cost_usd": 0.0, "fetch_cost_usd": 0.0},
+  "execution": {
+    "budget_usd": 6.0,
+    "stage_budgets": {"discovery": 0.0, "parsing": 0.0, "extraction": 4.0, "specialist": 2.0, "translation": 0.0},
+    "max_calls": 1000000, "concurrency": 4, "timeout_seconds": 180, "max_retries": 4, "deadline_seconds": 604800,
+    "resilience": {"delays_seconds": [30, 120, 240, 480], "jitter_fraction": 0.2, "max_retry_after_seconds": 86400, "automatic_uncertain_retries": true, "max_retry_calls": 20000, "model_concurrency": 1, "min_request_interval_seconds": 0.5},
+    "window_chars": 3000, "overlap_chars": 960, "split_depth": 2, "max_output_tokens": 8192, "recovery_output_tokens": 16384
+  },
+  "exports": {"formats": ["csv", "jsonl", "parquet"], "annotation": true}
+}

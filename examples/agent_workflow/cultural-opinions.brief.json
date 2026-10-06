@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "cultural-opinion-pilot",
+  "data_type": "opinion",
+  "starter_recipe": "cultural",
+  "research_question": "Which assessments and preferences about cultural practices are explicitly expressed in our permitted Chinese and English source passages?",
+  "inclusion_criteria": [
+    "Exact contiguous passages expressing an assessment, preference or explicit stance about the chosen cultural practices.",
+    "Retain attribution and surrounding context; keep human-authored and generated source origins distinct."
+  ],
+  "exclusion_criteria": [
+    "An inferred attitude with no explicit supporting passage.",
+    "Treating a quotation, hypothetical view or model response as a verified population preference."
+  ],
+  "languages": [
+    "zh",
+    "en"
+  ],
+  "communities": [
+    "cultural-practice-pilot"
+  ],
+  "domains": [
+    "local-only.invalid"
+  ],
+  "local_roots": [
+    "./corpus"
+  ],
+  "budget_usd": 0,
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "max_sources": 15,
+  "dates": {
+    "start": null,
+    "end": null,
+    "unknown": "include"
+  }
+}

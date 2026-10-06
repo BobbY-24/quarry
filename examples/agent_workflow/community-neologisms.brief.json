@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "community-neologism-pilot",
+  "data_type": "term",
+  "starter_recipe": "neologisms",
+  "research_question": "Which new expressions and shifted senses occur in our dated, permitted electric-vehicle community documents?",
+  "inclusion_criteria": [
+    "New word forms, compounds, and community-specific uses of established spellings.",
+    "Retain each exact spelling, contextual sense, and singleton occurrence as separate evidence."
+  ],
+  "exclusion_criteria": [
+    "Names used only as named entities.",
+    "General vocabulary with no contextual innovation under the stated research rubric."
+  ],
+  "languages": [
+    "en"
+  ],
+  "communities": [
+    "ev-community-pilot"
+  ],
+  "dates": {
+    "start": "2025-01-01",
+    "end": "2026-12-31",
+    "unknown": "include"
+  },
+  "domains": [
+    "local-only.invalid"
+  ],
+  "local_roots": [
+    "./corpus"
+  ],
+  "budget_usd": 0,
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "max_sources": 15
+}

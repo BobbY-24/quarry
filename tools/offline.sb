@@ -1,0 +1,38 @@
+(version 1)
+; Parameters are supplied explicitly by the reviewed verification launcher.
+(allow default)
+(deny network*)
+; User data reads are limited to reviewed runtimes, V6, and private temp.
+; System shared caches/daemons remain accessible for normal interpreter startup.
+(deny file-read-data
+ (require-all
+  (subpath "/Users")
+  (require-not (subpath (param "PROJECT_ROOT")))
+  (require-not (subpath (param "RUNTIME_ROOT")))
+  (require-not (subpath (param "BASE_RUNTIME_ROOT")))
+  (require-not (subpath (param "TEMP_ROOT"))))
+ (require-all
+  (subpath (param "HOME_ROOT"))
+  (require-not (subpath (param "PROJECT_ROOT")))
+  (require-not (subpath (param "RUNTIME_ROOT")))
+  (require-not (subpath (param "BASE_RUNTIME_ROOT")))
+  (require-not (subpath (param "TEMP_ROOT"))))
+ (require-all
+  (subpath "/private/tmp")
+  (require-not (subpath (param "TEMP_ROOT"))))
+ (require-all
+  (subpath "/private/var/folders")
+  (require-not (subpath (param "TEMP_ROOT")))))
+; Even a broad runtime root cannot grant home credential-directory access.
+(deny file-read-data
+ (subpath "/Library/Keychains") (subpath "/private/etc/ssh")
+ (subpath "/private/var/root")
+ (subpath (string-append (param "HOME_ROOT") "/.ssh"))
+ (subpath (string-append (param "HOME_ROOT") "/.aws"))
+ (subpath (string-append (param "HOME_ROOT") "/.config"))
+ (subpath (string-append (param "HOME_ROOT") "/Library/Keychains")))
+(deny file-write*
+ (require-all
+  (require-not (subpath (param "PROJECT_ROOT")))
+  (require-not (subpath (param "TEMP_ROOT")))
+  (require-not (literal "/dev/null"))))

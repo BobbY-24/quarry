@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "id": "jargon",
+  "version": "1.0.0",
+  "research_question": "Which established or emerging scientific and medical expressions need domain knowledge to interpret, and where do they occur in the selected documents?",
+  "inclusion_criteria": [
+    "Collect domain-specific methods, conditions, measurements, abbreviations, and technical expressions, including established jargon.",
+    "Retain full expressions and precise spans, including useful multiword terms. A technical definition quoted from the source is stronger evidence than a proposed gloss.",
+    "Preserve distinct senses and document/page locations; terminology collection is not clinical advice.",
+    "Include a single grounded occurrence and preserve discoveries from either extractor."
+  ],
+  "exclusion_criteria": [
+    "Exclude ordinary function words and general vocabulary requiring no domain knowledge in its supplied context.",
+    "Exclude isolated bibliography metadata, author names, and identifiers used only as labels unless a researcher explicitly broadens this recipe.",
+    "Do not infer diagnoses, efficacy, or medical recommendations from a term's occurrence."
+  ],
+  "languages": ["en"],
+  "communities": ["scientific-medical"],
+  "dates": {"start": null, "end": null, "unknown": "include"},
+  "source_scope": {"domains": ["example.org", "arxiv.org", "pmc.ncbi.nlm.nih.gov"], "local": true},
+  "examples": {
+    "positive": [
+      {"text": "Heteroplasmy means that cells contain more than one mitochondrial DNA variant.", "expression": "Heteroplasmy", "language": "en", "sense": "coexistence of more than one mitochondrial DNA variant", "reason": "Established medical jargon is explicitly within scope."},
+      {"text": "Retrieval-augmented generation combines retrieved documents with model generation in this fictional methods note.", "expression": "Retrieval-augmented generation", "language": "en", "sense": "generation that combines retrieved documents with model output", "reason": "A technical multiword method name with a contextual explanation."}
+    ],
+    "negative": [
+      {"text": "The researchers read the paper on Monday.", "expression": "Monday", "language": "en", "sense": null, "reason": "Everyday vocabulary, not a domain-specific concept."},
+      {"text": "The bibliography lists Rae Example as an author.", "expression": "Rae Example", "language": "en", "sense": null, "reason": "An author name used solely as metadata."}
+    ],
+    "boundary": [
+      {"text": "The participants reported pain.", "expression": "pain", "language": "en", "sense": null, "reason": "A medical document alone does not turn general vocabulary into jargon; include a specialized contextual sense if supported."},
+      {"text": "The table labels a column PCR without expanding the abbreviation.", "expression": "PCR", "language": "en", "sense": null, "reason": "The observed abbreviation may be collected, but an absent expansion must remain unavailable rather than source-confirmed."}
+    ]
+  },
+  "output": {
+    "required_fields": ["expression", "language", "sense", "context"],
+    "attributes": {
+      "technical_category": {"type": "string", "required": false, "description": "Model suggestion: method, condition, measurement, abbreviation, or other."},
+      "reader_difficulty": {"type": "string", "required": false, "description": "Optional model hypothesis about lay-reader difficulty; requires human validation."},
+      "abbreviation_expansion": {"type": "string", "required": false, "description": "Expansion when supported by the source; unavailable when absent."}
+    },
+    "translations": false
+  },
+  "mode": "broad",
+  "model_profile": "glm-deepseek",
+  "specialist_lenses": [
+    {"id": "glm-medical-spans", "model": "glm", "lens": "Attend to established medical jargon, full multiword expressions, and uncommon abbreviation senses while retaining all qualifying terms.", "communities": ["scientific-medical"]},
+    {"id": "deepseek-methods", "model": "deepseek", "lens": "Attend to scientific method names, measurement terminology, and explained techniques while retaining all qualifying terms.", "communities": ["scientific-medical"]}
+  ],
+  "discovery": {"enabled": false, "queries": ["scientific medical terminology methods"], "max_sources": 30, "max_hops": 1, "max_requests": 60, "max_cost_usd": 0.0, "search_cost_usd": 0.0, "fetch_cost_usd": 0.0},
+  "execution": {
+    "budget_usd": 6.0,
+    "stage_budgets": {"discovery": 0.0, "parsing": 0.0, "extraction": 4.0, "specialist": 2.0, "translation": 0.0},
+    "max_calls": 1000000, "concurrency": 4, "timeout_seconds": 180, "max_retries": 4, "deadline_seconds": 604800,
+    "resilience": {"delays_seconds": [30, 120, 240, 480], "jitter_fraction": 0.2, "max_retry_after_seconds": 86400, "automatic_uncertain_retries": true, "max_retry_calls": 20000, "model_concurrency": 1, "min_request_interval_seconds": 0.5},
+    "window_chars": 3000, "overlap_chars": 960, "split_depth": 2, "max_output_tokens": 8192, "recovery_output_tokens": 16384
+  },
+  "exports": {"formats": ["csv", "jsonl", "parquet"], "annotation": true}
+}

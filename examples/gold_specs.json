@@ -1,0 +1,33 @@
+{
+  "description": "Independent manually specified in-scope expressions for the complete synthetic sources. Software demonstration labels only, not a real quality benchmark. Every literal occurrence of each listed expression is annotated independently of model output.",
+  "recipes": {
+    "neologisms": {
+      "community.html": [
+        {"expression": "moonstep", "language": "en"},
+        {"expression": "anchor", "language": "en"},
+        {"expression": "quietstack", "language": "en"}
+      ]
+    },
+    "cultural": {
+      "cultural.md": [
+        {"expression": "春节", "language": "zh"},
+        {"expression": "お花見", "language": "ja"},
+        {"expression": "القهوة العربية", "language": "ar"},
+        {"expression": "रंगोली", "language": "hi"},
+        {"expression": "café circle", "language": "en"}
+      ]
+    },
+    "jargon": {
+      "jargon.txt": [
+        {"expression": "Heteroplasmy", "language": "en"},
+        {"expression": "Retrieval-augmented generation", "language": "en"},
+        {"expression": "biomarker", "language": "en"},
+        {"expression": "PCR", "language": "en"}
+      ],
+      "jargon.pdf": [
+        {"expression": "Heteroplasmy", "language": "en"},
+        {"expression": "biomarker", "language": "en"}
+      ]
+    }
+  }
+}

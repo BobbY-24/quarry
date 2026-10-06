@@ -1,0 +1,13 @@
+Synthetic scientific and medical methods note
+
+This is invented text for software tests, not clinical guidance or a published scientific finding.
+
+Heteroplasmy means that cells contain more than one mitochondrial DNA variant.
+
+Retrieval-augmented generation combines retrieved documents with model generation in this fictional methods note.
+
+A biomarker is a measurable biological indicator used in this fictional methods note.
+
+The protocol uses PCR but does not expand the abbreviation in this passage.
+
+The researchers read the paper on Monday. The participants reported pain.
