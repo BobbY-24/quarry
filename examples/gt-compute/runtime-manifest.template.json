@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "origin": "operator_declared",
+  "checkpoint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "tokenizer_sha256": null,
+  "chat_template_sha256": null,
+  "container_digest": null,
+  "model_revision": "REPLACE_WITH_REVIEWED_CHECKPOINT_REVISION",
+  "tokenizer_revision": null,
+  "chat_template_revision": null,
+  "runtime_name": "REPLACE_WITH_REVIEWED_SERVER_RUNTIME",
+  "runtime_version": "REPLACE_WITH_REVIEWED_RUNTIME_VERSION",
+  "quantization": null,
+  "gpu_model": null,
+  "gpu_count": null,
+  "driver_version": null,
+  "cuda_version": null,
+  "decode": null
+}

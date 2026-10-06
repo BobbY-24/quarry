@@ -15,7 +15,9 @@ from .prompts import build_prompt, VERSION
 from .prompts import manifest as prompt_manifest
 from .providers import ProviderError, Response
 from .store import digest, ident, now
-from .resilience import retry_delay
+from .resilience import retry_delay, cluster_execution
+from .runtime import PromptTokenizer, runtime_manifest, validate_runtime
+from .token_windows import token_admission, planned_windows
 
 
 def policy_hash(recipe):
@@ -43,10 +45,16 @@ class SourceCache:
 
 
 class Engine:
-    def __init__(self, project, provider, *, clock=None, random=None):
+    def __init__(self, project, provider, *, clock=None, random=None, tokenizers=None):
         self.project, self.store = project, project.store
         self.recipe, self.profile, self.provider = project.recipe, project.profile, provider
-        self.execution = self.recipe["execution"]
+        tuning = self.store.read_setting("cluster_throughput")
+        self.execution = (cluster_execution(self.recipe["execution"], **tuning)
+                          if tuning else self.recipe["execution"])
+        self.tokenizers = dict(tokenizers or {})
+        if set(self.tokenizers) - set(self.profile["models"]) or any(
+                not isinstance(t, PromptTokenizer) for t in self.tokenizers.values()):
+            raise ValueError("register trusted prompt tokenizers by configured model alias")
         self.resilience = self.execution.get("resilience")
         self.clock, self.random = clock or time, random
         self.policy = policy_hash(self.recipe)
@@ -56,9 +64,66 @@ class Engine:
         self.run_id = "run_" + uuid.uuid4().hex
         self.expert_map = {e["id"]: e for e in experts(self.recipe, self.profile)}
         self.source_map = SourceCache(self.store)
+        cluster = self.store.read_setting("cluster_execution")
+        self.cluster_runtimes = {}
+        if cluster:
+            if not isinstance(cluster, dict) or not isinstance(cluster.get("runtime"), dict) or not isinstance(cluster.get("model_artifacts"), list):
+                raise ValueError("Invalid trusted cluster runtime declaration")
+            # Bind artifact/runtime identities only: resuming on a new job or
+            # changing GPU counts must not invalidate completed extraction.
+            for alias in self.profile["models"]:
+                artifacts = [a for a in cluster["model_artifacts"] if isinstance(a, dict) and a.get("model_alias") == alias]
+                if len(artifacts) != 1:
+                    raise ValueError("Cluster runtime must declare each model alias once")
+                artifact = artifacts[0]
+                normalized = validate_runtime({"checkpoint_sha256": artifact.get("sha256"),
+                    "model_revision": artifact.get("checkpoint_id"), "quantization": artifact.get("quantization"),
+                    "runtime_name": cluster["runtime"].get("runtime_id")})
+                if not normalized["checkpoint_sha256"] or not normalized["model_revision"] or not normalized["runtime_name"]:
+                    raise ValueError("Cluster runtime artifact identity is incomplete")
+                configured_hash = self.profile["models"][alias].get("runtime", {}).get("checkpoint_sha256")
+                if configured_hash and configured_hash != normalized["checkpoint_sha256"]:
+                    raise ValueError("Cluster checkpoint declaration differs from the model profile")
+                python_hash = cluster["runtime"].get("python_sha256")
+                if not isinstance(python_hash, str) or len(python_hash) != 64 or any(c not in "0123456789abcdef" for c in python_hash):
+                    raise ValueError("Cluster runtime requires the reviewed Python artifact hash")
+                self.cluster_runtimes[alias] = {"origin": "operator_declared", "model_alias": alias,
+                    "checkpoint_sha256": normalized["checkpoint_sha256"], "model_revision": normalized["model_revision"],
+                    "quantization": normalized["quantization"], "quantization_reason": None if normalized["quantization"] else "not_declared_by_operator",
+                    "runtime_id": normalized["runtime_name"], "python_sha256": python_hash,
+                    "attestation": "operator_declaration_not_remote_endpoint_attestation"}
+                server = cluster.get("server")
+                resources = cluster.get("resources")
+                declared_server = resources.get("server") if isinstance(resources, dict) else None
+                if server is not None and not isinstance(server, dict) or declared_server is not None and not isinstance(declared_server, dict):
+                    raise ValueError("Invalid trusted serving runtime declaration")
+                # Keep the identity stable before and after readiness. Owned
+                # serving's fixed policies are declared before launch; the
+                # receipt confirms them without incorporating ports, timing,
+                # allocation IDs or GPU counts into response-cache keys.
+                selected = declared_server or server
+                if selected and selected.get("model_alias") == alias:
+                    from .serving import VERSION_PATTERN
+                    package_version = selected.get("package_version")
+                    if (selected.get("adapter") != "vllm" or not isinstance(package_version, str)
+                            or len(package_version) > 64 or not VERSION_PATTERN.fullmatch(package_version)):
+                        raise ValueError("Invalid trusted vLLM package identity")
+                    serving_identity = {"adapter": "vllm", "package_version": package_version,
+                        "served_model_name": self.profile["models"][alias]["model"],
+                        "load_format": "safetensors", "generation_config": "vllm",
+                        "distributed_executor_backend": "mp", "plugin_autoload": "disabled",
+                        "remote_model_code": "disabled"}
+                    if server is not None:
+                        if server.get("model_alias", alias) != alias or any(
+                                name in server and server[name] != expected
+                                for name, expected in serving_identity.items()):
+                            raise ValueError("Serving receipt differs from the trusted runtime declaration")
+                    self.cluster_runtimes[alias]["owned_serving"] = serving_identity
         self.model_keys = {alias: ident("model", {"alias":alias,"model":model,
             "provider":self.profile["providers"][model["provider"]],
-            "policy":self.policy, "scope":self.budget_scope}) for alias,model in self.profile["models"].items()}
+            "policy":self.policy, "scope":self.budget_scope,
+            **({"declared_cluster_runtime": self.cluster_runtimes[alias]} if alias in self.cluster_runtimes else {})})
+            for alias,model in self.profile["models"].items()}
         self.health = self.store.read_setting("model_circuits") or {}
         self.ledger = None
 
@@ -74,6 +139,14 @@ class Engine:
             "prompt_sha256": digest(prompt), "expert": expert, "model": model,
             "provider": self.profile["providers"][model["provider"]], "transport": self.provider_identity,
             "start": start, "end": end, "max_output_tokens": output}
+        admission = None
+        if "context_limit_tokens" in model or expert["model"] in self.tokenizers:
+            admission = token_admission(model, prompt, output,
+                                       tokenizer=self.tokenizers.get(expert["model"]))
+            signature["token_admission"] = admission
+        cluster_runtime = self.cluster_runtimes.get(expert["model"])
+        if cluster_runtime is not None:
+            signature["declared_cluster_runtime"] = cluster_runtime
         key = ident("job", signature)
         existing = self.store.get("jobs", key)
         if existing:
@@ -88,6 +161,14 @@ class Engine:
             "reason": "not_dispatched", "attempts": 0, "created_at": now(), "run_id": None,
             "prompt_sha256": digest(prompt), "coverage_complete": False, "max_output_tokens": output,
             "transport_identity": self.provider_identity, "model_key":self.model_keys[expert["model"]]}
+        if admission is not None:
+            record["token_admission"] = admission
+        record["runtime"] = runtime_manifest(model)
+        record["declared_cluster_runtime"] = cluster_runtime
+        record["declared_cluster_runtime_reason"] = None if cluster_runtime else "not_running_with_cluster_declaration"
+        record["request_decoding"] = {"temperature": 0, "max_output_tokens": output,
+                                      "thinking_budget": model["thinking_budget"],
+                                      "origin": "quarry_transport_configuration"}
         self.store.put("jobs", key, record)
         return record
 
@@ -99,18 +180,31 @@ class Engine:
         for source in self.source_map.values():
             if self.project.source_exclusion(source) is not None:
                 continue
-            for start, end in window_ranges(len(source["text"]), self.execution):
-                if self.store.read_setting("cancel_requested") or self.clock.monotonic() >= self.deadline:
-                    self.planning_complete = False
-                    break
-                for expert in self.expert_map.values():
-                    if "*" not in expert["communities"] and source.get("community") not in expert["communities"]:
-                        continue
+            for expert in self.expert_map.values():
+                if "*" not in expert["communities"] and source.get("community") not in expert["communities"]:
+                    continue
+                model = self.profile["models"][expert["model"]]
+                if "context_limit_tokens" in model or expert["model"] in self.tokenizers:
+                    windows = planned_windows(source["text"], self.execution, model,
+                        lambda text: build_prompt(self.recipe, expert, text, source),
+                        tokenizer=self.tokenizers.get(expert["model"]))
+                else:
+                    windows = ((s, e, None) for s, e in window_ranges(len(source["text"]), self.execution))
+                for start, end, admission in windows:
+                    if self.store.read_setting("cancel_requested") or self.clock.monotonic() >= self.deadline:
+                        self.planning_complete = False
+                        break
                     if self.resilience and len(root_ids) >= self.execution["max_calls"]:
                         self.planning_complete = False
                         break
-                    root_ids.append(self.job(source, expert, start, end)["job_id"])
-                if not self.planning_complete: break
+                    record = self.job(source, expert, start, end)
+                    if admission is not None and not admission["admitted"] and record["status"] == "pending":
+                        record.update(status="partial", reason=admission["blocked_reason"], coverage_complete=False)
+                        self.store.put("jobs", record["job_id"], record)
+                        self.audit(record, record["reason"])
+                    root_ids.append(record["job_id"])
+                if not self.planning_complete:
+                    break
             if not self.planning_complete: break
             if self.store.read_setting("cancel_requested"):
                 self.planning_complete = False
@@ -234,6 +328,10 @@ class Engine:
         self._save_health()
 
     def admit(self, job):
+        admission = job.get("token_admission")
+        if admission is not None and not admission["admitted"]:
+            self.split(job, "context_capacity_split_recovery")
+            return None, "context_capacity_split_recovery"
         reserve = reserve_cost(job["model"], job["max_output_tokens"])
         stage = job["expert"]["stage"]
         ledger = self._ledger()
@@ -312,7 +410,15 @@ class Engine:
             "reported_model_version_reason": None if response.model_version else "not_reported_by_provider",
             "prompt_version": VERSION, "prompt_sha256": job["prompt_sha256"], "recipe_sha256": self.policy,
             "request_id": response.request_id, "cached": cached, "created_at": now(),
-            "transport_identity": self.provider_identity}
+            "transport_identity": self.provider_identity,
+            "runtime": job.get("runtime", runtime_manifest(job["model"])),
+            "declared_cluster_runtime": job.get("declared_cluster_runtime"),
+            "declared_cluster_runtime_reason": None if job.get("declared_cluster_runtime") else "not_running_with_cluster_declaration",
+            "request_decoding": job.get("request_decoding", {"temperature": 0,
+                "max_output_tokens": job["max_output_tokens"], "thinking_budget": job["model"]["thinking_budget"],
+                "origin": "quarry_transport_configuration"}),
+            "token_admission": job.get("token_admission"),
+            "token_admission_reason": None if job.get("token_admission") else "legacy_profile_without_total_context_capacity"}
         for proposal in candidates:
             # Every successful proposal variant remains in the occurrence's
             # provenance, including conflicting attributes/quotes/translations.
@@ -426,6 +532,9 @@ class Engine:
                "prompts":prompt_manifest(), "budget_scope":self.budget_scope,
                "root_job_ids": roots, "transport_identity": self.provider_identity,
                "billing_kind": "provider_reported_token_estimate" if getattr(self.provider,"paid",False) else "simulated"}
+        run["inference_runtime"] = {alias: runtime_manifest(model) for alias, model in self.profile["models"].items()}
+        run["declared_cluster_runtimes"] = self.cluster_runtimes
+        run["registered_tokenizers"] = {alias: tokenizer.manifest() for alias, tokenizer in self.tokenizers.items()}
         self.store.put("runs", self.run_id, run)
         deadline = self.deadline
         inflight, dispatched, stop = {}, 0, None
@@ -494,6 +603,8 @@ class Engine:
                         continue
                     attempt, reason = self.admit(job)
                     if reason:
+                        if reason == "context_capacity_split_recovery":
+                            continue
                         if reason == "aggregate_retry_budget_exhausted":
                             self._disable(job,reason)
                             continue
