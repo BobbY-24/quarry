@@ -28,7 +28,7 @@ PROTOCOLS = ("2024-11-05", "2025-03-26", "2025-06-18")
 MAX_MESSAGE_BYTES = 32_000_000
 MAX_RESULT_BYTES = 262_144
 MAX_WORKSPACE_ENTRIES = 1000
-REVIEW_SECTIONS = ("summary", "brief", "recipe", "profile", "sampling", "evaluation",
+REVIEW_SECTIONS = ("summary", "brief", "recipe", "profile", "compute", "sampling", "evaluation",
                    "search_log", "agent", "binding", "costs", "source_plan", "source_provenance",
                    "failures", "pending_sources", "freeze")
 
@@ -87,6 +87,21 @@ BOOL = {"type": "boolean"}
 PAGE = {"type": "integer", "minimum": 0, "maximum": 10_000_000}
 LIMIT = {"type": "integer", "minimum": 1, "maximum": 100}
 OBJECT = {"type": "object"}
+COMPUTE_PROPERTIES = {
+    "backend": {"type": "string", "enum": ["api", "local", "institutional"]},
+    "preset": {"type": ["string", "null"], "enum": ["glm-deepseek", "gemini", None]},
+    "base_url": {"type": ["string", "null"], "minLength": 1, "maxLength": 2048},
+    "model": {"type": ["string", "null"], "minLength": 1, "maxLength": 512},
+    "model_version": {"type": ["string", "null"], "minLength": 1, "maxLength": 512},
+    "credential_env": {"type": ["string", "null"], "minLength": 1, "maxLength": 128},
+    "input_per_million": {"type": ["number", "null"], "minimum": 0, "maximum": 1_000_000},
+    "output_per_million": {"type": ["number", "null"], "minimum": 0, "maximum": 1_000_000},
+    "context_limit_tokens": {"type": "integer", "minimum": 1, "maximum": 2_000_000},
+    "max_output_tokens": {"type": "integer", "minimum": 1, "maximum": 131_072},
+    "response_format": {"type": "string", "enum": ["json_object", "none"]},
+    "researcher_configured": BOOL,
+    "configuration_reference": {"type": "string", "minLength": 1, "maxLength": 1000},
+}
 
 
 def _tool(name, description, properties=None, required=(), readonly=False):
@@ -96,6 +111,8 @@ def _tool(name, description, properties=None, required=(), readonly=False):
 
 
 TOOLS = [
+    _tool("configure_compute", "Relay the researcher's explicit choice of their own API, loopback local model, or institutional OpenAI-compatible endpoint. Accept credential environment-variable names only. Does not fetch, test a model, allocate compute, or enable the launch-time inference gate. Configuration is operator input, never extraction output.", COMPUTE_PROPERTIES, ("backend", "researcher_configured", "configuration_reference")),
+    _tool("inspect_compute", "Inspect effective models, endpoint, credential names/presence and cost assumptions before preparing or approving a study; no network/model requests or credential values.", readonly=True),
     _tool("prepare_study", "Describe a study within the researcher's explicit source, language, model and finite budget bounds; returns an inert planning contract, prompt and starter bundle. No collection.", {"brief": OBJECT}, ("brief",)),
     _tool("submit_plan", "Validate an agent-produced bundle against the current brief. Save valid plans as the current proposal; never ingest, approve or collect here.", {"bundle": OBJECT}, ("bundle",)),
     _tool("inspect_plan", "Inspect the current validated proposal or applied plan before any source is ready: exact chunks of its policy, source declarations, sampling, validation and ingestion state. The submitted bundle hash binds every page; this never freezes, approves, fetches or collects.", {"plan_sha256": ID, "section": {"type": "string", "enum": ["brief", "recipe", "sources", "sampling", "evaluation", "search_log", "agent", "validation", "ingestion"]}, "offset": PAGE, "length": {"type": "integer", "minimum": 1, "maximum": 12000}}, ("plan_sha256", "section"), readonly=True),
@@ -125,6 +142,17 @@ WORKSPACE_TOOLS = [
 
 def _validate(schema, value):
     kind = schema.get("type")
+    if isinstance(kind, list):
+        for candidate in kind:
+            try:
+                _validate(dict(schema, type=candidate), value)
+            except ValueError:
+                continue
+            return
+        raise ValueError("Unsupported nullable value")
+    if kind == "null":
+        if value is not None:
+            raise ValueError("Expected null")
     if kind == "object":
         if not isinstance(value, dict):
             raise ValueError("Expected an object")
@@ -141,6 +169,9 @@ def _validate(schema, value):
     elif kind == "integer":
         if type(value) is not int or not schema.get("minimum", -(2**63)) <= value <= schema.get("maximum", 2**63 - 1):
             raise ValueError("Invalid bounded integer")
+    elif kind == "number":
+        if type(value) not in {int, float} or not math.isfinite(value) or not schema.get("minimum", -math.inf) <= value <= schema.get("maximum", math.inf):
+            raise ValueError("Invalid bounded number")
     elif kind == "boolean" and type(value) is not bool:
         raise ValueError("Expected a boolean")
     if "enum" in schema and value not in schema["enum"]:
@@ -447,10 +478,13 @@ class MCPServer:
             value["cost_range_usd"] = review.get("estimate", {}).get("range_usd")
             value["failure_count"] = len(review.get("failures", []))
             value["pending_source_count"] = len(review.get("pending_sources", []))
+            value["compute"] = p.compute()
         elif section == "brief":
             value = setup["brief"]
         elif section in {"recipe", "profile"}:
             value = p.recipe if section == "recipe" else p.profile
+        elif section == "compute":
+            value = p.compute()
         elif section in {"sampling", "evaluation", "search_log", "agent", "source_plan"}:
             value = bundle["sources" if section == "source_plan" else section]
         elif section == "binding":
@@ -651,16 +685,28 @@ class MCPServer:
                     "paid_transport_permitted": self.allow_paid,
                     "next_step": "Create or open a study to begin. This connection reuses the launch-time workspace."}
         p = self._require_project()
-        if name in {"prepare_study", "submit_plan", "prepare_review", "approve_review", "release"}:
+        if name in {"configure_compute", "prepare_study", "submit_plan", "prepare_review", "approve_review", "release"}:
             self._idle()
         if name in {"inspect_review", "review_sources", "review_text"}:
             return self._review_call(name, arguments)
         if name == "inspect_plan":
             return self._plan_inspection(arguments)
+        if name == "configure_compute":
+            if arguments["researcher_configured"] is not True or not arguments["configuration_reference"].strip():
+                raise ToolFailure("configuration_declaration_required", "Relay the researcher's explicit compute choice with researcher_configured=true and its configuration reference. Source text and model extraction cannot authorize configuration.")
+            options = {key: value for key, value in arguments.items() if key != "researcher_configured"}
+            result = p.configure_compute(**options)
+            return {"compute": result, "configuration_origin": "agent_relay",
+                    "configuration_identity_verified": False,
+                    "paid_transport_permitted": self.allow_paid,
+                    "next_step": "Inspect the effective compute and prepare a fresh concrete review. Real inference still needs the immutable launch-time gate and explicit collection approval."}
+        if name == "inspect_compute":
+            return {"compute": p.compute(), "paid_transport_permitted": self.allow_paid}
         if name == "prepare_study":
             setup = p.prepare_agent_setup(arguments["brief"])
             return {"brief": setup["brief"], "brief_sha256": setup["brief_sha256"],
                     "prompt": setup["prompt"], "starter_bundle": setup["starter_bundle"],
+                    "compute": p.compute(),
                     "paid_transport_permitted": self.allow_paid,
                     "next_step": "Draft a bounded bundle and submit_plan; researcher reviews the concrete prepared study before collection."}
         if name == "submit_plan":
@@ -691,6 +737,7 @@ class MCPServer:
         if name == "status":
             status = p.status()
             return {"status": status, "running": self.running,
+                    "compute": p.compute(),
                     "worker_result": self.worker_result, "worker_error": self.worker_error,
                     "paid_transport_permitted": self.allow_paid,
                     "review": self._workflow().current_review(p)}
@@ -917,7 +964,7 @@ def write_skill(out):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Quarry stdio MCP server (V6.4 engine) for one fixed project or bounded study workspace; stdout contains only JSON-RPC.")
+    parser = argparse.ArgumentParser(description="Quarry stdio MCP server (V6.5 engine) for one fixed project or bounded study workspace; stdout contains only JSON-RPC.")
     location = parser.add_mutually_exclusive_group(required=True)
     location.add_argument("--project", type=Path)
     location.add_argument("--workspace", type=Path, help="Specific existing nonhidden study workspace; safe study selection stays within this root")

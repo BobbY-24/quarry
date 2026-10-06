@@ -25,6 +25,20 @@ def parser() -> argparse.ArgumentParser:
     init.add_argument("--recipe", default="neologisms", help="neologisms, cultural, jargon, or recipe JSON path")
     init.add_argument("--profile", default="fake", help="fake, glm-deepseek, gemini, or profile JSON path")
     init.add_argument("--mode", choices=("broad", "specialists"))
+    compute = sub.add_parser("configure-compute", help="Configure your own API, local model, or institutional endpoint; no network requests")
+    compute.add_argument("--backend", choices=("api", "local", "institutional"), required=True)
+    compute.add_argument("--preset", choices=("glm-deepseek", "gemini"), help="Packaged API routing and rates; reads only the configured environment-variable names")
+    compute.add_argument("--base-url", help="OpenAI-compatible endpoint; no credentials or query parameters")
+    compute.add_argument("--model", help="Exact served model identifier for a custom endpoint")
+    compute.add_argument("--model-version", help="Pinned model/revision declaration for reproducible provenance")
+    compute.add_argument("--credential-env", help="Credential environment-variable NAME only; never supply a key value")
+    compute.add_argument("--input-per-million", type=float, help="USD per million input tokens")
+    compute.add_argument("--output-per-million", type=float, help="USD per million output tokens")
+    compute.add_argument("--context-limit-tokens", type=int, default=32768)
+    compute.add_argument("--max-output-tokens", type=int, default=8192)
+    compute.add_argument("--response-format", choices=("json_object", "none"), default="json_object", help="Use none if the custom server does not support the response_format parameter")
+    compute.add_argument("--configuration-reference", default="researcher local configuration", help="Brief reference to the researcher's compute choice, containing no credentials")
+    sub.add_parser("compute", help="Inspect effective model routing, credential names/presence, and cost basis without network requests")
     recipe = sub.add_parser("recipe", help="Write a complete starter recipe for researcher editing")
     recipe.add_argument("name", choices=("neologisms", "cultural", "jargon"))
     recipe.add_argument("--out", type=Path)
@@ -43,7 +57,7 @@ def parser() -> argparse.ArgumentParser:
     prepare.add_argument("--budget", type=float, default=0)
     prepare.add_argument("--max-sources", type=int, default=30)
     prepare.add_argument("--mode", choices=("broad", "specialists"), default="broad")
-    prepare.add_argument("--profile", choices=("glm-deepseek", "gemini", "fake"), default="glm-deepseek")
+    prepare.add_argument("--profile", choices=("glm-deepseek", "gemini", "fake", "configured"), help="Defaults to your configured compute, or glm-deepseek before configuration")
     prepare.add_argument("--out", type=Path, required=True, help="Fresh handoff directory")
     validate = sub.add_parser("validate-plan", help="Check the agent's bundle without collection or source fetching")
     validate.add_argument("bundle", type=Path)
@@ -206,7 +220,9 @@ def main(argv=None) -> int:
                 brief = {"data_type": args.data_type, "research_question": args.idea,
                          "domains": args.domain, "local_roots": args.local_root,
                          "budget_usd": args.budget, "max_sources": args.max_sources,
-                         "mode": args.mode, "model_profile": args.profile}
+                         "mode": args.mode}
+                if args.profile is not None:
+                    brief["model_profile"] = args.profile
                 for key, value in (("inclusion_criteria", args.include), ("exclusion_criteria", args.exclude),
                                    ("languages", args.language), ("communities", args.community)):
                     if value:
@@ -214,6 +230,16 @@ def main(argv=None) -> int:
                 if args.policy:
                     brief["starter_recipe"] = args.policy
             result = write_handoff(project.prepare_agent_setup(brief), args.out)
+        elif command == "configure-compute":
+            result = project.configure_compute(backend=args.backend, preset=args.preset,
+                base_url=args.base_url, model=args.model, model_version=args.model_version,
+                credential_env=args.credential_env, input_per_million=args.input_per_million,
+                output_per_million=args.output_per_million,
+                context_limit_tokens=args.context_limit_tokens,
+                max_output_tokens=args.max_output_tokens, response_format=args.response_format,
+                configuration_reference=args.configuration_reference)
+        elif command == "compute":
+            result = project.compute()
         elif command == "validate-plan":
             from .config import read_json
             result = project.validate_agent_bundle(read_json(args.bundle))
@@ -351,7 +377,10 @@ def main(argv=None) -> int:
         _json(result)
         return 0
     except (ValueError, RuntimeError, OSError, KeyError) as exc:
-        print(f"termfinder: {exc}", file=sys.stderr)
+        if args.command in {"configure-compute", "compute"}:
+            print("termfinder: Compute configuration is invalid or unavailable. Use a supported backend, credential environment-variable names, a safe endpoint, exact model/version, and finite token caps/rates. No supplied values are echoed.", file=sys.stderr)
+        else:
+            print(f"termfinder: {exc}", file=sys.stderr)
         return 2
 
 

@@ -36,7 +36,8 @@ async function refresh(){
     $('audit').textContent=show({page:state.inventory.page,jobs:state.inventory.jobs,audit_preview:state.inventory.audit,discovery_preview:state.inventory.discovery,cost_totals:state.status.costs});
     $('run-mode').textContent=state.offline?'Offline demonstration session':'Provider calls authorized for session';$('collect').textContent=state.offline?'Collect / resume offline':'Collect / resume with providers';
     if(state.recipe&&!editingRecipe){$('recipe').value=show(state.recipe);$('mode').value=state.recipe.mode;}
-    if(state.profile&&!editingRecipe&&(state.profile.id||state.profile.name))$('profile').value=state.profile.id||state.profile.name;
+    if(state.profile&&!editingRecipe&&(state.profile.id||state.profile.name))$('profile').value=state.recipe?.model_profile==='configured'?'configured':state.profile.id||state.profile.name;
+    if(state.compute?.configured&&!hasLocalDraft)$('brief-profile').value='configured';
     $('offline-note').hidden=!state.offline;updateSetupButtons();$('collect').disabled=busyActions.has('collect')||!state.recipe||state.running;
     renderGuidedReview(state.review||{});updateEffectiveSettings();
     renderRecovery();renderVersions();renderTerms();renderPager($('record-pages'),state.inventory.page?.total||0,pageOffset,offset=>pageOffset=offset);
@@ -210,6 +211,8 @@ function renderGuidedReview(review){
   readableTable(bindingDetails,['Model / revision','Provider','Input / 1M tokens','Output / 1M tokens'],Object.values(state?.profile?.models||{}).map(model=>[`${model.model} / ${model.version}`,model.provider,money(model.input_per_million),money(model.output_per_million)]));
   for(const model of Object.values(state?.profile?.models||{}))appendText(bindingDetails,'p',`${model.model}: rates recorded ${model.prices_recorded_at||'date unavailable'}. ${model.price_note||'Verify configured rates and model availability before a real pilot.'}`,'helper');
   appendText(bindingDetails,'p','These are configured rates, not a current provider quote. Every approval and run checks the saved corpus and configuration fingerprint.','helper');
+  const compute=state?.compute||review.compute||{};
+  if(compute.backend){appendText(bindingDetails,'h4','Researcher-selected compute');appendText(bindingDetails,'p',`${compute.backend} · ${compute.general_pass_count??'Unknown'} general extraction pass(es). Account or allocation ownership is not verified by Quarry.`);for(const provider of compute.providers||[])appendText(bindingDetails,'p',`${provider.base_url||'Offline fixture'} · ${provider.credential_env?provider.credential_env+': '+(provider.credential_present?'present':'missing'):'No credential required'}`);appendText(bindingDetails,'p',compute.infrastructure_cost_reason||'Infrastructure and planning-agent costs are not metered.','helper');}
   appendText(bindingDetails,'pre',show(review.binding||{}));root.append(bindingDetails);
   const list=review.sources||[];appendText(root,'h4','Reviewed source inventory');let offset=0;
   const sourceRoot=document.createElement('div');root.append(sourceRoot);
