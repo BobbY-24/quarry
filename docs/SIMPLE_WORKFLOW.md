@@ -2,7 +2,7 @@
 
 **Tell your own coding agent what to collect; stay in that conversation.**
 The agent handles study selection, structured inputs, source preparation,
-cost review, collection, evidence inspection, and exports through V6's fixed
+cost review, collection, evidence inspection, and exports through Quarry's fixed
 tools. You decide the research scope and approve a concrete plan. You do not
 write JSON, move bundles, manage review IDs, or open a browser to finish.
 
@@ -23,18 +23,18 @@ workspace if required, accept the host's normal connection controls, and ask
 the agent to verify a real `list_studies` call. Generic hosts may need manual
 registration of the generated local definition. This is setup once per
 workspace, not once per study; new sessions reopen saved studies.
-Choose an existing specific workspace. V6 creates its default studies folder;
+Choose an existing specific workspace. Quarry creates its default studies folder;
 an external studies root must already exist.
 
-V6 does not modify home/global agent settings, install hooks, run a persistent
+Quarry does not modify home/global agent settings, install hooks, run a persistent
 service, or call paid models during connection. Matching repeats are idempotent;
 conflicting configurations or changed launch gates require a fresh workspace
-or an explicitly reviewed V6-only migration. Existing host settings are preserved.
+or an explicitly reviewed Quarry-only migration. Existing host settings are preserved.
 
 Start with the offline fake profile and zero dollars for a rehearsal. Real
 collection requires the selected provider's environment configuration, a finite
 budget, and a separately authorized connection launched with `--allow-paid`.
-Planning-agent charges are outside V6's cost ledger. Never put credentials in
+Planning-agent charges are outside Quarry's cost ledger. Never put credentials in
 the study, agent bundle, notebook output, URL, or command arguments.
 
 ## What the student does each time
@@ -45,7 +45,7 @@ the study, agent bundle, notebook output, URL, or command arguments.
    ambiguity, decide it. The agent may draft examples and fields but cannot
    enlarge those boundaries through its plan.
 2. **Read one concrete plan in conversation and approve it.** The agent submits its inputs
-   directly. V6 validates them, imports the declared local documents, fetches
+   directly. Quarry validates them, imports the declared local documents, fetches
    only listed URLs when explicitly selected, freezes the corpus and blank
    whole-source packets, and calculates a length-based estimate. Check the
    source selection reasons, rights, exclusions, failures, effective models,
@@ -62,7 +62,7 @@ the study, agent bundle, notebook output, URL, or command arguments.
    can be relayed from your actual judgments and undone without deleting the
    underlying record. Agent suggestions do not change human approval.
 4. **Ask for the dataset.** Say: “Save and export `pilot-v1`; show coverage,
-   costs, failures, and publication findings.” V6 writes CSV, JSONL, Parquet, annotation files, manifests, and
+   costs, failures, and publication findings.” Quarry writes CSV, JSONL, Parquet, annotation files, manifests, and
    publication findings. Reusing that release name or saved version reproduces
    its frozen records without a new model call. Use a new name after changes.
 
@@ -110,14 +110,14 @@ the agent, not files the student must maintain by hand.
 [NEO-BENCH](https://arxiv.org/html/2402.12261v4) motivates a vocabulary study.
 [name removed] can tell his agent:
 
-> Use V6 for terms in my permitted dated EV-community exports. Find new
+> Use Quarry for terms in my permitted dated EV-community exports. Find new
 > expressions and changed senses. Exclude names used only as names. Retain
 > one-off uses and different community senses. Use Broad, the GLM + DeepSeek
 > profile, at most 30 sources and a $10 cap. Show me the sources and estimate
 > before collection. Do not start a paid run until I approve this plan.
 
 The agent proposes a neologism recipe with examples of a novel expression, an
-established spelling with a changed sense, and a name to exclude. V6 checks the
+established spelling with a changed sense, and a name to exclude. Quarry checks the
 scope, imports the text, and freezes the source families before extraction.
 [name removed] reviews complete held-out sources for the rubric independently of the
 candidate list. He then inspects each expression's literal occurrence and
@@ -130,7 +130,7 @@ the date is the expression's actual coinage date.
 [Camellia](https://arxiv.org/abs/2510.05291) motivates cultural vocabulary and
 entity collection. [name removed] can tell his agent:
 
-> Use V6 for culturally situated entities and expressions in these permitted
+> Use Quarry for culturally situated entities and expressions in these permitted
 > unmasked Arabic, Chinese, Japanese, and English passages. Include established
 > names, keep original scripts, and preserve contextual senses. Cultural
 > association needs a supporting passage or remains unknown. Use Specialists
@@ -138,7 +138,7 @@ entity collection. [name removed] can tell his agent:
 > source and cost review first.
 
 The agent changes the inclusion rubric to retain cultural entities and routes
-specialists by the declared communities. V6 keeps exact original-script spans
+specialists by the declared communities. Quarry keeps exact original-script spans
 and distinct senses; it does not transfer a neologism exclusion to this study.
 [name removed] reviews translations and cultural attributes separately from the observed
 text. Bilingual annotators label complete held-out source families using the
@@ -151,7 +151,7 @@ user-selected cap, not a promised cost or permission to start a paid experiment.
 [MedReadMe](https://arxiv.org/abs/2405.02144) motivates a medical-document
 workflow. The student can tell their agent:
 
-> Use V6 to collect established medical jargon from my permitted text-bearing
+> Use Quarry to collect established medical jargon from my permitted text-bearing
 > PDFs. Keep page locations, definitions that the source explicitly supports,
 > and the original context. Do not infer that an occurrence is hard to read.
 > Use Broad and a $10 cap for at most 12 documents. Show failures and the
@@ -160,7 +160,7 @@ workflow. The student can tell their agent:
 For a sentence study, the student changes the collection unit to **Sentence**
 and asks for complete source sentences under a specified readability rubric.
 The agent drafts a separate recipe, keeping readability labels for human
-annotation. V6 preserves exact sentence spans and page provenance; it does not
+annotation. Quarry preserves exact sentence spans and page provenance; it does not
 turn a model's readability suggestion into an observed judgment. Image-only
 PDFs show a parsing failure and need a separately reviewed OCR extension.
 Humans annotate complete source documents, with documents/versions grouped in
@@ -174,10 +174,10 @@ collects exact passages expressing claims or proposals, with qualifiers intact.
 
 ## Where reliability and rigor live
 
-| Researcher's experience | V6's enforced behavior | What it cannot establish |
+| Researcher's experience | Quarry's enforced behavior | What it cannot establish |
 | --- | --- | --- |
 | Ask the agent for a plan | Versioned schemas; source/language/date/domain/budget bounds; no execution of extraction payloads | An agent's source-selection claim or search log is true |
-| Review one concrete plan | Frozen sources, grouped splits, blank complete-source packets, cost assumptions, hash-bound approval | Who actually approved, independent blindness outside V6, or sampling representativeness |
+| Review one concrete plan | Frozen sources, grouped splits, blank complete-source packets, cost assumptions, hash-bound approval | Who actually approved, independent blindness outside Quarry, or sampling representativeness |
 | Start or resume | Project admission lock, persistent jobs, bounded workers, retries, timeouts, caching, budget reservations | Exactly-once provider billing or bit-identical future model responses |
 | Inspect Evidence | Exact Unicode offsets/locations, source hashes, grounded union, reversible annotations and relations | Correct proposed meaning, factual truth, or historical novelty |
 | Save and export | Immutable dataset version, audit findings, file hashes and reproducible records | Permission to redistribute source text or publication acceptance |
@@ -196,9 +196,9 @@ meanings, translations, and model annotations remain suggestions. See the
 | --- | --- | --- |
 | [Thresh](https://github.com/example/thresh) | Configure a typology and data, then use the annotation interface | Fine-grained human annotation and deployable interfaces |
 | [Paper2Agent](https://github.com/jmiao24/Paper2Agent) | Install a skill/connect tools, then request scientific work through a coding agent | Building paper-derived tools needs their code/environment and verification |
-| V6 | Install/connect once, then ask the same agent to prepare, review, collect, inspect and export | One workspace connection manages multiple studies; deterministic collection/evidence/recovery gates remain underneath; the browser is optional |
+| Quarry | Install/connect once, then ask the same agent to prepare, review, collect, inspect and export | One workspace connection manages multiple studies; deterministic collection/evidence/recovery gates remain underneath; the browser is optional |
 
-V6 follows Thresh's visible task-focused annotation direction and Paper2Agent's
+Quarry follows Thresh's visible task-focused annotation direction and Paper2Agent's
 agent-to-tool interaction. Its tools are fixed collector operations; it does
 not execute an agent-generated research program. The shorter flow is
 implemented and exercised offline. Equality of usability has not been measured:

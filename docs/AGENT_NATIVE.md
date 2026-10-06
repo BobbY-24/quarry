@@ -1,4 +1,8 @@
-# Use V6 inside your own coding-agent workflow
+# Use Quarry inside your own coding-agent workflow
+
+Quarry is the product name for the V6.4 engine. Its commands remain `termfinder`,
+its Python package remains `termfinder`, and its packaged skill remains
+`v6-collect-research`; existing projects and connections keep those identifiers.
 
 **Install and connect once, then conduct the collection session in conversation.**
 Your existing Codex or Claude coding agent prepares the recipe and source
@@ -9,11 +13,11 @@ step in the connected-agent workflow.
 
 The interface direction follows [Paper2Agent's documented quick start](https://github.com/jmiao24/Paper2Agent):
 give the coding agent a skill, connect scientific tools, and use them through
-natural-language requests. V6's tools are its own bounded collection engine.
+natural-language requests. Quarry's tools are its own bounded collection engine.
 This is a local skill/stdio MCP connection, not a hosted ChatGPT/Claude account
 connector or a claim that a real client session was already tested.
 
-## 1. Have your agent install and connect V6 once
+## 1. Have your agent install and connect Quarry once
 
 The coding agent needs local terminal/file access and a harness that can load a
 project skill and/or stdio MCP server. An ordinary web chat without local tools
@@ -23,10 +27,10 @@ Paste this request into the intended coding-agent workspace. Substitute the
 reviewed package location, host, workspace, and studies folder:
 
 ```text
-Read the reviewed local V6 package at <V6_DIR>, including README.md and
+Read the reviewed local Quarry package at <QUARRY_DIR>, including README.md and
 src/termfinder/agent_skill/SKILL.md. Install it in a fresh isolated Python
 3.11–3.13 environment with the pinned build/runtime dependencies. Preserve
-existing V6 environments, outputs, studies and my agent settings.
+existing Quarry and earlier V6 environments, outputs, studies and my agent settings.
 
 Enable the project-local v6-collect-research skill and local stdio MCP
 connection for <codex|claude|generic> in <WORKSPACE>, with studies saved under
@@ -38,14 +42,14 @@ not configure or print credentials. Follow the generated connection steps,
 then verify an actual list_studies tool call. If my host needs a trust decision
 or restart, tell me that exact remaining step.
 
-Once connected, handle V6 sessions here in conversation: study selection,
+Once connected, handle Quarry sessions here in conversation: study selection,
 recipe/source preparation, complete plan and cost review, my approval,
 collection/resume, evidence inspection, and reproducible export. I do not
 want to write JSON, copy bundles, or open a browser unless I ask for a view.
 Do not pipe a downloaded installer into an interpreter.
 ```
 
-The equivalent manual connection command, **after installing V6**, is:
+The equivalent manual connection command, **after installing Quarry**, is:
 
 ```sh
 termfinder connect --host codex --workspace /path/to/research-workspace \
@@ -75,10 +79,10 @@ by replacing the host's complete configuration file.
 Repeating the same connection is idempotent. A different interpreter, studies
 root, paid gate, existing `v6` definition, or customized skill is a conflict;
 `connect` does not silently migrate it. Use a fresh specific workspace, or
-inspect and explicitly relocate/remove only the existing V6 artifacts before
+inspect and explicitly relocate/remove only the existing Quarry connection artifacts before
 reconnecting. Inline credential-bearing host configuration is refused; use
 the host's environment/secret mechanism rather than copying those values.
-Close configuration editors during setup. V6 serializes its own installers,
+Close configuration editors during setup. Quarry serializes its own installers,
 but unrelated applications do not share its lock. If a crash leaves a
 `.v6-connect.lock`, inspect it and confirm the installer stopped before
 removing that stale lock; do not use deletion to bypass an active setup.
@@ -86,7 +90,7 @@ removing that stale lock; do not use deletion to bypass an active setup.
 Reopen the chosen trusted workspace if the host requires it. Accept a project
 MCP connection only through the host's normal trust controls. Then ask:
 
-> Use the V6 tools to list my saved studies. Report whether you actually called
+> Use the Quarry tools to list my saved studies. Report whether you actually called
 > the connected server; do not treat a generated configuration file as proof.
 
 The generated files are tested locally. Host discovery, organization policy,
@@ -101,7 +105,7 @@ generated stdio definition.
 
 Tell the agent what to collect and where it may obtain evidence. For example:
 
-> Use V6 to create `ev-language` for new expressions and changed senses in my
+> Use Quarry to create `ev-language` for new expressions and changed senses in my
 > permitted `/path/to/ev-corpus` exports. Exclude names used only as names.
 > Retain singleton uses and separate community senses. Use English, Broad,
 > GLM + DeepSeek, at most 30 sources, and a $10 cap. Prepare the complete source
@@ -114,7 +118,7 @@ alone returns the normalized brief and hash, not those planning inputs. When
 reopening an unchanged applied plan to resume, the agent reads `status` and
 uses the retained review; it does not reset the study through `prepare_study`.
 The agent authors the inert structured inputs and adapts policy examples, fields,
-languages, and routing. V6 validates them, ingests permitted documents, records
+languages, and routing. Quarry validates them, ingests permitted documents, records
 failures, freezes parsed evidence and blank whole-source annotation packets,
 and estimates collection cost from measured lengths. URL fetching requires its
 explicit flag and remains limited to the listed sources within the brief.
@@ -143,7 +147,7 @@ When satisfied, approve the concrete reviewed plan in conversation:
 > `ev-language`, within the stated $10 cap. Start that reviewed collection.
 
 The agent relays the actual user decision with `researcher_approved=true` and
-an `approval_reference` to it. V6 binds the declaration to the source,
+an `approval_reference` to it. Quarry binds the declaration to the source,
 recipe, model/profile, prompt, and estimate fingerprint. That declaration is
 an audit trail, not authentication of the human's identity. Changed bindings
 require a new concrete review and decision.
@@ -166,7 +170,7 @@ termfinder connect --host codex --workspace /path/to/pilot-workspace \
 ```
 
 This example uses a fresh pilot workspace and the existing studies root. If
-updating an existing connection, follow the explicit V6-only migration rule
+updating an existing connection, follow the connection-specific migration rule
 above; the command will not overwrite a conflicting offline definition.
 Reconnect the host according to the generated instructions. Existing
 authorization persists; the agent should not repeatedly request approval for
@@ -180,7 +184,7 @@ collection was launched during this build.
 
 The agent calls `collect`, reads `status`, reports pending work/costs/problems,
 and uses `cancel` when requested. It handles the saved identifiers. Collection
-uses V6's persistent finite recovery policy; the agent does not add a second
+uses Quarry's persistent finite recovery policy; the agent does not add a second
 retry loop or silently release uncertain request reservations.
 
 Typical follow-ups are:
@@ -262,7 +266,7 @@ workspace and avoid concurrent untrusted writers.
 Cancellation stops further dispatch; an already sent request may complete or
 have an uncertain bill. Disconnection requests cancellation. The saved policy
 records retry risks and keeps unknown reservations. Exactly-once billing is
-not promised. The personal coding-agent session's costs are not metered by V6.
+not promised. The personal coding-agent session's costs are not metered by Quarry.
 
 Observed passages and original contexts remain distinct from model-proposed
 meanings, translations, and annotations. Grounding establishes occurrence,

@@ -1,27 +1,28 @@
-![V6: Ask your agent. Collect traceable research data.](assets/github-banner.svg)
+![Quarry: Ask your agent. Collect traceable research data.](assets/github-banner.svg)
 
-# V6 — research collection through your own agent
+# Quarry — research collection through your own agent
 
 **Describe your study. Review the plan. Collect, inspect, resume and export in the same conversation.**
 
-V6 turns a research question into a source-traceable dataset through your existing
+Quarry turns a research question into a source-traceable dataset through your existing
 Claude Code, Codex or other local MCP harness. Your agent prepares the inputs;
-V6 runs the fixed collection pipeline. **Terms and senses are the primary output.**
+Quarry runs the fixed collection pipeline. **Terms and senses are the primary output.**
 Exact source spans expressing ideas, opinions and sentences are also supported.
+Quarry is the new product name for the V6.4 collector.
 
-**V6.4.0** · Python 3.11–3.13 · [MIT](LICENSE) · [277 recorded offline tests](docs/HARNESS_VERIFIED.md)
+**Quarry · engine V6.4.0** · Python 3.11–3.13 · [MIT](LICENSE) · [277 recorded offline tests](docs/HARNESS_VERIFIED.md)
 
-[Quick start](#quick-start) · [Research examples](#research-examples) · [How it works](#how-it-works) · [Install](#installation-on-macos-or-linux) · [Documentation](#documentation)
+[Quick start](#quick-start) · [Research examples](#research-examples) · [How it works](#how-it-works) · [Diagrams](#quarry-diagrams) · [Install](#installation-on-macos-or-linux) · [Documentation](#documentation)
 
 ## Quick start
 
-### 1. Ask your coding agent to set up V6
+### 1. Ask your coding agent to set up Quarry
 
-Paste this into the local research workspace where you want to use V6:
+Paste this into the local research workspace where you want to use Quarry:
 
 ```text
-Install V6 from https://github.com/BobbY-24/v6-research-collector.
-The V6 package is at the repository root on the default branch.
+Install Quarry from https://github.com/BobbY-24/quarry.
+The Quarry package is at the repository root on the default branch.
 
 Read the README and src/termfinder/agent_skill/SKILL.md.
 Use a fresh Python 3.11–3.13 environment with the pinned dependencies.
@@ -42,7 +43,7 @@ with local terminal/file tools and project skill or stdio MCP support. Ordinary
 ChatGPT/Claude web chat can use the [file-handoff fallback](docs/AGENT_WORKFLOW.md).
 
 The setup writes a project-local skill and MCP configuration. Follow your host's
-normal trust/reload steps; **a successful V6 tool call verifies the connection**.
+normal trust/reload steps; **a successful Quarry tool call verifies the connection**.
 [Connection and troubleshooting](docs/AGENT_NATIVE.md) cover Claude Code, Codex
 and generic harnesses.
 
@@ -50,13 +51,13 @@ and generic harnesses.
 
 After setup, ask for a study in ordinary language:
 
-> Use V6 to create `ev-language` from my permitted EV discussion exports.
+> Use Quarry to create `ev-language` from my permitted EV discussion exports.
 > Collect new expressions and changed senses, exclude names used only as names,
 > and retain singleton uses. Use English, Broad, at most 30 sources and a $10 cap.
 > Show the complete source list, policy, problems and cost estimate before collection.
 
 Your agent drafts the recipe, examples, source declarations and output fields.
-V6 checks the inputs, captures permitted source evidence and prepares the review.
+Quarry checks the inputs, captures permitted source evidence and prepares the review.
 Before collection, change the policy in conversation without editing engine code.
 For a processed study, follow the [incremental/changed-study procedure](docs/AGENT_NATIVE.md)
 or create a separate study; unchanged plans retain their resume state.
@@ -66,14 +67,14 @@ Real collection requires an explicitly authorized provider connection, configure
 credential environment, finite budget and approval of the concrete plan.
 Follow [the pilot connection procedure](docs/AGENT_NATIVE.md#real-provider-authorization).
 The example's $10 is a cap, not an estimate or authorization. Your own agent's
-charges are separate and unknown to V6.
+charges are separate and unknown to Quarry.
 
 ### 3. Collect, inspect and continue
 
 Once the concrete plan and real-provider connection are authorized, use requests
-like these. The agent handles V6's saved identifiers and tools:
+like these. The agent handles Quarry's saved identifiers and tools:
 
-| Your request | What V6 preserves |
+| Your request | What Quarry preserves |
 | --- | --- |
 | “Start the reviewed collection within its approved cap.” | Persistent jobs, source scope, costs and unfinished work |
 | “Show the exact passage and page or offsets for this expression.” | Original text, source hash, dates and extraction provenance |
@@ -108,13 +109,13 @@ Editable lab templates start at zero budgets and need researcher-supplied corpor
 
 ## How it works
 
-![V6 workflow: agent planning, deterministic gates, source evidence, frozen exports and independent evaluation.](assets/workflow.svg)
+![Quarry workflow: agent planning, deterministic gates, source evidence, frozen exports and independent evaluation.](assets/workflow.svg)
 
-**The agent is the interface; V6 owns the collection state and evidence checks.**
+**The agent is the interface; Quarry owns the collection state and evidence checks.**
 Agent proposals and source text enter as data. Extraction responses cannot invoke
 tools, alter configuration or expand discovery scope.
 
-| Research requirement | V6 behavior |
+| Research requirement | Quarry behavior |
 | --- | --- |
 | **Traceable evidence** | Separate records, occurrences and manifests; original text, Unicode offsets/PDF pages, hashes and model provenance |
 | **Recall protection** | Grounded union of independent discoveries, including single-model finds; distinct senses retained; unresolved proposals audited |
@@ -140,14 +141,123 @@ negatives by language/domain. Reviewing extracted candidates alone misses false
 negatives. Follow the [publication protocol](docs/PUBLICATION_PROTOCOL.md) and
 [evaluation guide](docs/EVALUATION.md).
 
+## Quarry diagrams
+
+The [complete diagram guide](docs/QUARRY_DIAGRAMS.md) explains the researcher
+workflow, system components, source evidence and independent evaluation.
+
+<details>
+<summary>Researcher workflow</summary>
+
+```mermaid
+flowchart TD
+    Q["Researcher describes the study<br/>Data type, question, corpus and limits"] --> A["Own coding agent drafts the inputs<br/>Recipe, examples, sources and fields"]
+    A --> P["Quarry validates the proposed plan<br/>Schema, source scope and finite budget"]
+    P --> S["Capture permitted sources<br/>Parse, hash and freeze evidence"]
+    S --> R["Researcher reviews the complete plan<br/>Sources, failures, mode and cost estimate"]
+    R -->|"Approve the concrete plan"| C["Collect with Broad or Specialists<br/>Configured models propose discoveries"]
+    C --> G["Quarry checks exact source spans<br/>Keep the grounded union and distinct senses"]
+    G --> I["Inspect the complete inventory<br/>Optional reversible human annotations"]
+    I --> E["Save a dataset version and export<br/>CSV, JSONL, Parquet and annotation files"]
+    C -->|"Interrupted, capped or unresolved"| J["Saved progress and unfinished work<br/>Pending, partial, failed or uncertain"]
+    J -->|"Resume eligible work<br/>Under saved recovery policy"| C
+```
+
+</details>
+
+<details>
+<summary>Components and responsibilities</summary>
+
+```mermaid
+flowchart TD
+    subgraph U["Researcher interfaces"]
+        A["Own coding agent<br/>Project skill + local MCP"]
+        B["Optional interfaces<br/>CLI, notebook API and local browser"]
+    end
+    subgraph K["Quarry collector"]
+        P["Shared Project and workflow API<br/>Prepare, review, approve, inspect and release"]
+        V["Versioned recipes and profiles<br/>Schema, scope and approval checks"]
+        S["Scoped source ingestion<br/>HTML, text and PDF; advanced bounded discovery"]
+        J["Persistent execution engine<br/>Jobs, cache, budgets, retries and cancellation"]
+        G["Deterministic evidence checks<br/>Exact spans, conservative deduplication and audit"]
+        D[("SQLite project state<br/>Sources, inventory, jobs, costs and review history")]
+        X["Frozen dataset versions and exports<br/>Manifests, schemas, coverage and file hashes"]
+    end
+    F["Permitted local documents<br/>and scoped source URLs"]
+    M["Configured model providers<br/>GLM + DeepSeek; separate Gemini profile"]
+    A --> P
+    B --> P
+    P --> V
+    P --> S
+    F --> S
+    V --> J
+    S --> D
+    D --> J
+    J -->|"Bounded extraction requests"| M
+    M -->|"Inert candidate proposals"| G
+    G --> D
+    J --> D
+    P --> X
+    D --> X
+```
+
+</details>
+
+<details>
+<summary>Evidence and reproducibility</summary>
+
+```mermaid
+flowchart TD
+    T["Collected record<br/>Term or sense, idea, opinion or sentence"] --> O["Occurrence or evidence record<br/>Original spelling, exact context and source span"]
+    O --> S["Frozen parsed source<br/>Unicode offsets, available PDF page and text hash"]
+    S --> L["Source provenance<br/>Locator, retrieval date, available publication date and raw hash"]
+    T --> M["Extraction provenance<br/>Run, job, window, prompt and model configuration"]
+    T --> N["Generated interpretation<br/>Proposed meaning or translation, labeled separately"]
+    T --> H["Optional human annotation<br/>Decision, note and reversible history"]
+    T --> V["Immutable dataset version"]
+    O --> V
+    S --> V
+    L --> V
+    M --> V
+    N --> V
+    H --> V
+    V --> E["Reproducible export<br/>Saved records, manifests, costs, failures and coverage"]
+    E -->|"Same saved version; no model calls"| E2["Same exported dataset records"]
+```
+
+</details>
+
+<details>
+<summary>Source-level evaluation</summary>
+
+```mermaid
+flowchart LR
+    S["Held-out complete sources<br/>Group related sources in the same split"] --> H["Independent human annotation<br/>Label every eligible occurrence"]
+    S --> Q["Quarry extraction<br/>Frozen policy and model profile"]
+    H --> C["Compare exact evidence and labels"]
+    Q --> C
+    C --> P["Precision<br/>Which extracted spans match the human gold rubric?"]
+    C --> R["Recall and false negatives<br/>Which eligible records were missed?"]
+    P --> D["Report by domain and language"]
+    R --> D
+```
+
+</details>
+
 ## Installation on macOS or Linux
+
+The installed package remains `nlpx-termfinder`; its commands are `termfinder`
+and `termfinder-mcp`, and its skill is `v6-collect-research`. Existing study
+formats and Python imports retain their names. When installing an updated skill,
+use a fresh workspace or the [explicit connection migration procedure](docs/AGENT_NATIVE.md);
+existing customized connections are not silently overwritten.
 
 For manual setup, use an installed Python 3.11, 3.12 or 3.13 and normal
 authenticated GitHub access. This example uses Python 3.13:
 
 ```sh
-gh repo clone BobbY-24/v6-research-collector
-cd v6-research-collector
+gh repo clone BobbY-24/quarry
+cd quarry
 python3.13 -m venv .venv-6.4
 . .venv-6.4/bin/activate
 python -m pip install -r requirements-build.txt
@@ -158,10 +268,10 @@ termfinder connect --host claude --workspace "$PWD/research-workspace"
 
 Use `--host codex` for Codex or `--host generic` for another harness. Follow the
 printed activation instructions and verify `list_studies` in that host. An existing
-conflicting V6 connection receives a diagnostic rather than a silent overwrite.
+conflicting Quarry connection receives a diagnostic rather than a silent overwrite.
 See [connection details](docs/AGENT_NATIVE.md).
 
-V6 installs independently of sibling versions. Runtime/build dependencies are
+Quarry installs independently of sibling versions. Runtime/build dependencies are
 pinned. Keep credentials in the provider's required environment variables, never
 in recipes, URLs, MCP arguments, logs or exports. Installation requires a package
 index or a reviewed platform-specific wheelhouse. For isolated execution and
@@ -199,7 +309,7 @@ need a pilot. Text-bearing HTML, text/Markdown and PDF ingestion are implemented
 image-only PDF OCR and authenticated platform connectors are extension points.
 Full table-record extraction, conversation-dataset construction and automatic
 benchmark generation remain future work. Uncertain API acceptance may imply
-charges; V6 does not promise exactly-once billing. See [known limitations and pilot steps](docs/PILOT.md).
+charges; Quarry does not promise exactly-once billing. See [known limitations and pilot steps](docs/PILOT.md).
 
 ## Documentation
 
@@ -209,17 +319,18 @@ charges; V6 does not promise exactly-once billing. See [known limitations and pi
 | Conduct a student study | [Simple procedure](docs/SIMPLE_WORKFLOW.md) · [11 walkthroughs](docs/NLPX_STUDENT_GUIDE.md) |
 | Customize research inputs | [Recipes](docs/RECIPES.md) · [Sources and discovery](docs/SOURCES.md) |
 | Use CLI, Python or notebooks | [Engine guide](docs/ENGINE_GUIDE.md) · [Notebook](examples/simple_student_workflow.ipynb) |
+| Explore workflow and components | [Four Quarry diagrams](docs/QUARRY_DIAGRAMS.md) |
 | Understand recovery and costs | [Architecture](docs/ARCHITECTURE.md) · [Long runs](docs/LONG_RUNS.md) |
 | Prepare a defensible release | [Publication protocol](docs/PUBLICATION_PROTOCOL.md) · [Evaluation](docs/EVALUATION.md) |
 | Verify or plan a real pilot | [Offline verification](docs/VERIFICATION.md) · [Pilot](docs/PILOT.md) |
 
-For a paper, record the V6 version/commit and your dataset's recipe, prompt,
+For a paper, record the Quarry version/commit and your dataset's recipe, prompt,
 profile, source and export manifests. This repository is a software artifact;
-it does not have a published V6 paper or DOI.
+it does not have a published Quarry paper or DOI.
 
 The conversation-first entry is inspired by
 [Paper2Agent](https://github.com/jmiao24/Paper2Agent); the optional annotation view
-draws on [Thresh](https://aclanthology.org/2023.emnlp-demo.30/). V6 uses its own
+draws on [Thresh](https://aclanthology.org/2023.emnlp-demo.30/). Quarry uses its own
 collector and original documentation/graphics.
 
 [Earlier Version 1 collector and original instructions](https://github.com/BobbY-24/community-term-collector/blob/main/README-v1.md) remain preserved in the separate original repository.

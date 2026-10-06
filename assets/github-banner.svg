@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="390" viewBox="0 0 1200 390" role="img" aria-labelledby="title description">
-  <title id="title">V6 — research collection through your own agent</title>
-  <desc id="description">An original V6 banner connecting a research question, a researcher's coding agent and a traceable dataset. Terms and senses remain the primary output.</desc>
+  <title id="title">Quarry — research collection through your own agent</title>
+  <desc id="description">An original Quarry banner connecting a research question, a researcher's coding agent and a traceable dataset. Terms and senses remain the primary output.</desc>
   <defs>
     <linearGradient id="background" x2="1" y2="1"><stop stop-color="#0c142b"/><stop offset="1" stop-color="#172e45"/></linearGradient>
     <linearGradient id="accent"><stop stop-color="#72edd2"/><stop offset="1" stop-color="#9bc5ff"/></linearGradient>
@@ -13,11 +13,11 @@
   <g font-family="Arial, Helvetica, sans-serif">
     <rect x="52" y="42" width="226" height="30" rx="15" fill="#233d51"/>
     <text x="68" y="62" font-size="13" letter-spacing="1.5" fill="#a9efdf">RESEARCH COLLECTOR</text>
-    <text x="49" y="168" font-size="104" font-weight="700" fill="url(#accent)">V6</text>
+    <text x="49" y="168" font-size="86" font-weight="700" fill="url(#accent)">Quarry</text>
     <text x="52" y="220" font-size="30" font-weight="700" fill="#f3f7fc">Ask your agent.</text>
-    <text x="52" y="259" font-size="30" font-weight="700" fill="#f3f7fc">Collect traceable research data.</text>
+    <text x="52" y="259" font-size="30" font-weight="700" fill="#f3f7fc">Build datasets you can trace.</text>
     <text x="52" y="309" font-size="17" fill="#b5c9d9">Terms and senses · Exact source spans · Reproducible exports</text>
-    <text x="52" y="344" font-size="14" fill="#8faabc">V6.4 · Local skill + MCP tools · Your existing coding harness</text>
+    <text x="52" y="344" font-size="14" fill="#8faabc">V6.4 engine · Local skill + MCP · Your coding harness</text>
     <g transform="translate(694 60)">
       <rect width="448" height="272" rx="20" fill="#0d1b2b" stroke="#39566d"/>
       <circle cx="27" cy="29" r="5" fill="#72edd2"/>
@@ -30,7 +30,7 @@
       <rect x="229" y="144" width="197" height="53" rx="10" fill="#183b3c" stroke="#3d7f74"/>
       <text x="38" y="166" font-size="15" font-weight="700" fill="#b6d9ff">Your coding agent</text>
       <text x="38" y="185" font-size="12" fill="#b4c9d9">Draft · Explain · Operate tools</text>
-      <text x="245" y="166" font-size="15" font-weight="700" fill="#a2eddb">V6 collector</text>
+      <text x="245" y="166" font-size="15" font-weight="700" fill="#a2eddb">Quarry collector</text>
       <text x="245" y="185" font-size="12" fill="#b4d5ce">Validate · Ground · Preserve</text>
       <path d="M224 203v13m-5-5 5 5 5-5" fill="none" stroke="#72edd2" stroke-width="2"/>
       <text x="23" y="245" font-size="16" fill="#f3f7fc">Plan → Collect → Inspect → Resume → Export</text>
