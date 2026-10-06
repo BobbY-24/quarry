@@ -1,14 +1,18 @@
-# NLPx student walkthroughs for V6
+# NLPx student walkthroughs for Quarry
 
-These are **proposed uses of V6 informed by public research**, not claims that students or PIs requested the tool, adopted it, or assigned these projects. The public [Wei Xu roster](https://cocoxu.github.io/#students) and [Alan Ritter roster](https://aritter.github.io/index.html), checked on October 5, 2026, list 11 unique current PhD students. Wei Xu's page lists Chao Jiang and Yao Dou as alumni; their work appears below as additional lab precedents. Public listings can lag changes.
+These are **proposed uses of Quarry informed by public research**, not claims that students or PIs requested the tool, adopted it, or assigned these projects. The public [Wei Xu roster](https://cocoxu.github.io/#students) and [Alan Ritter roster](https://aritter.github.io/index.html), checked on October 5, 2026, list 11 unique current PhD students. Wei Xu's page lists Chao Jiang and Yao Dou as alumni; their work appears below as additional lab precedents. Public listings can lag changes.
 
-**Install and connect V6 once in your own coding-agent workspace, using the [simple workflow](SIMPLE_WORKFLOW.md) and [packaged skill/MCP tools](AGENT_NATIVE.md).** Tell the agent your question and permitted sources; it creates the study, presents the complete source and cost review, collects after your decision, shows evidence, and exports in the same conversation. You do not need to write or transport JSON or open a browser. The browser is an optional visual view; a chat without local tools retains the file handoff. Read the [publication protocol](PUBLICATION_PROTOCOL.md) before collecting so the source sample, blind annotation, provenance, and evaluation can withstand review. The [shared procedure](LAB_PROTOCOL.md) retains detailed installation, CLI, API, and manual-policy references.
+**Install and connect Quarry once in your own coding-agent workspace, using the [simple workflow](SIMPLE_WORKFLOW.md) and [packaged skill/MCP tools](AGENT_NATIVE.md).** Tell the agent your question and permitted sources; it creates the study, presents the complete source and cost review, collects after your decision, shows evidence, and exports in the same conversation. You do not need to write or transport JSON or open a browser. The browser is an optional visual view; a chat without local tools retains the file handoff. Read the [publication protocol](PUBLICATION_PROTOCOL.md) before collecting so the source sample, blind annotation, provenance, and evaluation can withstand review. The [shared procedure](LAB_PROTOCOL.md) retains detailed installation, CLI, API, and manual-policy references.
+
+Quarry retains the V6.4 engine and its `termfinder` commands, Python namespace
+and `v6-collect-research` skill identifier. Existing recipes and study records
+keep their original version and provenance identifiers.
 
 The same procedure applies to every student below: **ask your agent → approve the concrete Plan → inspect Evidence → save Dataset.** Preparation automatically validates inputs, captures the approved sources, freezes blank whole-source annotation packets, and estimates costs before collection. Each student still owns the corpus, hypotheses, sampling choices, and human annotation rubric. The personal agent drafts inputs; it does not approve research claims or invent authorization.
 
 ## Start in ordinary language
 
-These are proposed starting requests adapted from the verified research questions and sources cited in the profiles below. Tell your agent the actual permitted documents, languages, dates, source limits, and finite budget. A profile's recipe and metadata files are optional **references for your agent**; it adapts and submits the structured inputs through V6. Keeping most of these studies as **Term** preserves their original vocabulary questions. Choosing another unit requires an explicit new inclusion rubric rather than relabeling a term dataset.
+These are proposed starting requests adapted from the verified research questions and sources cited in the profiles below. Tell your agent the actual permitted documents, languages, dates, source limits, and finite budget. A profile's recipe and metadata files are optional **references for your agent**; it adapts and submits the structured inputs through Quarry. Keeping most of these studies as **Term** preserves their original vocabulary questions. Choosing another unit requires an explicit new inclusion rubric rather than relabeling a term dataset.
 
 | Student | Proposed choice | Starting request to their own agent |
 | --- | --- | --- |
@@ -36,7 +40,7 @@ All example JSONs are versioned and editable, with local-first source scope, dis
 
 ### Research anchors and original vocabulary recipes
 
-| Student | Existing research anchor | V6 collection output | Recipe |
+| Student | Existing research anchor | Quarry collection output | Recipe |
 | --- | --- | --- | --- |
 | Jonathan Zheng | [Published research](https://arxiv.org/html/2402.12261v4) | A dated, evidence-backed inventory of expression/sense candidates for later definition, robustness or translation experiments. | [jonathan-zheng.json](../examples/lab_recipes/jonathan-zheng.json) |
 | Tarek Naous | [Published research](https://arxiv.org/abs/2510.05291) | A native-reviewed entity/term inventory with original-script context, proposed translations and explicit cultural association decisions. | [tarek-naous.json](../examples/lab_recipes/tarek-naous.json) |
@@ -106,7 +110,7 @@ Camellia, with Tarek Naous as first author, examines entity-centric cultural bia
 
 5. Have qualified native reviewers judge entity category, source-supported association and contextual meaning. Record reviewer notes and validated transliterations/translation corrections as human attributes. Link spelling/transliteration variants with reversible aliases only after inspecting both pieces of evidence.
 
-6. Evaluate complete held-out sources by language/domain. V6 reports those breakdowns directly; category-specific analysis requires external grouping of human category labels. Export the full inventory and approved subset for subsequent cultural tasks. A masked-out entity cannot be grounded; masking and benchmark generation happen after original evidence collection.
+6. Evaluate complete held-out sources by language/domain. Quarry reports those breakdowns directly; category-specific analysis requires external grouping of human category labels. Export the full inventory and approved subset for subsequent cultural tasks. A masked-out entity cannot be grounded; masking and benchmark generation happen after original evidence collection.
 
 **Deliverable:** A native-reviewed entity/term inventory with original-script context, proposed translations and explicit cultural association decisions.
 
@@ -130,7 +134,7 @@ The original **Term** case below remains valid for cultural-vocabulary coverage.
 
 5. Run Broad, then optional lenses focused on norms and regional senses after reviewing costs. Native reviewers inspect exact contexts, proposed meanings and unavailable fields. Human category/association judgments remain distinct from model suggestions; preferences are collected in the separate CARE-style annotation process.
 
-6. Measure held-out term recall and false negatives by language and domain, then export a frozen vocabulary inventory for an external join with existing preference data. V6 does not construct question-response pairs, native preference rankings, DPO datasets or multilingual policy training.
+6. Measure held-out term recall and false negatives by language and domain, then export a frozen vocabulary inventory for an external join with existing preference data. Quarry does not construct question-response pairs, native preference rankings, DPO datasets or multilingual policy training.
 
 **Deliverable:** A cultural-vocabulary coverage audit that can be joined to independently maintained question IDs and preference data.
 
@@ -174,7 +178,7 @@ Soft Token Alignment for Cross-Lingual Reasoning (SOLAR), by Jiayi He and collab
 
 5. Have bilingual/domain annotators decide whether meanings and quantities are equivalent across language versions. Inspect translations as proposals rather than evidence. Record lexical mismatches with source IDs/spans instead of claiming that a missing translation explains the model's answer.
 
-6. Evaluate whole held-out problem families for term recall, then export lexical strata for a separate comparison of multilingual reasoning accuracy. V6 does not compute soft-token representations, SOLAR losses, supervised fine-tuning or reasoning correctness.
+6. Evaluate whole held-out problem families for term recall, then export lexical strata for a separate comparison of multilingual reasoning accuracy. Quarry does not compute soft-token representations, SOLAR losses, supervised fine-tuning or reasoning correctness.
 
 **Deliverable:** A lexical diagnostic dataset for stratifying reasoning prompts by ambiguity, technical concepts and units.
 
@@ -196,7 +200,7 @@ Junmo Kang co-authored [schema-driven information extraction](https://arxiv.org/
 
 5. Review abbreviation expansions and unit/sense distinctions against actual context. Link aliases reversibly. Inspect high-value terms missed by either extractor on development sources, and retain grounded single-extractor discoveries.
 
-6. Evaluate held-out entire papers, export the full and approved glossaries, then use them to design an external table schema or training corpus. Numeric table-row reconstruction, InstrucTE reproduction, Self-Specialization and expert-model training are outside V6.
+6. Evaluate held-out entire papers, export the full and approved glossaries, then use them to design an external table schema or training corpus. Numeric table-row reconstruction, InstrucTE reproduction, Self-Specialization and expert-model training are outside Quarry.
 
 **Deliverable:** A domain vocabulary and alias inventory supporting human-authored extraction schemas or external specialization datasets.
 
@@ -218,7 +222,7 @@ LLMEvalDB, led by Jungsoo Park with Junmo Kang and collaborators, structures inf
 
 5. Review source quotations, method/category suggestions and aliases. Resolve source-supported expansions manually. Reversible links can connect CoT with Chain-of-Thought while retaining both original spellings and model provenance.
 
-6. Evaluate complete held-out papers and export a dated vocabulary version. Later ingest newly permitted papers, resume remaining work, and freeze v2. Join terminology externally to LLMEvalDB records; V6 does not reconstruct result tuples or calculate numerical benchmark trends.
+6. Evaluate complete held-out papers and export a dated vocabulary version. Later ingest newly permitted papers, resume remaining work, and freeze v2. Join terminology externally to LLMEvalDB records; Quarry does not reconstruct result tuples or calculate numerical benchmark trends.
 
 **Deliverable:** Dated terminology versions for method naming, experimental-setting definitions and literature navigation.
 
@@ -232,7 +236,7 @@ VeriEnv studies safe web-agent learning through recreated websites and programma
 
 1. Choose text exports from permitted recreated environments and define relevant interface vocabulary: action labels, state labels and domain objects. Established everyday words qualify when they carry a meaningful interface sense.
 
-2. Export visible UI text or documentation to supported HTML/Markdown/text. Keep environment identifiers and generation/original origins in constraints, with an external family map. V6's HTML parser does not render JavaScript; a text export may be necessary.
+2. Export visible UI text or documentation to supported HTML/Markdown/text. Keep environment identifiers and generation/original origins in constraints, with an external family map. Quarry's HTML parser does not render JavaScript; a text export may be necessary.
 
 3. Use Archive as a fictional action-label example, contrasting a noun archive in documentation. Request ui_term_type, action_sense and ambiguity_note. Policy examples illustrate the task; they do not authorize or execute any interface action.
 
@@ -240,7 +244,7 @@ VeriEnv studies safe web-agent learning through recreated websites and programma
 
 5. Review contexts where identical labels have different meanings. Confirm whether an action_sense is explicitly supported by documentation. Retain separate senses across environments and undo aliases that hide meaningful differences.
 
-6. Annotate whole held-out UI-text sources for omitted labels and terms, export the frozen lexicon, and use it in separate task-authoring or agent-error analysis. V6 does not create a website replica, operate a web agent or verify rewards.
+6. Annotate whole held-out UI-text sources for omitted labels and terms, export the frozen lexicon, and use it in separate task-authoring or agent-error analysis. Quarry does not create a website replica, operate a web agent or verify rewards.
 
 **Deliverable:** An interface-language inventory for task-authoring review and ambiguity analysis in controlled environments.
 
@@ -262,7 +266,7 @@ Ruohao Guo's work includes [implicit misinformation (EchoMist)](https://arxiv.or
 
 5. Have reviewers apply a separate rubric for factual premises, interpretation and harm/style labels. Store those decisions as human annotations, preserve benign and misleading contexts separately, and never substitute occurrence grounding for fact verification.
 
-6. Evaluate held-out lexical occurrence recall, including missed cues, and export source-linked expressions for a separate response-safety/style analysis. V6 does not reproduce EchoMist evaluation, decide factual truth or train Self-Alert.
+6. Evaluate held-out lexical occurrence recall, including missed cues, and export source-linked expressions for a separate response-safety/style analysis. Quarry does not reproduce EchoMist evaluation, decide factual truth or train Self-Alert.
 
 **Deliverable:** A contextual lexical-cue inventory for a separately adjudicated factuality or style study.
 
@@ -284,7 +288,7 @@ Making Expert Reasoning Learnable with Self-Distillation (DAIL) studies learning
 
 5. Ask domain reviewers to adjudicate meanings and aliases. Separately assess reasoning validity outside the extraction tool; a grounded lemma name can occur in an invalid argument. Keep proposed difficulty or explanatory usefulness separate from source facts.
 
-6. Evaluate complete held-out solutions for terminology recall and export lexical strata for an external DAIL or reasoning experiment. V6 does not create aligned imitation traces, train self-distillation/contrastive objectives or validate proofs.
+6. Evaluate complete held-out solutions for terminology recall and export lexical strata for an external DAIL or reasoning experiment. Quarry does not create aligned imitation traces, train self-distillation/contrastive objectives or validate proofs.
 
 **Deliverable:** A technical-concept inventory for comparing vocabulary in expert/community solutions and separately labeled generated traces.
 
@@ -306,7 +310,7 @@ MICE studies few-shot anaphora resolution in chemical synthesis protocols; Nghia
 
 5. Have domain annotators verify technical boundaries and meanings. Keep coreference chains and antecedent annotations in an external dataset. A reversible lexical alias does not establish coreference of a particular occurrence.
 
-6. Evaluate entire held-out protocols for missed terms, export exact contexts/pages and IDs, and join them to the separate MICE-style reference-resolution experiment. V6 does not resolve anaphora or produce experimental protocols.
+6. Evaluate entire held-out protocols for missed terms, export exact contexts/pages and IDs, and join them to the separate MICE-style reference-resolution experiment. Quarry does not resolve anaphora or produce experimental protocols.
 
 **Deliverable:** A protocol vocabulary inventory with exact step/page contexts for external reference-resolution analysis.
 
@@ -321,7 +325,7 @@ Chao Jiang and Wei Xu's [MedReadMe](https://arxiv.org/abs/2405.02144) studies me
 3. Ingest full articles or text PDFs with language, article identity, available dates, rights and paired-document family mapping. Freeze whole article pairs into one split before inspecting candidates.
 4. Run Broad and inspect exact spans, sentence context, page locations and supported definitions. Add domain attention lenses only if useful on development sources and within a reviewed budget.
 5. Have target readers/domain annotators label every relevant span on complete held-out articles and separately judge difficulty. Candidate review cannot identify missed jargon. Model difficulty suggestions remain hypotheses.
-6. Export term/occurrence evidence and human judgments for an external readability study. V6 does not reproduce MedReadMe's rating protocol or provide a calibrated readability score or clinical guidance.
+6. Export term/occurrence evidence and human judgments for an external readability study. Quarry does not reproduce MedReadMe's rating protocol or provide a calibrated readability score or clinical guidance.
 
 ### GAVEL: legal vocabulary and omission analysis
 
@@ -332,12 +336,12 @@ Yao Dou, Benjamin Mamut and Wei Xu's [GAVEL](https://arxiv.org/html/2601.04424v4
 3. Preserve different contextual senses and source-defined distinctions. Do not equate a court order with a negotiated agreement merely because they appear in related documents.
 4. Run bounded Broad and optional specialist passes; inspect truncation, failed sources and pending windows as processing gaps rather than hiding them.
 5. Independently annotate whole held-out filings for missing terms, evaluate recall and false negatives, and inspect document-length/domain strata externally where needed.
-6. Freeze and export the terminology inventory for a separate legal-summary coverage study. Term extraction recall is not summary factual coverage. V6 does not implement GAVEL's checklist creation or evaluation agents.
+6. Freeze and export the terminology inventory for a separate legal-summary coverage study. Term extraction recall is not summary factual coverage. Quarry does not implement GAVEL's checklist creation or evaluation agents.
 
 ## What each student should hand to a collaborator
 
-A complete handoff includes the immutable dataset version and export manifest; the researcher's brief, original agent bundle, and checked-plan lineage; exact recipe/profile/prompt versions; source inventory, hashes, collection dates and supplied use constraints; full typed records and evidence (terms/senses and occurrences for Term studies); optional approved subset and reversible annotation/alias history; processing failures and pending/partial coverage; estimated/provider-reported costs and unknown reserves; frozen family split and complete-source gold; and a precision/recall/false-negative report with sampling and annotation notes. Follow the [publication protocol](PUBLICATION_PROTOCOL.md) to explain which decisions came from the researcher, the personal agent, deterministic V6 checks, extraction models, and human annotators.
+A complete handoff includes the immutable dataset version and export manifest; the researcher's brief, original agent bundle, and checked-plan lineage; exact recipe/profile/prompt versions; source inventory, hashes, collection dates and supplied use constraints; full typed records and evidence (terms/senses and occurrences for Term studies); optional approved subset and reversible annotation/alias history; processing failures and pending/partial coverage; estimated/provider-reported costs and unknown reserves; frozen family split and complete-source gold; and a precision/recall/false-negative report with sampling and annotation notes. Follow the [publication protocol](PUBLICATION_PROTOCOL.md) to explain which decisions came from the researcher, the personal agent, deterministic Quarry checks, extraction models, and human annotators.
 
 Maintain separate measures: **occurrence grounding**, **meaning/association judgments**, **historical novelty**, and **downstream model performance** answer different questions. Counts and agreement between GLM and DeepSeek do not measure recall. Adding Specialists does not by itself prove better research accuracy. Re-exporting a saved dataset version can reproduce the records without another provider call.
 
-The browser is intended for one trusted local researcher and can poll slowly on large corpora. Use the CLI/API for larger collections. The personal-agent handoff is supported; directly executing that agent inside V6 remains an extension. OCR, authenticated dataset connectors, full table records, conversation/preference construction, and benchmark generation remain extensions or downstream work.
+The browser is intended for one trusted local researcher and can poll slowly on large corpora. Use the CLI/API for larger collections. The personal-agent handoff is supported; directly executing that agent inside Quarry remains an extension. OCR, authenticated dataset connectors, full table records, conversation/preference construction, and benchmark generation remain extensions or downstream work.

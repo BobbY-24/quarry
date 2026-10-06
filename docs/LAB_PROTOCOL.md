@@ -1,11 +1,11 @@
-# A student’s complete V6 research procedure
+# A student’s complete Quarry research procedure
 
 This protocol explains the common workflow behind the named examples in
 `examples/lab_recipes/`. Those examples are proposals informed by published
 research, not assignments from Wei Xu or Alan Ritter, approved lab deployments,
 or reproductions of the papers’ datasets. A student owns the research question,
 sampling decisions, source permissions, annotation rubric, and interpretation.
-V6 supplies a durable inventory of terms/senses or explicitly selected idea,
+Quarry supplies a durable inventory of terms/senses or explicitly selected idea,
 opinion, and sentence spans, with inspectable source evidence.
 
 **The ordinary entry path is the [simple workflow](SIMPLE_WORKFLOW.md): tell your
@@ -36,23 +36,23 @@ the original research data: they contain source text, contexts, and annotations.
    model profile. The unit determines what exact source span is collected. A
    community label describes the sample, not a speaker's demographic identity.
 
-2. **Let your own agent prepare inputs.** The project-local V6 skill and workspace
+2. **Let your own agent prepare inputs.** The project-local Quarry skill and workspace
    tools handle recipe and source files. For a chat without local
    tools, use the expandable prompt/bundle handoff in Plan. Attach
    the relevant student recipe as an optional reference. Ask the agent to draft
    criteria, positive/negative/boundary examples, attributes, scoped source
    suggestions, selection reasons, family IDs, and sampling/evaluation notes.
    Unknown dates or provenance stay unavailable. The agent runs in your existing
-   account; V6 does not connect to or bill that planning account.
+   account; Quarry does not connect to or bill that planning account.
 
 3. **Prepare one readable plan in conversation.** The coding agent submits the bundle directly;
    a browser-only chat uses import and **Check plan**. The agent can repair
-   validation errors within the existing bounds. V6 validates scope and schemas and
+   validation errors within the existing bounds. Quarry validates scope and schemas and
    materializes the individual collector inputs; you do not need to separate
    the bundle into JSON files yourself. Unresolved blocking questions prevent
    application. Validation is not verification of the agent's research claims.
 
-4. **Approve the concrete source and cost review.** The agent uses V6 to
+4. **Approve the concrete source and cost review.** The agent uses Quarry to
    import declared local files, fetch only listed websites when
    explicitly selected, freezes complete sources and grouped splits before
    any extraction job, and estimates parsed-length costs. Inspect metadata,
@@ -75,7 +75,7 @@ the original research data: they contain source text, contexts, and annotations.
    establish correct meanings, opinions, factual truth, or historical novelty.
 
 6. **Save and export a dataset version.** Ask the agent to release a named version.
-   V6 saves a version,
+   Quarry saves a version,
    runs its publication evidence audit, and exports every supported format.
    Document errors and limitations. Retain the
    complete records/evidence, optional approved subset, manifests, provenance,
@@ -99,13 +99,15 @@ alternatives, not onboarding requirements. For the agent path's browser labels,
 supported terminal equivalents, and generated input files, use
 [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md).
 
-## 1. Install V6 and rehearse without credentials
+## 1. Install Quarry and rehearse without credentials
 
-Clone **BobbY-24/v6-research-collector** onto a macOS or Linux machine.
+Clone **BobbY-24/quarry** onto a macOS or Linux machine.
+Quarry retains the V6.4 engine's `termfinder` CLI/Python namespace and
+`v6-collect-research` skill identifier; the product name does not change those APIs.
 Use an installed Python 3.11, 3.12, or 3.13; this example uses Python 3.13:
 
 ```sh
-cd v6-research-collector
+cd quarry
 python3.13 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements-build.txt
@@ -257,11 +259,11 @@ termfinder --project studies/jonathan-zheng ingest corpus/article.pdf \
   --metadata article-metadata.json
 ```
 
-V6 supports text-bearing PDF, HTML, text, and Markdown files. Supply file paths,
+Quarry supports text-bearing PDF, HTML, text, and Markdown files. Supply file paths,
 not a directory. PDF page blocks survive parsing. Offsets address Unicode code
 points in frozen parsed text, not bytes in the PDF or HTML. Inspect parsing
 failures before extraction. Image-only PDFs need a separately reviewed OCR
-workflow; V6 does not invoke one automatically.
+workflow; Quarry does not invoke one automatically.
 
 URL ingestion is an explicit fetch operation:
 
@@ -319,7 +321,7 @@ Inline translation suggestions are billed within extraction output. OCR and a
 standalone translation pipeline are not implemented simply because their
 planning costs can be represented.
 
-Inspect `request_reserves_usd` as well as projected totals. V6 conservatively
+Inspect `request_reserves_usd` as well as projected totals. Quarry conservatively
 reserves the configured model’s full input ceiling plus recovery output cap.
 A very small stage budget can prevent any dispatch even when the ordinary token
 estimate appears to fit. Set a reviewed **finite** total budget and relevant
