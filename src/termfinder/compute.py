@@ -12,13 +12,14 @@ def build_compute_profile(*, backend, preset=None, base_url=None, model=None,
                           input_per_million=None, output_per_million=None,
                           context_limit_tokens=32768, max_output_tokens=8192,
                           response_format="json_object",
+                          runtime=None,
                           configuration_reference="researcher local configuration"):
     if backend not in {"api", "local", "institutional"}:
         raise ValueError("Choose api, local or institutional compute")
     if preset is not None:
         if backend != "api" or preset not in {"glm-deepseek", "gemini"}:
             raise ValueError("Packaged presets are API profiles")
-        if any(v is not None for v in (base_url, model, model_version, input_per_million, output_per_million)):
+        if any(v is not None for v in (base_url, model, model_version, input_per_million, output_per_million, runtime)):
             raise ValueError("Use a preset or a complete custom endpoint configuration")
         if response_format != "json_object" or context_limit_tokens != 32768 or max_output_tokens != 8192:
             raise ValueError("Preset transport and token ceilings are preserved; use a custom profile for overrides")
@@ -51,12 +52,16 @@ def build_compute_profile(*, backend, preset=None, base_url=None, model=None,
                 "input_per_million": 0 if input_per_million is None else input_per_million,
                 "output_per_million": 0 if output_per_million is None else output_per_million,
                 "input_token_ceiling": context_limit_tokens, "output_token_ceiling": max_output_tokens,
+                "context_limit_tokens": context_limit_tokens,
                 "price_source": "researcher-configured; confirm with the service or allocation owner",
                 "prices_recorded_at": date.today().isoformat(),
                 "price_note": "Token-rate estimate only; infrastructure and harness charges are not measured."}},
             "broad": [{"id": "researcher-general", "model": "researcher",
                        "lens": "Enumerate all qualifying observed expressions and senses under the research recipe.",
                        "communities": ["*"]}]}
+        if runtime is not None:
+            from .runtime import validate_runtime
+            profile["models"]["researcher"]["runtime"] = validate_runtime(runtime)
     profile["compute"] = {"backend": backend, "cost_basis": basis,
         "infrastructure_cost_usd": None,
         "infrastructure_cost_reason": "GPU time, electricity, allocation charges and planning-agent charges are not metered by Quarry",

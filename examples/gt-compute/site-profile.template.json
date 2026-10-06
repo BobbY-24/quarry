@@ -1,0 +1,33 @@
+{
+  "schema_version": "quarry-cluster-v1",
+  "name": "replace-with-reviewed-site-name",
+  "account": "REPLACE_WITH_AUTHORIZED_ACCOUNT",
+  "partition": "REPLACE_WITH_APPROVED_PARTITION",
+  "qos": null,
+  "gpus": 0,
+  "cpus": 4,
+  "memory_gb": 32,
+  "walltime_seconds": 14400,
+  "checkpoint_seconds": 60,
+  "shutdown_grace_seconds": 300,
+  "max_submissions": 2,
+  "max_gpu_hours": 0,
+  "scratch_env": "SLURM_TMPDIR",
+  "durable_root": "/REPLACE_WITH_APPROVED_EXISTING_DURABLE_DIRECTORY",
+  "server": null,
+  "runtime": {
+    "python_executable": "/REPLACE_WITH_APPROVED_RUNTIME/bin/python",
+    "python_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "runtime_id": "REPLACE_WITH_REVIEWED_RUNTIME_ID",
+    "runtime_reference": "REPLACE_WITH_RUNTIME_REVIEW_REFERENCE"
+  },
+  "model_artifacts": [
+    {
+      "model_alias": "researcher",
+      "checkpoint_id": "REPLACE_WITH_REVIEWED_CHECKPOINT_ID",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "quantization": null
+    }
+  ],
+  "configuration_reference": "INERT TEMPLATE: replace all site identifiers, paths, hashes and resources before use"
+}

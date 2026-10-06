@@ -157,11 +157,15 @@ def _matching_freeze(project, setup, sources):
 
 
 def _binding(project, setup, sources, estimate, freeze):
-    return {"version": VERSION, "brief_sha256": setup["brief_sha256"],
+    binding = {"version": VERSION, "brief_sha256": setup["brief_sha256"],
             "bundle_sha256": setup["bundle_sha256"], "recipe_sha256": digest(project.recipe),
             "profile_sha256": digest(project.profile), "prompts_sha256": digest(prompts.manifest()),
             "sources": _source_binding(sources), "estimate_sha256": digest(estimate),
             "freeze_version_id": freeze["version_id"]}
+    tuning = project.store.read_setting("cluster_throughput")
+    if tuning is not None:
+        binding["throughput_settings"] = tuning
+    return binding
 
 
 def _estimate(project, sources, assumptions=None):
@@ -206,13 +210,14 @@ def prepare_review(project, bundle=None, *, fetch_remote=False):
                 raise ValueError("The human-review directory must stay inside this project")
             freeze = project._freeze_agent_corpus_unlocked("review-corpus", "v6-agent-study-v1")
         estimate = _estimate(project, sources)
+        context_blocked = max((s.get("context_blocked_windows", 0) for s in estimate["scenarios"]), default=0)
         binding = _binding(project, setup, sources, estimate, freeze)
         review_id = ident("review", binding)
         pending = [s for s in summaries if s["status"] == "pending"]
         eligible = [s for s in summaries if s["status"] == "ready"]
         previous = project.store.read_setting("guided_review") or {}
         approval = previous.get("approval") if previous.get("review_id") == review_id else None
-        result = {"version": VERSION, "review_id": review_id, "ready": bool(eligible) and not pending,
+        result = {"version": VERSION, "review_id": review_id, "ready": bool(eligible) and not pending and not context_blocked,
             "created_at": previous.get("created_at") if previous.get("review_id") == review_id else now(),
             "question": setup["brief"]["research_question"], "data_type": setup["brief"]["data_type"],
             "mode": project.recipe["mode"], "model_profile": project.profile["id"],
@@ -220,11 +225,15 @@ def prepare_review(project, bundle=None, *, fetch_remote=False):
             "source_count": len(sources), "eligible_source_count": len(eligible),
             "sources": summaries, "failures": [s for s in summaries if s["status"] == "failed"],
             "pending_sources": pending, "freeze": freeze, "estimate": estimate,
+            "context_admission": {"blocked_windows": context_blocked,
+                "reason": "Repair prompt, output reserve or context capacity; all source spans remain retained." if context_blocked else None},
             "budget_usd": project.recipe["execution"]["budget_usd"], "binding": binding,
             "approval": approval,
             "message": "Review the source list and spending estimate, then start collection." if eligible and not pending else "Fetch or repair pending sources before starting collection.",
             "rigor_note": "Source occurrence is checked deterministically. Proposed meanings and completeness still require human evaluation. Blank whole-source packets are not gold.",
             "external_agent_costs": {"actual_usd": None, "reason": "not_metered_by_collector", "included_in_collector_budget": False}}
+        if context_blocked:
+            result["message"] = "Some source windows exceed model context capacity. Repair context/prompt/output settings and prepare a fresh review; no sources were removed."
         with project.store.connection() as db:
             # Repeated preparation must reuse the same frozen corpus and review.
             if previous.get("review_id") != review_id:
@@ -344,13 +353,16 @@ class _ReviewedProject:
         return self.project.status()
 
 
-def run_review(project, review_id, *, provider=None, allow_paid=False, max_jobs=None):
+def run_review(project, review_id, *, provider=None, allow_paid=False, max_jobs=None, tokenizers=None,
+               _cluster_worker=False):
     """Recheck the approved fingerprint and resume while holding admission lock."""
     if type(allow_paid) is not bool:
         raise ValueError("allow_paid must be an explicit boolean")
     if max_jobs is not None and (type(max_jobs) is not int or max_jobs < 1):
         raise ValueError("max_jobs must be a positive integer")
     with project._lock():
+        if not _cluster_worker:
+            project.cluster().ensure_control_idle()
         # Resume clears the preceding run's cancellation before potentially
         # lengthy corpus checks. A new stop request during those checks must
         # survive admission and reach Engine.prepare/run unchanged.
@@ -370,7 +382,7 @@ def run_review(project, review_id, *, provider=None, allow_paid=False, max_jobs=
             project._plan_event("reviewed_collection_started", {"review_id": review_id,
                 "approval_id": approval["approval_id"], "paid_transport": bool(getattr(provider, "paid", False)),
                 "max_jobs": max_jobs}, db)
-        engine = Engine(_ReviewedProject(project, sources), provider)
+        engine = Engine(_ReviewedProject(project, sources), provider, tokenizers=tokenizers)
         result = engine.run(max_jobs)
         with project.store.connection() as db:
             job_counts = dict(db.execute("SELECT json_extract(j.data,'$.status'),count(*) FROM jobs j JOIN run_jobs r ON r.job_id=j.id WHERE r.run_id=? GROUP BY 1", (engine.run_id,)))

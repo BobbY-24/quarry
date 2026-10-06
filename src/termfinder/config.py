@@ -298,9 +298,18 @@ def load_profile(value):
     if not isinstance(profile["models"], dict) or not 1 <= len(profile["models"]) <= 16:
         raise ValueError("1–16 models required")
     for model in profile["models"].values():
-        _keys(model, {"provider", "model", "version", "thinking_budget", "input_per_million",
+        required_model = {"provider", "model", "version", "thinking_budget", "input_per_million",
                       "output_per_million", "input_token_ceiling", "output_token_ceiling",
-                      "price_source", "prices_recorded_at", "price_note"}, "model")
+                      "price_source", "prices_recorded_at", "price_note"}
+        _keys(model, required_model | {"runtime", "context_limit_tokens", "prompt_overhead_tokens"},
+              "model", required=required_model)
+        if "runtime" in model:
+            from .runtime import validate_runtime
+            model["runtime"] = validate_runtime(model["runtime"])
+        if "context_limit_tokens" in model:
+            _num(model["context_limit_tokens"], "context_limit_tokens", 1, 10000000, integer=True)
+        if "prompt_overhead_tokens" in model:
+            _num(model["prompt_overhead_tokens"], "prompt_overhead_tokens", 0, 131072, integer=True)
         for key in ("model", "version", "price_source", "prices_recorded_at", "price_note"):
             _text(model[key], key, limit=2048)
         if model["provider"] not in profile["providers"]:
@@ -311,6 +320,9 @@ def load_profile(value):
             _num(model[key], key)
         for key in ("input_token_ceiling", "output_token_ceiling"):
             _num(model[key], key, 1, 10_000_000, integer=True)
+        if "context_limit_tokens" in model and (model["input_token_ceiling"] > model["context_limit_tokens"]
+                                               or model["output_token_ceiling"] > model["context_limit_tokens"]):
+            raise ValueError("model input/output ceilings exceed total context capacity")
     if not isinstance(profile["broad"], list) or not 1 <= len(profile["broad"]) <= 8:
         raise ValueError("broad passes required")
     ids = set()

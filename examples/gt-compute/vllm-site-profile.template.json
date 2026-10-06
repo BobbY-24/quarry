@@ -1,0 +1,49 @@
+{
+  "schema_version": "quarry-cluster-v1",
+  "name": "replace-with-reviewed-vllm-site",
+  "account": "REPLACE_WITH_AUTHORIZED_ACCOUNT",
+  "partition": "REPLACE_WITH_APPROVED_GPU_PARTITION",
+  "qos": null,
+  "gpus": 1,
+  "cpus": 4,
+  "memory_gb": 32,
+  "walltime_seconds": 14400,
+  "checkpoint_seconds": 60,
+  "shutdown_grace_seconds": 300,
+  "max_submissions": 2,
+  "max_gpu_hours": 8,
+  "scratch_env": "SLURM_TMPDIR",
+  "durable_root": "/REPLACE_WITH_APPROVED_EXISTING_DURABLE_DIRECTORY",
+  "server": {
+    "adapter": "vllm",
+    "model_alias": "researcher",
+    "local_model_dir": "/REPLACE_WITH_REVIEWED_PRESTAGED_MODEL_DIRECTORY",
+    "artifact_files": {
+      "config.json": "0000000000000000000000000000000000000000000000000000000000000000",
+      "model.safetensors": "0000000000000000000000000000000000000000000000000000000000000000",
+      "tokenizer.json": "0000000000000000000000000000000000000000000000000000000000000000",
+      "tokenizer_config.json": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "port": 8000,
+    "startup_timeout_seconds": 600,
+    "max_model_len": 32768,
+    "tensor_parallel_size": 1,
+    "gpu_memory_utilization": 0.9,
+    "package_version": "REPLACE_WITH_INSTALLED_PINNED_VLLM_VERSION"
+  },
+  "runtime": {
+    "python_executable": "/REPLACE_WITH_APPROVED_RUNTIME/bin/python",
+    "python_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "runtime_id": "REPLACE_WITH_REVIEWED_VLLM_RUNTIME_ID",
+    "runtime_reference": "REPLACE_WITH_RUNTIME_REVIEW_REFERENCE"
+  },
+  "model_artifacts": [
+    {
+      "model_alias": "researcher",
+      "checkpoint_id": "REPLACE_WITH_REVIEWED_CHECKPOINT_ID",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "quantization": null
+    }
+  ],
+  "configuration_reference": "INERT TEMPLATE: replace every placeholder, supply complete safe artifact inventory, verify runtime and review resources"
+}

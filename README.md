@@ -10,9 +10,9 @@ Quarry runs the fixed collection pipeline. **Terms and senses are the primary ou
 Exact source spans expressing ideas, opinions and sentences are also supported.
 Quarry is the product name for the V6 collector.
 
-**Quarry · engine V6.5.0** · Python 3.11–3.13 · [MIT](LICENSE) · [Offline verification](docs/COMPUTE_VERIFIED.md)
+**Quarry · engine V6.6.0** · Python 3.11–3.13 · [MIT](LICENSE) · [Offline verification](docs/CLUSTER_VERIFIED.md)
 
-[Quick start](#quick-start) · [Choose compute](docs/COMPUTE.md) · [Research examples](#research-examples) · [How it works](#how-it-works) · [Diagrams](#quarry-diagrams) · [Install](#installation-on-macos-or-linux) · [Documentation](#documentation)
+[Quick start](#quick-start) · [Choose compute](docs/COMPUTE.md) · [GT workflow](docs/GT_COMPUTE.md) · [Research examples](#research-examples) · [How it works](#how-it-works) · [Diagrams](#quarry-diagrams) · [Install](#installation-on-macos-or-linux) · [Documentation](#documentation)
 
 ## Quick start
 
@@ -69,6 +69,16 @@ environment of the process running Quarry. [Compute setup](docs/COMPUTE.md)
 covers personal APIs, local Ollama/vLLM and Georgia Tech/PACE deployments.
 Configuration alone does not enable real inference or allocate cluster access.
 
+**Using Georgia Tech compute?** Keep your existing agent. Configure a reviewed
+site profile once, capture sources before GPU allocation, review the finite
+resource request, and submit a durable Slurm job. Reconnect to inspect, cancel,
+resume and import its source-backed results. Submitted cluster work survives the
+chat closing. Use a CPU collector against an approved institutional gateway, or
+the fixed vLLM launcher with reviewed pre-staged weights inside the same GPU job.
+Quarry does not download models or execute model-supplied code.
+[GT setup and student procedure](docs/GT_COMPUTE.md) ·
+[Site profile, CLI and notebook examples](examples/gt-compute/README.md).
+
 ### 3. Describe your research
 
 After setup, ask for a study in ordinary language:
@@ -103,6 +113,7 @@ like these. The agent handles Quarry's saved identifiers and tools:
 | “Mark this sense as needing review. Undo that annotation.” | Reversible annotation history and the complete inventory |
 | “Open `ev-language`, show unfinished work and resume its unchanged plan.” | Saved progress, cache and budget state |
 | “Save `pilot-v1` and export CSV, JSONL, Parquet and annotation files.” | Frozen records, schemas and a reproducibility manifest |
+| “Run this reviewed study on our GT profile, then show progress after I reconnect.” | Separately reviewed resources, durable scheduler job, finite caps and checkpoint/result import |
 
 No browser or manual JSON handoff is required in the connected workflow.
 Ask for the optional local **Plan / Evidence / Dataset** view when visual review helps.
@@ -357,8 +368,8 @@ authenticated GitHub access. This example uses Python 3.13:
 ```sh
 gh repo clone BobbY-24/quarry
 cd quarry
-python3.13 -m venv .venv-6.5
-. .venv-6.5/bin/activate
+python3.13 -m venv .venv-6.6
+. .venv-6.6/bin/activate
 python -m pip install -r requirements-build.txt
 python -m pip install --no-build-isolation .
 mkdir -p research-workspace
@@ -396,6 +407,12 @@ and [CLI/Python guide](docs/ENGINE_GUIDE.md) provide working alternatives.
 
 ## Verification and current scope
 
+The fresh installed V6.6 wheel passed **373 offline tests**. The
+[V6.6 cluster verification record](docs/CLUSTER_VERIFIED.md) covers durable
+job control, resource limits, checkpoint recovery, token-aware windows and
+reviewed serving lifecycle with synthetic providers/schedulers. Live GT runtime,
+Slurm and local-model quality still require an explicitly authorized pilot.
+
 The V6.5 compute update passed **296 tests** against a fresh installed wheel,
 including 19 new operator-configuration and transport tests. Six starter/mode
 acceptance projects and installed stdio harness checks passed, with resume,
@@ -423,6 +440,8 @@ charges; Quarry does not promise exactly-once billing. See [known limitations an
 | --- | --- |
 | Connect your own agent | [Setup, trust, real-provider gate and troubleshooting](docs/AGENT_NATIVE.md) |
 | Choose your extraction resources | [Own API, local model or institutional compute](docs/COMPUTE.md) |
+| Use GT through your existing agent | [Durable cluster workflow](docs/GT_COMPUTE.md) · [Site profile and examples](examples/gt-compute/README.md) |
+| Inspect the GT software checks | [6.6 cluster verification](docs/CLUSTER_VERIFIED.md) |
 | Compute and credential checks | [6.5 installed-wheel verification](docs/COMPUTE_VERIFIED.md) |
 | Conduct a student study | [Simple procedure](docs/SIMPLE_WORKFLOW.md) · [11 walkthroughs](docs/NLPX_STUDENT_GUIDE.md) |
 | Customize research inputs | [Recipes](docs/RECIPES.md) · [Sources and discovery](docs/SOURCES.md) |
