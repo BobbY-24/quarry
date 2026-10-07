@@ -29,7 +29,7 @@ env -i PATH=/usr/bin:/bin /path/to/python -I -S tools/ci_offline.py \
 ```
 
 The routine matrix exercises fault/regression tests and real bounded local
-quota contention. `tools/check_repository.py` checks repository hygiene and local
+quota contention. `tools/check_repository.py` checks local
 Markdown/notebook links without fetching URLs or executing examples. A fresh
 installed wheel exercises CLI, Python API, stdio MCP,
 packaged fixtures/assets, synthetic credential rejection and frozen byte-equal
@@ -63,12 +63,22 @@ Receipts include actual commands, platform/runtime, isolation probes, bounds,
 exit status, elapsed time and source hashes. Source hashes are captured before
 execution and checked afterward; source drift fails a successful invocation.
 A reviewable tree is required. CI uploads only bounded
-synthetic receipts and the wheel for 14 days. This local change has not run on
-GitHub; the remote matrix, Linux user-namespace policy and platform wheels need
-their first authorized run. Historical reports do not verify this workflow.
+synthetic receipts and the wheel for 14 days. Published workflow results identify
+actual remote outcomes; local receipts and historical reports do not establish
+that a hosted matrix passed.
 
 The project store requires a SQLite runtime containing the WAL-reset fix
 (3.51.3 or later, or the 3.50.7/3.44.6 maintenance fixes). A matrix interpreter
 with an older unpatched SQLite stops before project writes or inference; its
 job needs a reviewed patched runtime. Do not disable the gate to obtain green
 CI. Same-host quota registries use DELETE journaling rather than live WAL.
+
+Hosted runner labels and `setup-python` versions do not guarantee either a
+patched SQLite library or working namespace isolation. Verify both prerequisites
+on the selected runner image. A non-JSON Linux probe failure means the sandbox
+or interpreter did not start successfully; its conservative false flags are not
+evidence that application code escaped isolation. Application execution remains
+blocked. Fix the reviewed runtime or runner prerequisite rather than disabling
+the SQLite gate, running application tests unsandboxed, or granting broad
+filesystem access. Python builds without search-only directory flags also need
+compatibility review under the narrow macOS filesystem policy.
