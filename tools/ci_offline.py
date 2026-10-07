@@ -252,7 +252,7 @@ def main(argv=None):
                 parser.error("Linux bubblewrap is required; no unsandboxed fallback")
             prefix = [bwrap, "--unshare-all", "--die-with-parent", "--new-session", "--cap-drop", "ALL",
                       "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp"]
-            for system in ("/usr/bin", "/usr/lib", "/usr/lib64", "/usr/include", "/usr/share/zoneinfo", "/bin", "/lib", "/lib64"):
+            for system in ("/usr/bin", "/usr/lib", "/usr/lib64", "/usr/libexec/gcc", "/usr/include", "/usr/share/zoneinfo", "/bin", "/lib", "/lib64"):
                 if Path(system).exists(): prefix.extend(["--ro-bind", system, system])
             for system in ("/etc/ld.so.cache", "/etc/localtime"):
                 if Path(system).exists(): prefix.extend(["--ro-bind", system, system])
