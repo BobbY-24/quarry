@@ -35,3 +35,9 @@ class IsolationDiagnosticsTests(unittest.TestCase):
         for code, output, category in cases:
             with self.subTest(category=category):
                 self.assertEqual(ci.isolation_result(code, output, linux=True), ({}, category))
+
+    def test_launcher_diagnostic_omits_paths_assignments_and_nonlauncher_output(self):
+        self.assertEqual(ci.launcher_diagnostic("bwrap: Can't read /private/location: denied\nmore output"),
+                         "bwrap: Can't read <path>: denied")
+        for output in ("Traceback: personal diagnostic", "bwrap: KEY=synthetic-canary", "bwrap:" + "a" * 501):
+            self.assertIsNone(ci.launcher_diagnostic(output))

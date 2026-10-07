@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import resource
 import shutil
 import signal
@@ -121,6 +122,16 @@ def isolation_result(code, output, *, linux):
     return safe_probe, category
 
 
+def launcher_diagnostic(output):
+    # The trusted launcher only receives fixed public probe arguments and an
+    # empty credential environment. Keep its first error line; never include
+    # Python tracebacks, additional output, local path values or env assignments.
+    line = output.splitlines()[0] if output else ""
+    if not line.startswith("bwrap:") or "=" in line or len(line) > 500:
+        return None
+    return re.sub(r"/[^\s:'\"]+", "<path>", line)[:300]
+
+
 def main(argv=None):
     project = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
@@ -190,6 +201,7 @@ def main(argv=None):
             failure = {"schema_version": 1, "isolation_probe_failed": True, "probe": probe,
                        "application_executed": False, "exit_code": code, "sandbox": sandbox,
                        "startup_failure_category": category,
+                       "launcher_diagnostic": launcher_diagnostic(output),
                        "probe_output_sha256": hashlib.sha256(output.encode()).hexdigest(),
                        "reviewed_files_sha256": before_hashes}
             destination.parent.mkdir(parents=True, exist_ok=True)
