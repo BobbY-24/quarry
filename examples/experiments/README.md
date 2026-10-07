@@ -6,10 +6,10 @@ gold for each of the three starters. The demo
 uses fake providers, creates fresh local projects, and needs no API key, model
 server, network fetch, or Georgia Tech allocation. It demonstrates input/output
 contracts and evaluation mechanics, not the four research hypotheses.
-See [observed verification and limits](../../docs/EXPERIMENT_VERIFIED.md).
+See [observed verification and limits](../../docs/development/reproduce.md).
 
 For the ordered implementation plan and a real study procedure, see
-[the experiment roadmap](../../docs/EXPERIMENT_ROADMAP.md). LangExtract and DELM
+[the experiment roadmap](../../docs/research/experiment-plan.md). LangExtract and DELM
 adapters, semantic review-time experiments, student studies, and live compute
 measurements are planned work; this directory does not run those systems.
 
@@ -189,8 +189,8 @@ or its completion is unavailable, completed individual jobs do not make a whole
 source complete. Direct in-memory
 comparison uses `compare_experiments(corpus, gold, runs, ...)`. Preserve returned
 normalized files with their corpus/gold and provenance rather than regenerating
-them from mutable live project state. See [complete-source gold preparation](../../docs/EVALUATION.md)
-and [the publication evidence chain](../../docs/PUBLICATION_PROTOCOL.md).
+them from mutable live project state. See [complete-source gold preparation](../../docs/research/evaluation.md)
+and [the publication evidence chain](../../docs/research/publication-protocol.md).
 
 ## Before a real pilot
 

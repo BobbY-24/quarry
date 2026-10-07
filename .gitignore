@@ -1,6 +1,5 @@
-.venv/
+.venv*/
 .ci/
-.venv-*/
 .build-wheelhouse/
 __pycache__/
 *.pyc
@@ -12,6 +11,7 @@ verification/
 projects/
 .env
 *.sqlite3*
+!tests/fixtures/**/*.sqlite3
 
 # Local researcher data and harness settings
 .DS_Store
@@ -33,5 +33,3 @@ my-study/
 outputs/
 exports/
 datasets/
-integrations/
-BUILD_CONTRACT.md

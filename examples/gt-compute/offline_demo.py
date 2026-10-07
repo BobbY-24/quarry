@@ -2,7 +2,7 @@
 
 The scheduler and provider below are explicit synthetic test doubles. They verify
 software contracts, not GT access, model quality, throughput or student usability.
-Review this file and run it in the finite OS isolation from docs/VERIFICATION.md.
+Review this file and run it in the finite OS isolation from docs/development/reproduce.md.
 """
 from __future__ import annotations
 

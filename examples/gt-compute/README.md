@@ -2,7 +2,7 @@
 
 These examples keep your existing Claude Code/Codex harness as the interface and
 run extraction in an authorized GT allocation. Start with
-[the complete GT procedure](../../docs/GT_COMPUTE.md). Installing/configuring is
+[the complete GT procedure](../../docs/guides/gt-compute.md). Installing/configuring is
 separate from approving a concrete source plan and cluster resource request.
 No example grants an allocation. A real fixed server launch requires an approved
 same-job vLLM profile and concrete resource approval; offline examples launch none.
@@ -312,7 +312,7 @@ annotations and synthetic counts are not recall measurements.
 
 Offline verification uses synthetic sources, fake responses and a fake scheduler;
 it does not launch a real Slurm job, call an external agent or measure local-model
-quality. Follow [verification isolation](../../docs/VERIFICATION.md) before
+quality. Follow [verification isolation](../../docs/development/reproduce.md) before
 executing reviewed scripts/tests. A real GT pilot needs explicit authorization,
 site settings and representative complete-source annotations. Measure resource
 use and false negatives before changing models, quantization or scale.
