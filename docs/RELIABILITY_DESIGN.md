@@ -4,6 +4,35 @@ The planning agent drafts a reviewed study. The collector treats extracted
 content as inert proposals, validates exact occurrence, and keeps the grounded
 union. Local reliability changes preserve that research boundary.
 
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#f6ede4"
+    primaryTextColor: "#3a2c24"
+    lineColor: "#95745e"
+---
+flowchart LR
+    A[Researcher's agent] --> R[Validated and reviewed setup]
+    R --> Q[Finite admission and job state]
+    Q --> J[Durable dispatch intent on Slurm]
+    J --> P[Reviewed process transport]
+    Q --> P
+    P --> C[Atomic local response and cost receipt]
+    C --> G[Deterministic exact grounding]
+    G --> E[Evidence and reversible annotations]
+    E --> F[Frozen version and atomic exports]
+    C --> K[Consistent durable checkpoint]
+    E --> K
+    J -. Accounting after node loss .-> K
+```
+
+Local execution uses committed SQLite response/evidence state. Slurm additionally
+requires the dispatch journal before invocation; it restores accounting after
+node loss, while evidence recovery stops at the last published checkpoint.
+The external planning agent cannot dispatch through extraction output.
+
 | Design | Reason and primary contract |
 |---|---|
 | SQLite locally; closed backups durably published | WAL requires same-host shared memory; it is unsuitable for network filesystems. FULL synchronization and explicit backups identify the commit boundary. [SQLite WAL](https://www.sqlite.org/wal.html) |

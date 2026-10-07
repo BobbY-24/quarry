@@ -923,6 +923,7 @@ class Engine:
         if self.resilience: self._save_health()
         rotation = 0
         drain_deadline=None
+        cache_replay_pending=True
         run["runtime_limits"] = {"configured_concurrency":self.execution["concurrency"], "active_concurrency":workers,
                                  "resilience":self.resilience, "source_cache_entries":self.source_map.limit,
                                  "cumulative_request_seconds_limit":self.execution["deadline_seconds"],
@@ -946,14 +947,18 @@ class Engine:
                     drain_deadline=time.monotonic()+SHUTDOWN_GRACE_SECONDS
                     self.drain_deadline=drain_deadline
                 if drain_deadline is not None and time.monotonic()>=drain_deadline:break
-                if not stop:
+                if not stop and cache_replay_pending:
                     for job in self.store.run_cached_jobs(self.run_id):
                         stop=self.replay_cache(job,self.store.get("cache",job["job_id"])) or stop
                         if stop:break
                     # Replay has no provider admission. Disabled circuits,
                     # account capacity and exhausted paid-call budgets must
                     # not strand already committed response receipts.
-                    if not stop and self.store.run_cached_jobs(self.run_id,limit=1):continue
+                    cache_replay_pending=not stop and bool(self.store.run_cached_jobs(self.run_id,limit=1))
+                    if cache_replay_pending:continue
+                    # One collector owns this project. New responses below are
+                    # grounded immediately; processing failure stops admission.
+                    # No other collector can add receipts behind this sweep.
                 counts = {alias:sum(j["expert"]["model"] == alias for j,_,_ in inflight.values()) for alias in aliases}
                 pending = []
                 ordered = aliases[rotation:] + aliases[:rotation]
