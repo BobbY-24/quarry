@@ -71,6 +71,19 @@
       "source_tree": false,
       "wall_timeout_seconds": 120
     },
+    "final-links-isolation.json": {
+      "cpu_seconds_per_process": 300,
+      "elapsed_seconds": 0.17,
+      "exit_code": 0,
+      "probe": {
+        "network_denied": true,
+        "unrelated_file_read_denied": true
+      },
+      "sandbox": "macOS Seatbelt",
+      "sha256": "fa1250d231b3cfbe2fa5ee99721facd00d08b782f18bf343019b2bb9209e12b9",
+      "source_tree": false,
+      "wall_timeout_seconds": 60
+    },
     "install.json": {
       "cpu_seconds_per_process": 300,
       "elapsed_seconds": 0.425,
@@ -167,7 +180,7 @@
   "local_documentation_check": {
     "documents": 46,
     "failures": 0,
-    "local_links": 259
+    "local_links": 261
   },
   "notebook_code_cells": 8,
   "package_version": "6.7.1",
