@@ -1,0 +1,29 @@
+{
+  "builder": "tools/make_legacy_fixture.py imports archived old source; no current engine construction",
+  "builder_commit": "7c3ddc7",
+  "builder_package": "6.6.0",
+  "database_sha256": "f61da689dfa4e373e18567b6ca292e1d9002d98611d01ef2481a7f4833b561fb",
+  "jsonl_export_sha256": {
+    "annotations.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "audit.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compute_execution.json": "f0c95345c236a8103982d3de66e89e00efb5c6bd54fbb456b105caec901e86a1",
+    "costs.jsonl": "e572c52c783fb29f52ee51f97c2374565622ee1799a844f2be9871dd59733060",
+    "dataset.json": "9ccdd291db3bdddd0afb19b319d7a299f8ef1b608e96004b27d1cf93adb5c98c",
+    "discovery.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "evidence.jsonl": "743ee8be645abfc70339a6f15950c10b7e1fc6071737218b4ff471a99f24ab53",
+    "jobs.jsonl": "621fe6341aaf382b93a317ebb48fe2e2766ab861d37e8d8c4435479f520c59f3",
+    "manifest.json": "7bb200ad0c347d0f78ddd8ece0ceaa7deace56daac9c00ce7451fb00181bf231",
+    "occurrences.jsonl": "743ee8be645abfc70339a6f15950c10b7e1fc6071737218b4ff471a99f24ab53",
+    "records.jsonl": "ee683d803cae1aa85cc4db6e38e7697bd7c3e5c8925eb50b6655fd6130f79b72",
+    "relations.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs.jsonl": "89a40d695da3427c711a193f66712892ff04053a0c6d14dfe205ddc51ae3b444",
+    "schema.json": "7d5b3305eb7e246ff9eacdeb1843cdb241353d9bc3745055bc680697f87156c1",
+    "sources.jsonl": "6b2bb44969a0fc52008b1a8caa572a689b6ced11fe2766dcb9c5d205a324788c",
+    "terms.jsonl": "023b17b38c8b8b2efe1ca3dea265abe086aa36a2d199a13732aa806dc80d82c5"
+  },
+  "occurrence_count": 3,
+  "source_count": 1,
+  "synthetic_only": true,
+  "term_count": 3,
+  "version_id": "dataset_3d4fe3312562489fa1d4aff5acc57a3f"
+}

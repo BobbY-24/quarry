@@ -1,5 +1,5 @@
 """Reproducible research term collection. Importing makes no network calls."""
-__version__ = "6.6.0"
+__version__ = "6.7.2"
 
 from .project import Project
 from .providers import FakeProvider, Response

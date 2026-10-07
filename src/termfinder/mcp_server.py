@@ -113,6 +113,12 @@ def _tool(name, description, properties=None, required=(), readonly=False):
 
 
 TOOLS = [
+    _tool("doctor", "Read bounded local recovery diagnostics and unresolved attempt metadata. Does not retry, resolve billing, contact a provider or reset limits.", readonly=True),
+    _tool("operation_status", "Read one durable operation receipt after a lost tool reply. A pending or uncertain operation is never automatically executed again.", {"operation_id": ID}, ("operation_id",), readonly=True),
+    _tool("study_setup_text", "Recover saved study inputs after a lost prepare_study reply. Read exact bounded chunks of the current brief, agent prompt or starter bundle from this selected project; no files, source fetch or extraction.", {
+        "brief_sha256": ID, "section": {"type": "string", "enum": ["brief", "prompt", "starter_bundle"]},
+        "offset": PAGE, "length": {"type": "integer", "minimum": 1, "maximum": 12000}},
+        ("brief_sha256", "section"), readonly=True),
     _tool("configure_cluster", "Relay a researcher's reviewed site profile. Inert: no scheduler, shell, model installation or inference. Profile is operator input, never extraction output.", {"profile": OBJECT, "researcher_configured": BOOL, "configuration_reference": {"type": "string", "minLength": 1, "maxLength": 1000}}, ("profile", "researcher_configured", "configuration_reference")),
     _tool("configure_throughput", "Configure bounded concurrent requests before jobs exist. This preserves recipe policy and budgets, invalidates earlier collection reviews, and does not benchmark or launch GPUs.", {"concurrency": {"type": "integer", "minimum": 1, "maximum": 64}, "model_concurrency": {"type": "integer", "minimum": 1, "maximum": 32}, "researcher_configured": BOOL, "configuration_reference": {"type": "string", "minLength": 1, "maxLength": 1000}}, ("researcher_configured", "configuration_reference")),
     _tool("prepare_cluster", "Prepare an inert hash-bound Slurm job bundle from a current approved collection review. Return concrete resource limits, script and finite compute reservation for human review; no submission.", {"review_id": ID}, ("review_id",)),
@@ -150,6 +156,15 @@ WORKSPACE_TOOLS = [
     _tool("create_study", "Create and select a fresh safe-slug study inside the fixed workspace. An optional validated brief prepares inert study inputs only; no source/model calls. Existing folders are never overwritten.", {"slug": {"type": "string", "minLength": 1, "maxLength": 64}, "brief": OBJECT}, ("slug",)),
     _tool("open_study", "Select an existing safe-slug V6 study immediately inside the fixed workspace. Cannot follow symlinks, traverse paths or switch during active collection.", {"slug": {"type": "string", "minLength": 1, "maxLength": 64}}, ("slug",)),
 ]
+
+# This is a caller-chosen durability key, deliberately separate from JSON-RPC
+# transport IDs. Read-only tools do not accept it, except receipt lookup itself.
+MUTATING_TOOLS = {tool["name"] for tool in TOOLS if not tool["annotations"]["readOnlyHint"]}
+for _mutation in TOOLS:
+    if _mutation["name"] in MUTATING_TOOLS:
+        _mutation["inputSchema"]["properties"]["operation_id"] = {
+            "type": "string", "minLength": 1, "maxLength": 128,
+            "description": "Opaque durable operation key. Reuse with identical arguments after a lost reply; JSON-RPC id is not a durability key."}
 
 
 def _validate(schema, value):
@@ -680,6 +695,11 @@ class MCPServer:
             # Synchronous preflight must fail before a background success response.
             self._review_ready(review_id, collection=True)
             self._workflow().check_review(self.project, review_id, allow_paid=self.allow_paid)
+            # Clear only the preceding run's stop, before a start receipt can
+            # be delivered. A cancellation after this point must survive the
+            # delayed background worker's admission checks.
+            self.project.store.setting("cancel_requested", False)
+            self.project.store.setting("controller_failure_id", None)
             self.worker_result = self.worker_error = None
 
             def run():
@@ -687,10 +707,15 @@ class MCPServer:
                     if self.closing.is_set():
                         return
                     self.worker_result = self._workflow().run_review(
-                        self.project, review_id, allow_paid=self.allow_paid, max_jobs=max_jobs)
+                        self.project, review_id, allow_paid=self.allow_paid, max_jobs=max_jobs,
+                        _clear_cancel=False)
                 except Exception as error:
                     self.worker_error = {"type": type(error).__name__,
                                          "message": "Collection stopped; inspect persistent status and recovery records."}
+                    try:
+                        self.project.record_controller_failure(review_id=review_id)
+                    except Exception:
+                        pass  # Storage/guard failure cannot fabricate a durable receipt.
                 finally:
                     if self.closing.is_set():
                         try:
@@ -715,6 +740,16 @@ class MCPServer:
             _credential_free(arguments)
         except (ValueError, RecursionError):
             raise ToolFailure("invalid_arguments", "Use the tool's advertised schema and bounded values. Unsupported fields, credentials and nonfinite values are forbidden.") from None
+        if name in MUTATING_TOOLS and "operation_id" in arguments:
+            from .operations import OperationManager
+            selected = self._require_project()
+            params = {key: value for key, value in arguments.items() if key != "operation_id"}
+            # Launch gates are immutable operator configuration; the durability
+            # key cannot turn a previous offline request into a paid one.
+            return OperationManager(selected).execute(arguments["operation_id"], "mcp:" + name,
+                {"arguments": params, "allow_paid": self.allow_paid, "allow_cluster": self.allow_cluster},
+                lambda: self.call_tool(name, params), atomic=name in {
+                    "prepare_study", "submit_plan", "approve_review", "annotate", "undo_annotation", "cancel"})
         if name in {"list_studies", "create_study", "open_study"}:
             return self._workspace_call(name, arguments)
         if name == "status" and self.project is None:
@@ -723,6 +758,27 @@ class MCPServer:
                     "paid_transport_permitted": self.allow_paid,
                     "next_step": "Create or open a study to begin. This connection reuses the launch-time workspace."}
         p = self._require_project()
+        if name == "doctor":
+            return p.doctor()
+        if name == "operation_status":
+            from .operations import OperationManager
+            return OperationManager(p).receipt(arguments["operation_id"])
+        if name == "study_setup_text":
+            with p._lock():
+                setup = p.agent_setup()
+                if not setup or setup["brief_sha256"] != arguments["brief_sha256"]:
+                    raise ToolFailure("study_setup_changed", "Choose the current saved brief hash; this receipt cannot inspect a changed study setup.")
+                value = setup[arguments["section"]]
+                text = value if isinstance(value, str) else canonical(value)
+                offset, length = arguments.get("offset", 0), arguments.get("length", 8000)
+                if offset > len(text):
+                    raise ToolFailure("invalid_setup_offset", "The character offset exceeds this saved study value.")
+                end = min(len(text), offset + length)
+                return {"brief_sha256": setup["brief_sha256"], "section": arguments["section"],
+                    "value_sha256": digest(text), "representation": "original_string" if isinstance(value, str) else "canonical_json",
+                    "text": text[offset:end], "offset_unit": "Unicode code points", "start": offset, "end": end,
+                    "total_characters": len(text), "next_offset": end if end < len(text) else None,
+                    "complete_value": offset == 0 and end == len(text), "inspection_only": True}
         if name in {"configure_compute", "configure_cluster", "configure_throughput", "prepare_cluster", "submit_cluster", "resume_cluster", "import_cluster", "prepare_study", "submit_plan", "prepare_review", "approve_review", "release"}:
             self._idle()
         if name in {"configure_compute", "configure_cluster", "configure_throughput", "prepare_study", "submit_plan", "prepare_review", "approve_review"}:
@@ -984,7 +1040,11 @@ class MCPServer:
                 if set(params) - {"name", "arguments", "_meta"} or not isinstance(params.get("name"), str):
                     return self._error(identifier, -32602, "Invalid tool call")
                 try:
-                    result = _result(self.call_tool(params["name"], params.get("arguments", {})))
+                    value = self.call_tool(params["name"], params.get("arguments", {}))
+                    operation_failed = (params["name"] in MUTATING_TOOLS
+                        and isinstance(value, dict) and value.get("operation_id")
+                        and value.get("parameter_sha256") and value.get("status") in {"failed", "uncertain"})
+                    result = _result(value, error=bool(operation_failed))
                 except LookupError:
                     return self._error(identifier, -32602, "Unknown tool")
                 except ToolFailure as error:

@@ -1,6 +1,6 @@
 # Public-research-inspired student recipes
 
-See [the named student walkthroughs](../../docs/NLPX_STUDENT_GUIDE.md) and [the complete shared procedure](../../docs/LAB_PROTOCOL.md).
+See [the named student walkthroughs](../../docs/guides/nlpx-students.md) and [the complete shared procedure](../../docs/research/collection-protocol.md).
 
 There are 11 proposed, researcher-editable recipe JSONs and 11 matching batch-metadata examples. [catalog.json](catalog.json) maps public student names, research anchors, filenames and routing labels. These are proposed applications, not assignments, PI requests, deployed lab studies or reproductions of the cited datasets.
 

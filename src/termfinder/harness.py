@@ -56,8 +56,14 @@ def _chosen_root(value, *, existing=False):
 def _directory(path):
     """Open every ancestor without following links; callers own the result."""
     # Search-only ancestors do not read directory inventories outside the chosen
-    # workspace. O_SEARCH is available on macOS; Linux provides O_PATH.
-    search = getattr(os, "O_SEARCH", getattr(os, "O_PATH", os.O_RDONLY))
+    # workspace. Some macOS Python builds omit SDK symbols; Darwin's ABI defines
+    # O_SEARCH = O_EXEC (0x40000000) | O_DIRECTORY. Do not fall back to a readable
+    # ancestor descriptor just because CPython did not export the symbol.
+    # https://github.com/apple-oss-distributions/xnu/blob/main/bsd/sys/fcntl.h
+    if sys.platform == "darwin":
+        search = getattr(os, "O_SEARCH", getattr(os, "O_EXEC", 0x40000000) | os.O_DIRECTORY)
+    else:
+        search = getattr(os, "O_SEARCH", getattr(os, "O_PATH", os.O_RDONLY))
     fd = os.open("/", search | os.O_DIRECTORY)
     try:
         parts = Path(path).parts[1:]

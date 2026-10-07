@@ -345,6 +345,8 @@ class _ReviewedProject:
     def __init__(self, project, sources):
         self.project, self.source_ids = project, {s["source_id"] for s in sources}
         self.path, self.store, self.recipe, self.profile = project.path, project.store, project.recipe, project.profile
+        for name in ("_dispatch_journal","_quota_coordinator"):
+            if hasattr(project,name):setattr(self,name,getattr(project,name))
 
     def source_exclusion(self, source):
         return "outside_reviewed_source_inventory" if source["source_id"] not in self.source_ids else self.project.source_exclusion(source)
@@ -354,19 +356,34 @@ class _ReviewedProject:
 
 
 def run_review(project, review_id, *, provider=None, allow_paid=False, max_jobs=None, tokenizers=None,
-               _cluster_worker=False):
+               _cluster_worker=False, operation_id=None, _clear_cancel=True):
     """Recheck the approved fingerprint and resume while holding admission lock."""
     if type(allow_paid) is not bool:
         raise ValueError("allow_paid must be an explicit boolean")
+    if type(_clear_cancel) is not bool:
+        raise ValueError("Invalid trusted cancellation startup mode")
     if max_jobs is not None and (type(max_jobs) is not int or max_jobs < 1):
         raise ValueError("max_jobs must be a positive integer")
+    if operation_id is not None:
+        from .operations import OperationManager
+        provider_identity = getattr(provider, "cache_identity", None) if provider is not None else None
+        return OperationManager(project).execute(operation_id, "run_review", {
+            "review_id": review_id, "allow_paid": allow_paid, "max_jobs": max_jobs,
+            "provider_identity": provider_identity, "cluster_worker": _cluster_worker,
+            "clear_prior_cancellation": _clear_cancel,
+            "tokenizers": {alias: tokenizer.manifest() for alias, tokenizer in (tokenizers or {}).items()}},
+            lambda: run_review(project, review_id, provider=provider, allow_paid=allow_paid,
+                max_jobs=max_jobs, tokenizers=tokenizers, _cluster_worker=_cluster_worker,
+                _clear_cancel=_clear_cancel))
     with project._lock():
         if not _cluster_worker:
             project.cluster().ensure_control_idle()
         # Resume clears the preceding run's cancellation before potentially
         # lengthy corpus checks. A new stop request during those checks must
         # survive admission and reach Engine.prepare/run unchanged.
-        project.store.setting("cancel_requested", False)
+        if _clear_cancel:
+            project.store.setting("cancel_requested", False)
+            project.store.setting("controller_failure_id", None)
         review, sources = _check_review_unlocked(project, review_id)
         approval = _approval_unlocked(project, review)
         if provider is None:
@@ -378,6 +395,7 @@ def run_review(project, review_id, *, provider=None, allow_paid=False, max_jobs=
                 raise ValueError("This profile requires explicit paid collection authorization")
         if getattr(provider, "paid", False) and not allow_paid:
             raise ValueError("Paid transport requires explicit authorization")
+        project._load_quota()
         with project.store.connection() as db:
             project._plan_event("reviewed_collection_started", {"review_id": review_id,
                 "approval_id": approval["approval_id"], "paid_transport": bool(getattr(provider, "paid", False)),

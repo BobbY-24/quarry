@@ -68,7 +68,27 @@ def _matches(text, needle):
         start = index + 1
 
 
-def ground(proposal, source, job, recipe, provenance):
+def _offset_contexts(window, context, expression, offset):
+    """Yield matching contexts containing one explicit window-relative span.
+
+    A proposed offset restricts the possible context starts to at most the
+    context length. Validate that range directly rather than enumerating the
+    full context/expression cross product merely to check an offset.
+    """
+    if offset < 0 or not window.startswith(expression, offset):
+        return
+    low = max(0, offset + len(expression) - len(context))
+    high = min(offset, len(window) - len(context))
+    if low > high:
+        return
+    index = window.find(context, low, high + len(context))
+    while index >= 0:
+        if context.startswith(expression, offset - index):
+            yield index, offset
+        index = window.find(context, index + 1, high + len(context))
+
+
+def ground(proposal, source, job, recipe, provenance, *, stream=False):
     record_type = recipe.get("data_type", "term")
     errors = []
     if not isinstance(proposal, dict):
@@ -94,14 +114,18 @@ def ground(proposal, source, job, recipe, provenance):
     if expression not in context:
         return [], errors + ["expression_absent_from_context"]
     window = source["text"][job["start"]:job["end"]]
-    context_positions = list(_matches(window, context))
-    if not context_positions:
+    if context not in window:
         return [], errors + ["context_not_exact_in_window"]
     specified = proposal.get("start")
-    possible = [(c, c + e) for c in context_positions for e in _matches(context, expression)]
+    possible = ((c, c + e) for c in _matches(window, context) for e in _matches(context, expression))
     if specified is not None:
-        if type(specified) is int and any(e == specified for _,e in possible):
-            possible = [(c,e) for c,e in possible if e == specified]
+        selected = _offset_contexts(window, context, expression, specified) if type(specified) is int else iter(())
+        first = next(selected, None)
+        if first is not None:
+            def selected_positions():
+                yield first
+                yield from selected
+            possible = selected_positions()
         else:
             # A mistaken proposed offset must not erase exact grounded text.
             errors.append("offset_repaired_by_exact_context")
@@ -134,48 +158,49 @@ def ground(proposal, source, job, recipe, provenance):
         if quote is not None:
             errors.append("definition_quote_not_in_context")
         quote = None
-    results = []
-    for context_index, expression_index in possible:
-        start = job["start"] + expression_index
-        end = start + len(expression)
-        community = source.get("community")
-        # An unresolved meaning cannot justify merging different contextual
-        # uses. Keep unknown-sense contexts separate until a human relates them.
-        sense_identity = sense if sense is not None else {"unresolved_context":context}
-        normalized = normalize(expression, language) if record_type == "term" else unicodedata.normalize("NFC", expression)
-        # Nonlexical records identify an observed span in one source. Identical
-        # opinions in different sources cannot establish identical attribution.
-        tid = (ident("term", [normalized, language, community, sense_identity]) if record_type == "term"
-               else ident("record", [record_type, source["source_id"], start, end,
-                                      normalized, language, community, sense_identity]))
-        oid = ident("occ", [source["source_id"], tid, start, end])
-        locations = [b for b in source.get("blocks", []) if b["start"] < end and b["end"] > start]
-        term = {"term_id": tid, "expression": expression, "original_spellings": [expression],
-                "normalized_expression": normalized, "language": language,
-                "record_id": tid, "record_type": record_type, "observed_text": expression,
-                "text_origin": "observed_source", "interpretation": sense,
-                "interpretation_origin": "model_generated" if sense else None,
-                "interpretation_reason": None if sense else "not_proposed_or_unresolved",
-                "community": community, "community_reason": None if community else "not_supplied_by_researcher_or_source",
-                "sense": sense, "sense_reason": None if sense else "not_proposed_or_unresolved",
-                "meaning_status": "model_proposed" if sense else "unresolved",
-                "source_supported_definition": {"text": quote, "reason": None if quote else "no_exact_definition_quote",
-                    "occurrence_id": oid if quote else None, "semantic_entailment_verified": False},
-                "model_suggestions": {"attributes": sanitized, "attribute_null_reasons": reasons},
-                "human_attributes": {}, "review_status": "unreviewed", "first_observed_in_corpus": source["retrieved_at"],
-                "coinage_date": None, "coinage_date_reason": "corpus_observation_does_not_establish_coinage",
-                "recipe_ids": [recipe["id"]]}
-        occurrence = {"occurrence_id": oid, "term_id": tid, "source_id": source["source_id"],
-                "record_id": tid, "record_type": record_type, "observed_text": expression,
-                "expression": expression, "language": language, "start": start, "end": end,
-                "offset_unit": "unicode_codepoint_in_frozen_extracted_text", "context": context,
-                "context_start": job["start"] + context_index, "context_end": job["start"] + context_index + len(context),
-                "source_locations": locations, "text_origin": "observed_source", "contexts": [{"text": context,
-                    "start": job["start"] + context_index, "end": job["start"] + context_index + len(context)}],
-                "translation": {"text": translation, "origin": "model_generated" if translation else None,
-                                "reason": None if translation else "not_requested_or_not_provided"},
-                "definition_quote": quote, "definition_quote_reason": None if quote else "no_exact_definition_quote",
-                "model_attributes": sanitized, "attribute_null_reasons": reasons, "provenance": [provenance],
-                "grounding": "exact_source_occurrence", "meaning_verified": False}
-        results.append((term, occurrence))
-    return results, errors
+    def records():
+        for context_index, expression_index in possible:
+            start = job["start"] + expression_index
+            end = start + len(expression)
+            community = source.get("community")
+            # An unresolved meaning cannot justify merging different contextual
+            # uses. Keep unknown-sense contexts separate until a human relates them.
+            sense_identity = sense if sense is not None else {"unresolved_context":context}
+            normalized = normalize(expression, language) if record_type == "term" else unicodedata.normalize("NFC", expression)
+            # Nonlexical records identify an observed span in one source. Identical
+            # opinions in different sources cannot establish identical attribution.
+            tid = (ident("term", [normalized, language, community, sense_identity]) if record_type == "term"
+                   else ident("record", [record_type, source["source_id"], start, end,
+                                          normalized, language, community, sense_identity]))
+            oid = ident("occ", [source["source_id"], tid, start, end])
+            locations = [b for b in source.get("blocks", []) if b["start"] < end and b["end"] > start]
+            term = {"term_id": tid, "expression": expression, "original_spellings": [expression],
+                    "normalized_expression": normalized, "language": language,
+                    "record_id": tid, "record_type": record_type, "observed_text": expression,
+                    "text_origin": "observed_source", "interpretation": sense,
+                    "interpretation_origin": "model_generated" if sense else None,
+                    "interpretation_reason": None if sense else "not_proposed_or_unresolved",
+                    "community": community, "community_reason": None if community else "not_supplied_by_researcher_or_source",
+                    "sense": sense, "sense_reason": None if sense else "not_proposed_or_unresolved",
+                    "meaning_status": "model_proposed" if sense else "unresolved",
+                    "source_supported_definition": {"text": quote, "reason": None if quote else "no_exact_definition_quote",
+                        "occurrence_id": oid if quote else None, "semantic_entailment_verified": False},
+                    "model_suggestions": {"attributes": sanitized, "attribute_null_reasons": reasons},
+                    "human_attributes": {}, "review_status": "unreviewed", "first_observed_in_corpus": source["retrieved_at"],
+                    "coinage_date": None, "coinage_date_reason": "corpus_observation_does_not_establish_coinage",
+                    "recipe_ids": [recipe["id"]]}
+            occurrence = {"occurrence_id": oid, "term_id": tid, "source_id": source["source_id"],
+                    "record_id": tid, "record_type": record_type, "observed_text": expression,
+                    "expression": expression, "language": language, "start": start, "end": end,
+                    "offset_unit": "unicode_codepoint_in_frozen_extracted_text", "context": context,
+                    "context_start": job["start"] + context_index, "context_end": job["start"] + context_index + len(context),
+                    "source_locations": locations, "text_origin": "observed_source", "contexts": [{"text": context,
+                        "start": job["start"] + context_index, "end": job["start"] + context_index + len(context)}],
+                    "translation": {"text": translation, "origin": "model_generated" if translation else None,
+                                    "reason": None if translation else "not_requested_or_not_provided"},
+                    "definition_quote": quote, "definition_quote_reason": None if quote else "no_exact_definition_quote",
+                    "model_attributes": sanitized, "attribute_null_reasons": reasons, "provenance": [provenance],
+                    "grounding": "exact_source_occurrence", "meaning_verified": False}
+            yield term, occurrence
+    result=records()
+    return (result if stream else list(result)), errors

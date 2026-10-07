@@ -7,6 +7,7 @@ import io
 import json
 import os
 import tempfile
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -145,10 +146,37 @@ def annotation_sources(dataset: dict) -> list[dict]:
 def export_dataset(dataset: dict, out: Path, formats=None) -> dict:
     out=Path(out)
     if out.is_symlink(): raise ValueError("Export destination must not be a symbolic link")
-    out.mkdir(parents=True,exist_ok=True)
-    # Stage on disk: an interruption cannot publish a half-written data file.
-    with tempfile.TemporaryDirectory(prefix=".termfinder-export-",dir=out) as staging:
-        return _export_dataset(dataset,out,formats,Path(staging))
+    out.parent.mkdir(parents=True,exist_ok=True)
+    size=len(canonical_json(dataset).encode("utf-8"))
+    if size>128*1024*1024:raise ValueError("Export snapshot exceeds the supported materialization bound")
+    if shutil.disk_usage(out.parent).free<256*1024*1024+size*8:
+        raise ValueError("Insufficient disk headroom for bounded export staging")
+    # Whole-directory publication: an interrupted fresh export has no visible
+    # destination. A completed generation is fsynced before atomic rename.
+    with tempfile.TemporaryDirectory(prefix=".termfinder-export-",dir=out.parent) as root:
+        root=Path(root);prepared=root/"published";prepared.mkdir()
+        staging=root/"files";staging.mkdir()
+        result=_export_dataset(dataset,prepared,formats,staging)
+        for path in prepared.iterdir():
+            with path.open("rb") as stream:os.fsync(stream.fileno())
+        descriptor=os.open(prepared,os.O_RDONLY)
+        try:os.fsync(descriptor)
+        finally:os.close(descriptor)
+        if out.exists() and any(out.iterdir()):
+            if any((out/path.name).is_symlink() for path in prepared.iterdir()):
+                raise ValueError("Export target must not be a symbolic link")
+            for path in prepared.iterdir():
+                target=out/path.name
+                if target.is_symlink():raise ValueError("Export target must not be a symbolic link")
+                if not target.is_file() or _file_metadata(target)!=_file_metadata(path):
+                    raise FileExistsError("Refusing to overwrite a different or incomplete export")
+        else:
+            if out.is_symlink():raise ValueError("Export destination must not be a symbolic link")
+            os.rename(prepared,out)
+            descriptor=os.open(out.parent,os.O_RDONLY)
+            try:os.fsync(descriptor)
+            finally:os.close(descriptor)
+        return {**result,"out":str(out.resolve())}
 
 
 class StagedFiles:

@@ -30,7 +30,8 @@ class ExportTests(unittest.TestCase):
             with patch("termfinder.exports.os.link",side_effect=interrupted):
                 with self.assertRaises(OSError): export_dataset(saved,out,["jsonl"])
             self.assertFalse((out/"manifest.json").exists())
-            self.assertFalse(any(p.name.startswith(".termfinder-export-") for p in out.iterdir()))
+            self.assertFalse(out.exists())
+            self.assertFalse(any(p.name.startswith(".termfinder-export-") for p in out.parent.iterdir()))
             manifest=export_dataset(saved,out,["jsonl"])["manifest"]
             self.assertTrue((out/"manifest.json").is_file())
             for name,metadata in manifest["files"].items():

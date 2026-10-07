@@ -62,6 +62,14 @@ class Project:
             finally:
                 fcntl.flock(lock, fcntl.LOCK_UN)
 
+    def operation(self, operation_id, kind, parameters, callback, *, atomic=False):
+        from .operations import OperationManager
+        return OperationManager(self).execute(operation_id,kind,parameters,callback,atomic=atomic)
+
+    def operation_receipt(self, operation_id):
+        from .operations import OperationManager
+        return OperationManager(self).receipt(operation_id)
+
     def configuration(self):
         return {"recipe": self.recipe, "profile": self.profile}
 
@@ -541,7 +549,7 @@ class Project:
         return costs.estimate(self.recipe, self.profile, sources, links=links,
             source_text_loader=source_text if links is None else None, **assumptions)
 
-    def collect(self, provider=None, *, allow_paid=False, max_jobs=None, tokenizers=None):
+    def collect(self, provider=None, *, allow_paid=False, max_jobs=None, tokenizers=None, _clear_cancel=True):
         self._configured()
         if provider is None:
             if all(p["adapter"] == "fake" for p in self.profile["providers"].values()):
@@ -554,11 +562,80 @@ class Project:
             raise ValueError("Paid transport requires explicit authorization")
         with self._lock():
             self.cluster().ensure_control_idle()
-            self.store.setting("cancel_requested", False)
+            if _clear_cancel:
+                self.store.setting("cancel_requested", False)
+            self.store.setting("controller_failure_id", None)
+            self._load_quota()
             return Engine(self, provider, tokenizers=tokenizers).run(max_jobs)
 
-    def resume(self, provider=None, *, allow_paid=False, max_jobs=None, tokenizers=None):
-        return self.collect(provider, allow_paid=allow_paid, max_jobs=max_jobs, tokenizers=tokenizers)
+    def record_controller_failure(self, review_id=None):
+        """Save pre-engine/background failure metadata without exception text."""
+        import re,sqlite3,sys
+        safe_review=review_id if isinstance(review_id,str) and re.fullmatch(r"[a-z]+_[a-z0-9]{1,80}",review_id) else None
+        key="incident_"+uuid.uuid4().hex
+        row={"incident_id":key,"run_id":None,"review_id":safe_review,
+            "stage":"controller","scope":"local","category":"controller_collection_failure",
+            "created_at":now(),"status":"unresolved","job_id":None,"attempt_id":None,
+            "recovery_action":"inspect_review_and_saved_attempts_before_resume"}
+        try:
+            with self.store.connection() as db:
+                self.store.put("incidents",key,row,db)
+                self.store.setting("controller_failure_id",key,db)
+        except (OSError,sqlite3.Error,RuntimeError):
+            print("Quarry controller failure could not be saved; inspect last durable state after storage recovery.",file=sys.stderr)
+            return None
+        return key
+
+    def configure_quota(self, registry_path, scope_id, limits=None):
+        """Trusted operator setup; all aliases in this project share this scope."""
+        from .quotas import QuotaCoordinator,QuotaLimits
+        from dataclasses import asdict
+        from .agent_setup import _credential_free
+        _credential_free(scope_id)
+        path=Path(registry_path).expanduser().absolute()
+        selected=limits if isinstance(limits,QuotaLimits) else QuotaLimits(**(limits or {}))
+        coordinator=QuotaCoordinator(path,scope_id,selected)
+        with self._lock():
+            self.store.setting("quota_configuration",{"registry_path":str(path),"scope_id":scope_id,"limits":asdict(selected),"enforcement":"same_host_only"})
+        self._quota_coordinator=coordinator
+        return {"scope_id":scope_id,"limits":asdict(selected),"enforcement":"same_host_only","configures_all_project_aliases":True}
+
+    def _load_quota(self):
+        configured=self.store.read_setting("quota_configuration")
+        if configured:
+            from .quotas import QuotaCoordinator
+            self._quota_coordinator=QuotaCoordinator(configured["registry_path"],configured["scope_id"],configured["limits"])
+
+    def doctor(self):
+        """Read-only bounded diagnostics; never resets reservations or retries."""
+        status=self.status()
+        unresolved=self.store.rows("costs",where="json_extract(data,'$.status') IN ('uncertain','dispatched')",limit=100)
+        import sqlite3,time
+        with self.store.connection() as db:
+            deadline=time.monotonic()+5
+            db.set_progress_handler(lambda: int(time.monotonic()>=deadline),1000)
+            try:integrity=db.execute("PRAGMA quick_check").fetchone()[0]=="ok"
+            except sqlite3.Error:integrity=None
+            finally:db.set_progress_handler(None,0)
+        from .engine import MAX_PLANNED_JOBS,SHUTDOWN_GRACE_SECONDS,QUEUE_WAIT_SECONDS,PROCESSING_VERSION,EXECUTION_VERSION
+        result={"schema_supported":True,"integrity_ok":integrity,"status":status["status"],
+            "stop_reason":status["stop_reason"],"jobs":status["jobs"],"costs":status["costs"],
+            "last_run_id":(status["last_run"] or {}).get("run_id"),
+            "incidents":status["incidents"],"uncertain_attempts":[{k:r.get(k) for k in ("attempt_id","job_id","run_id","stage","status","reserved_usd","settled_usd","failure_scope","failure_reason")} for r in unresolved],
+            "attempt_preview_limit":100,"processing_version":PROCESSING_VERSION,"execution_version":EXECUTION_VERSION,
+            "limits":{"max_planned_jobs":MAX_PLANNED_JOBS,"shutdown_grace_seconds":SHUTDOWN_GRACE_SECONDS,"capacity_wait_seconds":QUEUE_WAIT_SECONDS,
+                "inventory_materialization_bytes":64*1024*1024,"audit_rows":100000,"incident_rows":10000,"response_bytes":8000000},
+            "actions":["resume committed response receipts before new inference","resolve unknown outcomes only with explicit billing acknowledgement","retain unresolved accounting during archival"],
+            "telemetry":"metadata_only_local_no_content_capture","changed_state":False}
+        result["sqlite_runtime"]={"version":sqlite3.sqlite_version,"wal_reset_patch_gate":"passed","quick_check_deadline_seconds":5}
+        configured=self.store.read_setting("quota_configuration")
+        if configured:
+            result["quota"]={"scope_id":configured["scope_id"],"limits":configured["limits"],
+                "enforcement":"same_host_only","registry_inspection":"use operator quota diagnostics; doctor does not open or mutate account registry"}
+        return result
+
+    def resume(self, provider=None, *, allow_paid=False, max_jobs=None, tokenizers=None, _clear_cancel=True):
+        return self.collect(provider, allow_paid=allow_paid, max_jobs=max_jobs, tokenizers=tokenizers, _clear_cancel=_clear_cancel)
 
     def cancel(self):
         self.store.setting("cancel_requested", True)
@@ -613,7 +690,10 @@ class Project:
     def inventory(self):
         with self.store.connection() as db:
             if not db.in_transaction: db.execute("BEGIN")
-            result = {t:self.store.all(t, db) for t in TABLES if t not in {"cache", "versions"}}
+            included=[t for t in TABLES if t not in {"cache", "versions","operations"}]
+            if self.store.table_bytes(included)>64*1024*1024:
+                raise ValueError("Inventory materialization limit reached; use paginated inspection and partition the study before snapshot")
+            result = {t:self.store.all(t, db) for t in included}
         annotations = {}
         for a in result["annotations"]:
             if a.get("active",True): annotations.setdefault(a["term_id"],[]).append(a)
@@ -711,15 +791,20 @@ class Project:
             status = "partial" if not running else "running"
         if self.store.read_setting("cancel_requested") and not running:
             status = "cancelled"
+        incidents=self.store.rows("incidents",limit=20)
+        controller_failure=self.store.get("incidents",self.store.read_setting("controller_failure_id")) if self.store.read_setting("controller_failure_id") else None
+        if controller_failure and not running:status="partial"
         return {"status":status,"mode":(self.recipe or {}).get("mode"),"profile":(self.profile or {}).get("id"),
                 "counts":counts,
                 "data_type": (self.recipe or {}).get("data_type", "term"),
                 "jobs":dict(jobs),"costs":stage_costs,"last_run":last,"failures":failures,
                 "coverage":last.get("coverage") if last else None,
-                "stop_reason":last.get("stop_reason") if last else None,
+                "stop_reason":"controller_collection_failure" if controller_failure and not running else last.get("stop_reason") if last else None,
                 "discovery":self.store.read_setting("discovery_state"),
                 "unresolved_audit_count":self.store.count("audit"), "failure_count":failure_count,
                 "degraded":degraded,"healthy_models":healthy,"model_health":model_health,
+                "incidents":incidents,"incident_count":self.store.count("incidents"),
+                "controller_failure":controller_failure,
                 "coverage_note":"model-reported enumeration completion, not measured recall"}
 
     def annotate(self, term_id, status, note="", attributes=None, actor="researcher"):
@@ -761,7 +846,8 @@ class Project:
         self.store.put("relations",relation_id,row)
 
     def snapshot(self, name):
-        with self._lock():
+        with self._lock(),self.store.connection() as db:
+            if not db.in_transaction:db.execute("BEGIN IMMEDIATE")
             return self._snapshot_unlocked(name)
 
     def _snapshot_unlocked(self, name):
@@ -789,6 +875,11 @@ class Project:
             "cluster_accounting": self.store.read_setting("cluster_accounting"),
             "throughput_settings": self.store.read_setting("cluster_throughput"),
             "resource_usage_note": "Reserved allocation bounds and measured worker time are distinct; missing scheduler charges are unknown."}
+        from .engine import PROCESSING_VERSION,EXECUTION_VERSION
+        value["processing_version"]=PROCESSING_VERSION
+        value["execution_version"]=EXECUTION_VERSION
+        if len(canonical(value).encode("utf-8"))>128*1024*1024:
+            raise ValueError("Frozen dataset materialization limit reached; preserve project and partition into smaller studies")
         self.store.put("versions",version_id,{"dataset":value,"sha256":digest(value)})
         return version_id
 

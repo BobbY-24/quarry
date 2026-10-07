@@ -39,7 +39,27 @@ MAX_JSON = 4_000_000
 
 
 def allocation_unresolved(job):
-    return job["state"] in ACTIVE or bool(job.get("scheduler_submission_uncertain"))
+    return (job["state"] in ACTIVE or bool(job.get("scheduler_submission_uncertain"))
+        or bool(job.get("execution_claim") and not job.get("worker_finished_at")
+            and not job.get("scheduler_terminal_confirmed_at")))
+
+
+def dispatch_binding(manifest):
+    """Safe identifiers binding accounting receipts to the frozen study."""
+    return {"cluster_review_id": manifest["cluster_review_id"],
+        "binding_sha256": manifest["binding_sha256"],
+        "profile_sha256": digest(manifest["binding"]["profile"]),
+        "configuration_sha256": manifest["binding"]["configuration_sha256"]}
+
+
+def dispatch_journal(manifest, bundle, *, execution=None, create=False):
+    from .dispatch_journal import DispatchJournal, MAX_RECORDS
+    path = Path(bundle) / "dispatch-journal"
+    if not create and (not path.is_dir() or not (path / "index.json").is_file()):
+        raise ValueError("Durable dispatch accounting is unavailable; an existing allocation cannot assume no requests occurred")
+    return DispatchJournal(path, dispatch_binding(manifest),
+        max_records=min(MAX_RECORDS, manifest["binding"]["dispatch_journal_max_records"]),
+        **(execution or {}))
 
 
 def status_summary(result):
@@ -243,6 +263,8 @@ def project_fingerprint(project):
         for row in db.execute("SELECT key,value FROM settings WHERE key!='cluster_import_receipt' ORDER BY key"):
             checksum.update(json.dumps(row, ensure_ascii=False, separators=(",", ":")).encode())
         for table in TABLES:
+            if table == "operations":
+                continue  # Delivery receipts do not change frozen research data.
             checksum.update(table.encode())
             for row in db.execute(f"SELECT id,data FROM {table} ORDER BY id"):
                 checksum.update(json.dumps(row, ensure_ascii=False, separators=(",", ":")).encode())
@@ -276,8 +298,13 @@ def verify_bundle(bundle):
     if not isinstance(manifest, dict) or manifest.get("version") != VERSION:
         raise ValueError("Invalid cluster bundle manifest")
     binding = manifest.get("binding")
-    if digest(binding) != manifest.get("binding_sha256") or ident("cluster_review", binding) != manifest.get("cluster_review_id"):
+    if not isinstance(binding, dict) or digest(binding) != manifest.get("binding_sha256") or ident("cluster_review", binding) != manifest.get("cluster_review_id"):
         raise ValueError("Cluster review integrity check failed")
+    if (not isinstance(binding.get("configuration_sha256"), str)
+            or not HASH.fullmatch(binding["configuration_sha256"])
+            or type(binding.get("dispatch_journal_max_records")) is not int
+            or not 1 <= binding["dispatch_journal_max_records"] <= 100000):
+        raise ValueError("Cluster bundle requires the supported durable dispatch-accounting version; prepare a fresh review")
     if not isinstance(binding.get("files"), dict) or not 1 <= len(binding["files"]) <= 2000:
         raise ValueError("Cluster bundle inventory is invalid")
     for relative, expected in binding["files"].items():
@@ -426,6 +453,8 @@ class ClusterController:
         return True
 
     def configure(self, profile):
+        if self.project.store.read_setting("quota_configuration"):
+            raise ValueError("Same-host provider quotas cannot be migrated to GT workers; use a separately reviewed institutional gateway/account allocation")
         profile = normalize_profile(profile, project=self.project)
         previous_root = self.root
         target_root = Path(profile["durable_root"]) / ("quarry-" + ident("study", str(self.project.path)))
@@ -457,6 +486,8 @@ class ClusterController:
 
     def prepare(self, review_id):
         with metadata_lock(self.root), self.project._lock():
+            if self.project.store.read_setting("quota_configuration"):
+                raise ValueError("Frozen same-host provider quota configuration is unsupported on GT workers")
             review, _ = _check_review_unlocked(self.project, review_id)
             _approval_unlocked(self.project, review)
             profile = normalize_profile(read_json(self.root / "profile.json"), project=self.project)
@@ -487,7 +518,9 @@ class ClusterController:
             binding = {"version": VERSION, "collection_review_id": review_id, "collection_binding": review["binding"],
                 "profile": profile, "origin_fingerprint": fingerprint, "files": files,
                 "scope": "one_node_reviewed_server_or_existing_endpoint_no_remote_transfer", "budget_accounting": "worst_case_allocation_reservations",
-                "collector_package": package_fingerprint()}
+                "collector_package": package_fingerprint(),
+                "configuration_sha256": digest({"recipe": self.project.recipe, "model_profile": self.project.profile}),
+                "dispatch_journal_max_records": min(100000, self.project.recipe["execution"]["max_calls"])}
             credential_names = tuple(sorted({p["credential_env"] for p in self.project.profile["providers"].values() if p["credential_env"]}))
             template = make_script(profile, directory, "cluster_job_" + "0" * 32, credential_names=credential_names)
             binding.update(script_template=template, script_template_sha256=digest(template))
@@ -549,6 +582,10 @@ class ClusterController:
             checkpoint = (parent.get("checkpoint") or parent.get("resume_checkpoint")) if parent else None
             if checkpoint:
                 self._verify_checkpoint(checkpoint, Path(review["bundle"]))
+            # Reconciliation availability is required before another allocation
+            # is reserved. Old unresolved request intents must not disappear
+            # when the last node-local database was lost.
+            dispatch_journal(manifest, review["bundle"], create=not state["jobs"]).check()
             job_id = "cluster_job_" + uuid.uuid4().hex
             job = {"job_id": job_id, "cluster_review_id": cluster_review_id, "scheduler_job_id": None,
                 "state": "submitting", "submitted_at": now(), "reserved_gpu_hours": reservation,
@@ -556,7 +593,8 @@ class ClusterController:
                     "binding_sha256": manifest["binding_sha256"], "identity_note": "Declared relay; not authenticated human identity"},
                 "allow_paid": allow_paid, "resume_checkpoint": checkpoint,
                 "previous_job_id": parent["job_id"] if parent else None, "checkpoint": None,
-                "result": None, "cancel_requested": False}
+                "result": None, "cancel_requested": False,
+                "execution_generation": "execution_" + uuid.uuid4().hex}
             path = Path(review["bundle"]) / (job_id + ".sbatch")
             credential_names = tuple(sorted({p["credential_env"] for p in self.project.profile["providers"].values() if p["credential_env"]}))
             script = make_script(profile, review["bundle"], job_id, credential_names=credential_names)
@@ -611,6 +649,30 @@ class ClusterController:
             raise ValueError("Refresh must be an explicit boolean")
         if refresh and scheduler is None:
             scheduler = SlurmScheduler()
+        if scheduler is not None:
+            snapshot = self.status(job_id)
+            selected = snapshot.get("job")
+            if selected and selected.get("scheduler_job_id") and allocation_unresolved(selected):
+                try:
+                    observed = scheduler.status(selected["scheduler_job_id"]).get("state", "unknown")
+                except Exception:
+                    observed = "unknown"
+                observed = observed if observed in ACTIVE | TERMINAL else "unknown"
+                # Slow scheduler queries never hold the durable lock needed by
+                # the worker to checkpoint/cancel. Merge only the same claim.
+                with metadata_lock(self.root):
+                    state = self._state()
+                    current = self._job(state, selected["job_id"])
+                    if current.get("scheduler_job_id") == selected["scheduler_job_id"] and allocation_unresolved(current):
+                        current["scheduler_state"] = observed
+                        if observed in TERMINAL:
+                            current["scheduler_terminal_confirmed_at"] = now()
+                            if current["state"] in ACTIVE:
+                                current["state"] = observed
+                        elif current["state"] in ACTIVE and current["state"] != "cancel_requested":
+                            current["state"] = observed if observed in ACTIVE else "unknown"
+                        write_json(self.root / "state.json", state)
+            return self.status(job_id)
         with metadata_lock(self.root):
             state = self._state()
             profile = read_json(self.root / "profile.json")
@@ -629,22 +691,8 @@ class ClusterController:
             if not state["jobs"]:
                 return {**budget, "review": state.get("review"), "jobs": []}
             job = self._job(state, job_id)
-            if scheduler is not None and job["scheduler_job_id"] and job["state"] in ACTIVE:
-                try:
-                    observed = scheduler.status(job["scheduler_job_id"]).get("state", "unknown")
-                except Exception:
-                    observed = "unknown"
-                job["scheduler_state"] = observed if observed in ACTIVE | TERMINAL else "unknown"
-                if observed in TERMINAL:
-                    job["state"] = observed
-                elif job["state"] != "cancel_requested":
-                    job["state"] = observed if observed in ACTIVE else "unknown"
-                write_json(self.root / "state.json", state)
-                if not any(allocation_unresolved(j) for j in state["jobs"]):
-                    budget["blocked_reason"] = "cluster_resource_budget_exhausted" if profile and (
-                        submissions_remaining == 0 or remaining + 1e-9 < profile["gpus"] * profile["walltime_seconds"] / 3600) else None
             return {**budget, "job": deepcopy(job), "review": deepcopy(state.get("review")), "jobs": deepcopy(state["jobs"]),
-                "accounting_note": "Full allocation reservations retained conservatively; worker GPU-hours include owned server startup but exclude scheduler wait, cleanup and external server allocations, and are a lower bound"}
+                "accounting_note": "Full allocation reservations retained conservatively; worker GPU-hours include measured startup and cleanup but exclude scheduler wait and external server allocations, and are a lower bound"}
 
     def cancel(self, job_id=None, *, scheduler=None):
         with metadata_lock(self.root):
@@ -652,16 +700,23 @@ class ClusterController:
             job = self._job(state, job_id)
             if job["state"] in TERMINAL:
                 return deepcopy(job)
+            if job.get("cancel_dispatch") == "accepted":
+                return deepcopy(job)
             job.update(cancel_requested=True, state="cancel_requested")
             write_json(self.root / "state.json", state)
-            if job["scheduler_job_id"]:
-                try:
-                    (scheduler or SlurmScheduler()).cancel(job["scheduler_job_id"])
-                    job["cancel_dispatch"] = "accepted"
-                except Exception:
-                    job["cancel_dispatch"] = "uncertain"
-            else:
-                job["cancel_dispatch"] = "no_scheduler_identifier_reconcile_submission"
+            identifier, selected_job = job["scheduler_job_id"], job["job_id"]
+        if identifier:
+            try:
+                (scheduler or SlurmScheduler()).cancel(identifier)
+                dispatch = "accepted"
+            except Exception:
+                dispatch = "uncertain"
+        else:
+            dispatch = "no_scheduler_identifier_reconcile_submission"
+        with metadata_lock(self.root):
+            state = self._state()
+            job = self._job(state, selected_job)
+            job["cancel_dispatch"] = dispatch
             write_json(self.root / "state.json", state)
             return deepcopy(job)
 
@@ -717,11 +772,12 @@ class ClusterController:
             job = self._job(state, job_id)
             if job.get("imported_at"):
                 return {"imported": True, "job_id": job["job_id"], "already_imported": True}
-            if job["state"] in ACTIVE or not job.get("checkpoint"):
+            if allocation_unresolved(job) or not job.get("checkpoint"):
                 raise ValueError("A stopped allocation with a verified checkpoint is required")
             review = state["review"]
             bundle = Path(review["bundle"])
             verify_bundle(bundle)
+            journal = dispatch_journal(verify_bundle(bundle), bundle)
             backup = self._verify_checkpoint(job["checkpoint"], bundle)
             current_fingerprint = project_fingerprint(self.project)
             receipt = self.project.store.read_setting("cluster_import_receipt") or {}
@@ -740,12 +796,13 @@ class ClusterController:
                 if source.execute("PRAGMA quick_check").fetchone()[0] != "ok":
                     raise ValueError("Checkpoint database integrity failed")
                 with self.project.store.connection() as target:
-                    for table in ("settings", *TABLES, "run_jobs"):
+                    for table in ("settings", *(table for table in TABLES if table != "operations"), "run_jobs"):
                         target.execute(f"DELETE FROM {table}")
                         columns = 2 if table != "run_jobs" else 3
                         cursor = source.execute(f"SELECT * FROM {table}")
                         while rows := cursor.fetchmany(64):
                             target.executemany(f"INSERT INTO {table} VALUES ({','.join('?' for _ in range(columns))})", rows)
+                    journal.reconcile(self.project.store)
                     self.project.store.setting("cluster_accounting", {"version": VERSION,
                         "jobs": deepcopy(state["jobs"]), "reserved_gpu_hours": sum(j["reserved_gpu_hours"] for j in state["jobs"] if j["state"] != "absent"),
                         "max_gpu_hours": review["max_gpu_hours"], "allocation_cost_usd": None,

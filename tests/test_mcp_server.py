@@ -2,6 +2,7 @@
 from copy import deepcopy
 import io
 import json
+import os
 from pathlib import Path
 import select
 import subprocess
@@ -12,6 +13,7 @@ import time
 import unittest
 from unittest.mock import patch
 
+from ci_support import child_environment
 from termfinder import Project, FakeProvider, Response
 from termfinder import mcp_server
 from termfinder.mcp_server import MCPServer, decode_json, write_skill
@@ -576,12 +578,15 @@ class MCPTests(unittest.TestCase):
 
 
 class MCPSubprocessTests(unittest.TestCase):
+    def environment(self, base):
+        return child_environment(pythonpath=ROOT / "src", tmpdir=base)
+
     def test_actual_stdio_subprocess_negotiates_lists_tools_and_prepares_without_credentials(self):
         with tempfile.TemporaryDirectory() as folder:
             base = Path(folder)
             child = subprocess.Popen([sys.executable, "-m", "termfinder.mcp_server", "--project", str(base / "project")],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                env={"PATH": "/usr/bin:/bin", "PYTHONPATH": str(ROOT / "src"), "TMPDIR": str(base)}, cwd=base)
+                env=self.environment(base), cwd=base)
             try:
                 def request(payload):
                     child.stdin.write((json.dumps(payload) + "\n").encode())
@@ -620,7 +625,7 @@ class MCPSubprocessTests(unittest.TestCase):
             base = Path(folder)
             child = subprocess.Popen([sys.executable, "-m", "termfinder.mcp_server", "--workspace", str(base)],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                env={"PATH": "/usr/bin:/bin", "PYTHONPATH": str(ROOT / "src"), "TMPDIR": str(base)}, cwd=base)
+                env=self.environment(base), cwd=base)
             try:
                 def request(payload):
                     child.stdin.write((json.dumps(payload) + "\n").encode())

@@ -5,7 +5,7 @@
 **Turn a research idea into source-traceable data through your own agent.**
 Collect terms and senses—or source spans expressing ideas, opinions and sentences.
 
-[Quick start](#quick-start) · [Examples](#examples) · [Your models](docs/COMPUTE.md) · [GT compute](docs/GT_COMPUTE.md) · [Docs](#documentation)
+[Quick start](#quick-start) · [Examples](#examples) · [Your models](docs/guides/compute.md) · [GT compute](docs/guides/gt-compute.md) · [Docs](docs/README.md)
 
 <picture>
   <source media="(max-width: 760px)" srcset="assets/workflow-mobile.svg">
@@ -23,7 +23,7 @@ Quarry to this agent in my research workspace. Preserve existing settings.
 Start with the offline connection and confirm a list_studies tool call.
 ```
 
-Python 3.11–3.13 · macOS/Linux · GitHub access required for this private repo.
+Python 3.11–3.13 · macOS/Linux · [Patched SQLite required](docs/reliability/compatibility.md).
 
 ## Installation on macOS or Linux
 
@@ -33,8 +33,8 @@ Python 3.11–3.13 · macOS/Linux · GitHub access required for this private rep
 ```sh
 gh repo clone BobbY-24/quarry
 cd quarry
-python3.13 -m venv .venv-6.6
-. .venv-6.6/bin/activate
+python3.13 -m venv .venv
+. .venv/bin/activate
 python -m pip install -r requirements-build.txt
 python -m pip install --no-build-isolation .
 mkdir -p research-workspace
@@ -53,14 +53,14 @@ termfinder connect --host codex --workspace "$PWD/research-workspace"
 ```
 
 Open your agent in `research-workspace`, follow its trust/reload steps, then
-call `list_studies`. [Connection help and upgrades →](docs/AGENT_NATIVE.md)
+call `list_studies`. [Connection help and upgrades →](docs/guides/agent-setup.md)
 
 </details>
 
 The default connection is a synthetic offline rehearsal. Real extraction uses
 **your API, local model or approved GT compute**, with configured models and an
 authorized `--allow-paid` connection. Keep keys in the runtime environment.
-[Configure compute →](docs/COMPUTE.md)
+[Configure compute →](docs/guides/compute.md)
 
 ## Examples
 
@@ -91,7 +91,7 @@ Keep established terminology, page locations and exact contexts.
 Use our reviewed GT profile; show sources, costs and resources before submission.
 ```
 
-[NLPx research examples and student walkthroughs →](docs/NLPX_STUDENT_GUIDE.md)
+[NLPx research examples and student walkthroughs →](docs/guides/nlpx-students.md)
 
 ## Keep working in the same conversation
 
@@ -103,13 +103,24 @@ Save pilot-v1 and export CSV, JSONL, Parquet and annotation files.
 ```
 
 Every record retains source evidence. Model-proposed meanings remain suggestions;
-measure recall against complete held-out sources. [Research protocol →](docs/PUBLICATION_PROTOCOL.md)
+measure recall against complete held-out sources. [Research protocol →](docs/research/publication-protocol.md)
 
 ## Documentation
 
-[Agent setup](docs/AGENT_NATIVE.md) · [Recipes](docs/RECIPES.md) · [Sources](docs/SOURCES.md) · [GT procedure](docs/GT_COMPUTE.md)
+[Agent setup](docs/guides/agent-setup.md) · [Recipes](docs/guides/recipes.md) · [Sources](docs/guides/sources.md) · [GT procedure](docs/guides/gt-compute.md)
 
-[Notebook](examples/simple_student_workflow.ipynb) · [CLI/Python](docs/ENGINE_GUIDE.md) · [More diagrams](docs/QUARRY_DIAGRAMS.md) · [Evaluation](docs/EVALUATION.md) · [Limitations](docs/PILOT.md)
+[Notebook](examples/simple_student_workflow.ipynb) · [CLI/Python](docs/reference/cli-python.md) · [More diagrams](docs/reference/diagrams.md) · [Evaluation](docs/research/evaluation.md) · [Limitations](docs/research/pilot.md)
+
+[All documentation](docs/README.md) · [Reproduce](docs/development/reproduce.md) · [Contribute](CONTRIBUTING.md)
+
+```text
+src/       collector, interfaces, recipes and packaged resources
+tests/     offline regressions and immutable compatibility fixtures
+examples/  working notebooks, study recipes and compute templates
+docs/      user guides, research protocol and reliability contracts
+tools/     bounded reproduction and maintenance scripts
+assets/    project artwork
+```
 
 Workflow inspired by [Paper2Agent](https://github.com/jmiao24/Paper2Agent).
-Quarry V6.6 · [MIT license](LICENSE).
+[Recovery and reliability](docs/reliability/recovery.md) · [MIT license](LICENSE).
