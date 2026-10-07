@@ -1,0 +1,104 @@
+name: Offline reliability
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: offline-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+        python: ['3.11', '3.12', '3.13']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Linux isolation prerequisite
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y bubblewrap
+      - name: Acquire pinned binary dependencies separately
+        shell: bash
+        run: |
+          set -euo pipefail
+          TASK_PYTHON="$(command -v python)"
+          TASK_BASE_ROOT="$("$TASK_PYTHON" -I -S -c 'import sys; print(sys.prefix)')"
+          echo "QUARRY_CI_PYTHON=$TASK_PYTHON" >> "$GITHUB_ENV"
+          echo "QUARRY_CI_BASE_ROOT=$TASK_BASE_ROOT" >> "$GITHUB_ENV"
+          mkdir -p .ci/wheels verification/ci
+          env -i PATH=/usr/bin:/bin "$TASK_PYTHON" -I -m pip --isolated download \
+            --disable-pip-version-check --no-cache-dir --only-binary=:all: --no-deps \
+            --index-url https://pypi.org/simple --dest .ci/wheels \
+            --requirement requirements.txt --requirement requirements-build.txt
+          env -i PATH=/usr/bin:/bin "$TASK_PYTHON" -I -m venv .ci/build-runtime
+          env -i PATH=/usr/bin:/bin "$TASK_PYTHON" -I -m venv .ci/install-runtime
+      - name: Install dependencies offline inside isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          for runtime in build-runtime install-runtime; do
+            env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
+              --python "$PWD/.ci/$runtime/bin/python" --runtime-root "$PWD/.ci/$runtime" \
+              --base-runtime-root "$QUARRY_CI_BASE_ROOT" --report "verification/ci/dependencies-$runtime.json" \
+              --timeout 120 -- -m pip --isolated install --no-index --no-deps --no-cache-dir \
+              --find-links .ci/wheels --requirement requirements.txt --requirement requirements-build.txt
+          done
+      - name: Offline source tests and fault regressions
+        shell: bash
+        run: |
+          env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
+            --python "$PWD/.ci/build-runtime/bin/python" --runtime-root "$PWD/.ci/build-runtime" \
+            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --source --report verification/ci/unit.json \
+            --timeout 600 -- -m unittest discover -s tests -q
+      - name: Offline wheel build and fresh install
+        shell: bash
+        run: |
+          set -euo pipefail
+          env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
+            --python "$PWD/.ci/build-runtime/bin/python" --runtime-root "$PWD/.ci/build-runtime" \
+            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --report verification/ci/build.json \
+            --timeout 120 -- -m pip --isolated wheel --no-index --no-deps --no-build-isolation --wheel-dir .ci/dist .
+          env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
+            --python "$PWD/.ci/install-runtime/bin/python" --runtime-root "$PWD/.ci/install-runtime" \
+            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --report verification/ci/install.json \
+            --timeout 120 -- -m pip --isolated install --no-index --no-deps --find-links .ci/dist nlpx-termfinder
+          env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
+            --python "$PWD/.ci/install-runtime/bin/python" --runtime-root "$PWD/.ci/install-runtime" \
+            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --report verification/ci/smoke-isolation.json \
+            --timeout 180 -- tools/ci_smoke.py --report verification/ci/installed-smoke.json \
+            --wheelhouse .ci/wheels --dist .ci/dist
+      - name: Larger bounded offline reliability rehearsal
+        if: github.event_name == 'workflow_dispatch' && matrix.os == 'ubuntu-24.04' && matrix.python == '3.12'
+        shell: bash
+        run: |
+          env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
+            --python "$PWD/.ci/install-runtime/bin/python" --runtime-root "$PWD/.ci/install-runtime" \
+            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --report verification/ci/load-isolation.json \
+            --timeout 900 --cpu-seconds 900 -- tools/reliability_load.py \
+            --sources 1000 --report verification/ci/load.json
+      - name: Preserve receipts and built wheel
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: offline-${{ matrix.os }}-python-${{ matrix.python }}
+          path: |
+            verification/ci/*.json
+            .ci/dist/*.whl
+          retention-days: 14
+          if-no-files-found: warn

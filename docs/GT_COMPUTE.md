@@ -359,6 +359,44 @@ counts and hashes for progress; inspect sensitive contexts only through an
 approved local view or a separately authorized external-agent request. An
 institutional backend setting is not an automatic privacy guarantee.
 
+## Recover after a node or controller failure
+
+The worker's private SQLite state stays on node-local storage. Periodic online
+backups become durable after file/directory `fsync` and atomic receipt
+publication. A separate metadata-only dispatch journal is durable before each
+provider call and restores attempt identities, known usage or uncertainty,
+monetary reservations and cumulative request-time reservations after a lost
+node. It cannot reconstruct raw replies or evidence newer than the last
+published checkpoint. Those jobs stay explicitly unresolved. A failed final
+checkpoint preserves the private local workspace for operator recovery while
+the original node storage survives. See the failure-boundary table and finite
+retention limits in [Recovery](RECOVERY.md).
+
+Each allocation has a distinct execution generation and one durable worker
+claim. The fixed script still uses `--no-requeue`; the worker rejects a changed
+Slurm identity or nonzero restart count. A published result remains fenced
+until worker cleanup completes or the scheduler is explicitly observed terminal.
+An unavailable/unknown scheduler query never proves absence and never authorizes
+a replacement allocation. Slow scheduler queries and cancellation calls do not
+hold the checkpoint metadata lock. Reported GPU-hours include measured startup
+and cleanup while full allocation reservations remain conservative.
+
+Use `cluster-status`, reconcile unknown submission outcomes against actual Slurm
+history, and resume only with another explicit resource decision. Worker
+reconciliation and import preserve earlier attempt records. If a missing
+response is uncertain and the frozen recipe does not permit bounded uncertain
+retries, the safe result is a partial collection. Resource approval alone does
+not authorize duplicate provider billing or invent lost evidence. Same-host
+quota registries do not coordinate separate GT nodes; an institutional gateway
+must enforce a shared multi-host account limit.
+
+Cluster configuration/preparation rejects a frozen same-host
+`quota_configuration`, and the worker checks again before extraction. Reusing a
+control-host registry path on another node would not enforce the same account
+limit. Configure the institutional gateway or account allocation separately and
+review a study whose compute controls match that deployment; Quarry does not
+silently delete or migrate a quota setting.
+
 ## First authorized GT pilot
 
 The software build and synthetic tests do not submit any GT jobs. A live pilot

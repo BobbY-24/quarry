@@ -357,11 +357,11 @@ class ContractTests(unittest.TestCase):
         self.assertAlmostEqual(token_cost(profile["models"]["glm"],1000000,1000000),0.65)
 
     def test_transport_wall_timeout_and_single_service_environment(self):
-        import subprocess
+        from termfinder.process_transport import TransportFailure
         profile=load_profile("glm-deepseek")
         request={"expert":{"model":"glm"},"timeout_seconds":1,"prompt":"fixture prompt","max_output_tokens":128}
         with patch.dict("os.environ",{"FIREWORKS_API_KEY":"synthetic-service-key","UNRELATED_SECRET":"do-not-inherit"}), \
-             patch("termfinder.providers.subprocess.run",side_effect=subprocess.TimeoutExpired("worker",1)) as run:
+             patch("termfinder.providers.bounded_exchange",side_effect=TransportFailure("request_wall_timeout_outcome_unknown",started=True,retryable=True)) as run:
             with self.assertRaises(ProviderError) as error:HTTPProvider(profile).complete(request)
             self.assertTrue(error.exception.uncertain)
             env=run.call_args.kwargs["env"]
@@ -370,17 +370,17 @@ class ContractTests(unittest.TestCase):
 
     def test_transport_receives_window_only_not_complete_source(self):
         from dataclasses import asdict
-        from subprocess import CompletedProcess
+        from termfinder.process_transport import TransportResult
         profile=load_profile("glm-deepseek")
         request={"expert":{"model":"glm"},"timeout_seconds":1,"prompt":"多语言 fixture window", "max_output_tokens":128,
                  "source":{"text":"大"*21_000_000}}
         with patch.dict("os.environ",{"FIREWORKS_API_KEY":"synthetic-service-key"}), \
-             patch("termfinder.providers.subprocess.run",return_value=CompletedProcess([],0,json.dumps({"response":asdict(response([]))}).encode())) as run:
+             patch("termfinder.providers.bounded_exchange",return_value=TransportResult(json.dumps({"response":asdict(response([]))}).encode(),0)) as run:
             HTTPProvider(profile).complete(request)
-            data=json.loads(run.call_args.kwargs["input"])
+            data=json.loads(run.call_args.args[1])
             self.assertEqual(data["request"]["prompt"],request["prompt"])
             self.assertNotIn("source",data["request"])
-            self.assertLess(len(run.call_args.kwargs["input"]),10000)
+            self.assertLess(len(run.call_args.args[1]),10000)
 
 
 

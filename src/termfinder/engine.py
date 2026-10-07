@@ -7,6 +7,9 @@ from collections import OrderedDict
 import time
 import uuid
 import shutil
+import sqlite3
+import sys
+import threading
 
 from .config import experts, STAGES
 from .costs import reserve_cost, token_cost, window_ranges
@@ -18,6 +21,26 @@ from .store import digest, ident, now
 from .resilience import retry_delay, cluster_execution
 from .runtime import PromptTokenizer, runtime_manifest, validate_runtime
 from .token_windows import token_admission, planned_windows
+
+PROCESSING_VERSION = "grounding-2"
+EXECUTION_VERSION = "recovery-2"
+MAX_PLANNED_JOBS = 100000
+SHUTDOWN_GRACE_SECONDS = 30
+QUEUE_WAIT_SECONDS = 5
+QUOTA_RECEIPT_VERSION = "quota-receipt-1"
+
+
+class IndexedJobs:
+    def __init__(self,store,run_id):self.store,self.run_id=store,run_id
+    def __contains__(self,key):return self.store.run_contains(self.run_id,key)
+    def update(self,keys):self.store.register_jobs(self.run_id,keys)
+
+
+class IndexedRoots:
+    def __init__(self,store,run_id):self.store,self.run_id=store,run_id
+    def __len__(self):return self.store.run_root_count(self.run_id)
+    def __iter__(self):
+        for job in self.store.iter_run_jobs(self.run_id,root=True):yield job["job_id"]
 
 
 def policy_hash(recipe):
@@ -126,6 +149,26 @@ class Engine:
             for alias,model in self.profile["models"].items()}
         self.health = self.store.read_setting("model_circuits") or {}
         self.ledger = None
+        self.journal = getattr(project,"_dispatch_journal",None)
+        self.quota = getattr(project,"_quota_coordinator",None)
+        self.quota_leases = {}
+        self.quota_waiters = set()
+        self.quota_wait_jobs={}
+        self.queue_wait_deadline=None
+        self.cancel_event = threading.Event()
+        self.storage_failed = False
+
+    def incident(self, category, *, job=None, attempt=None):
+        # Fixed categories and identifiers only; never exception text/payloads.
+        row={"incident_id":"incident_"+uuid.uuid4().hex,"run_id":self.run_id,
+             "category":category,"scope":"local","created_at":now(),
+             "job_id":job.get("job_id") if job else None,
+             "attempt_id":attempt.get("attempt_id") if attempt else None,
+             "status":"unresolved","recovery_action":"inspect_and_resume_cached_work"}
+        try:self.store.put("incidents",row["incident_id"],row)
+        except (OSError,sqlite3.Error,RuntimeError):
+            self.storage_failed=True
+            print("Quarry incident not saved; inspect last durable attempts after storage or diagnostic-capacity recovery.",file=sys.stderr)
 
     def job(self, source, expert, start, end, *, depth=0, parent=None):
         model = self.profile["models"][expert["model"]]
@@ -153,6 +196,10 @@ class Engine:
             if existing.get("model_key") != self.model_keys[expert["model"]]:
                 existing["model_key"] = self.model_keys[expert["model"]]
                 self.store.put("jobs", key, existing)
+            cache=self.store.get("cache",key)
+            if existing.get("processing_version","grounding-1")!=PROCESSING_VERSION and cache and existing["status"] in {"done","partial","split"}:
+                existing.update(status="pending",reason="cached_response_processing_upgrade",processing_version=PROCESSING_VERSION)
+                self.store.put("jobs",key,existing)
             return existing
         record = {"job_id": key, "source_id": source["source_id"], "expert": expert,
             "record_type": self.recipe.get("data_type", "term"),
@@ -161,6 +208,7 @@ class Engine:
             "reason": "not_dispatched", "attempts": 0, "created_at": now(), "run_id": None,
             "prompt_sha256": digest(prompt), "coverage_complete": False, "max_output_tokens": output,
             "transport_identity": self.provider_identity, "model_key":self.model_keys[expert["model"]]}
+        record["processing_version"]=PROCESSING_VERSION
         if admission is not None:
             record["token_admission"] = admission
         record["runtime"] = runtime_manifest(model)
@@ -172,10 +220,12 @@ class Engine:
         self.store.put("jobs", key, record)
         return record
 
-    def prepare(self):
+    def prepare(self, *, streaming=False):
         if not hasattr(self, "deadline"):
             self.deadline = self.clock.monotonic() + self.execution["deadline_seconds"]
-        root_ids = []
+        self.store.prune_run_index(self.run_id)
+        roots=IndexedRoots(self.store,self.run_id)
+        root_count=0
         self.planning_complete = True
         for source in self.source_map.values():
             if self.project.source_exclusion(source) is not None:
@@ -194,7 +244,7 @@ class Engine:
                     if self.store.read_setting("cancel_requested") or self.clock.monotonic() >= self.deadline:
                         self.planning_complete = False
                         break
-                    if self.resilience and len(root_ids) >= self.execution["max_calls"]:
+                    if root_count >= min(MAX_PLANNED_JOBS,self.execution["max_calls"] if self.resilience else MAX_PLANNED_JOBS):
                         self.planning_complete = False
                         break
                     record = self.job(source, expert, start, end)
@@ -202,25 +252,40 @@ class Engine:
                         record.update(status="partial", reason=admission["blocked_reason"], coverage_complete=False)
                         self.store.put("jobs", record["job_id"], record)
                         self.audit(record, record["reason"])
-                    root_ids.append(record["job_id"])
+                    self.store.register_jobs(self.run_id,[record["job_id"]],root=True)
+                    root_count+=1
                 if not self.planning_complete:
                     break
             if not self.planning_complete: break
             if self.store.read_setting("cancel_requested"):
                 self.planning_complete = False
                 break
-        ids = set(root_ids)
-        stack = list(ids)
-        while stack:
-            record = self.store.get("jobs", stack.pop())
-            for child in record.get("children", []):
-                if child not in ids:
-                    ids.add(child)
-                    stack.append(child)
-        self.current_jobs = ids
-        self.store.prune_run_index(self.run_id)
-        self.store.register_jobs(self.run_id, root_ids, root=True)
-        self.store.register_jobs(self.run_id, ids.difference(root_ids))
+        self.current_jobs=IndexedJobs(self.store,self.run_id)
+        def descendants(record):
+            for key in record.get("children",[]):
+                child=self.store.get("jobs",key)
+                if child is None:raise ValueError("missing persisted recovery child")
+                self.store.register_jobs(self.run_id,[key])
+                descendants(child)
+        for record in self.store.iter_run_jobs(self.run_id,root=True):descendants(record)
+        if self.journal:
+            def restore_job(descriptor):
+                source=self.source_map[descriptor["source_id"]]
+                expert=self.expert_map[descriptor["expert_id"]]
+                result=self.job(source,expert,descriptor["start"],descriptor["end"],
+                    depth=descriptor.get("depth",0),parent=descriptor.get("parent"))
+                if result["job_id"]!=descriptor["job_id"]:raise ValueError("journal job configuration mismatch")
+                self.store.register_jobs(self.run_id,[result["job_id"]],root=not result.get("parent"))
+                if result.get("parent"):
+                    parent=self.store.get("jobs",result["parent"])
+                    if not parent or parent["source_id"]!=result["source_id"] or parent["expert"]!=result["expert"] or result["depth"]!=parent["depth"]+1 or not parent["start"]<=result["start"]<result["end"]<=parent["end"]:
+                        raise ValueError("journal recovery child differs from parent")
+                    parent.update(status="split",reason="reconstructed_durable_recovery_child",
+                        children=sorted(set(parent.get("children",[])+[result["job_id"]])),coverage_complete=False)
+                    self.store.put("jobs",parent["job_id"],parent)
+                return result
+            self.journal.reconcile(self.store,restore_job=restore_job)
+        self.reconcile_quota_receipts()
         # A process crash after dispatch cannot prove whether it was billed.
         for job in self.store.run_job_rows(self.run_id, status="running"):
             key = job["job_id"]
@@ -238,21 +303,35 @@ class Engine:
                         self.failure(job, attempt, ProviderError("interrupted_after_dispatch_outcome_unknown", uncertain=True, retryable=True))
                         continue
                 self.store.put("jobs", key, job)
+        for job in self.store.iter_run_jobs(self.run_id):
+            if job["status"]!="uncertain" or job.get("response_processed"):continue
+            cache=self.store.get("cache",job["job_id"])
+            if cache and cache.get("attempt_id")==job.get("attempt_id") and cache.get("usage_status")=="unknown":
+                job.update(status="pending",reason="replay_unknown_usage_receipt_grounding_only")
+                self.store.put("jobs",job["job_id"],job)
         for run in self.store.rows("runs", where="json_extract(data,'$.status')='running'"):
             if run["status"] == "running":
                 run.update(status="partial", stop_reason="process_interrupted", finished_at=now())
                 self.store.put("runs", run["run_id"], run)
-        return root_ids
+        if streaming:return roots
+        # Preserve the small trusted API's source/expert/window order. The
+        # production scheduler uses indexed iteration rather than this list.
+        expert_order={expert:index for index,expert in enumerate(self.expert_map)}
+        def root_order(key):
+            job=self.store.get("jobs",key)
+            return job["source_id"],expert_order[job["expert"]["id"]],job["start"],job["end"]
+        return sorted(roots,key=root_order)
 
     def _ledger(self):
         if self.ledger is None:
-            self.ledger = {"debit":0.0, "stages":{s:0.0 for s in STAGES}, "calls":0, "retries":0}
+            self.ledger = {"debit":0.0, "stages":{s:0.0 for s in STAGES}, "calls":0, "retries":0,"request_seconds":0.0}
             for row in self.store.iter_rows("costs", where="json_extract(data,'$.policy_hash')=? AND (json_extract(data,'$.budget_scope')=? OR json_extract(data,'$.stage')='discovery')", params=(self.policy,self.budget_scope)):
                 debit = row.get("settled_usd", row.get("reserved_usd",0))
                 self.ledger["debit"] += debit
                 self.ledger["stages"][row["stage"]] += debit
                 self.ledger["calls"] += row.get("request_count",0)
                 self.ledger["retries"] += int(row.get("is_retry",False))
+                self.ledger["request_seconds"]+=row.get("settled_seconds",row.get("reserved_seconds",0.0))
         return self.ledger
 
     def _adjust_reserve(self, attempt, settled):
@@ -260,6 +339,9 @@ class Engine:
         delta = settled - attempt["reserved_usd"]
         ledger["debit"] += delta
         ledger["stages"][attempt["stage"]] += delta
+
+    def _adjust_time(self,attempt,seconds):
+        self._ledger()["request_seconds"]+=seconds-attempt.get("reserved_seconds",0)
 
     def _state(self, alias):
         key = self.model_keys[alias]
@@ -283,12 +365,41 @@ class Engine:
             job.update(status="deferred", reason=reason)
             self.store.put("jobs",job["job_id"],job)
         self.audit(job, reason)
+        self._clear_quota_waiters(job["expert"]["model"])
+
+    def _clear_quota_waiters(self,alias,except_job=None):
+        if not self.quota:return
+        for token,(model,job_id) in list(self.quota_wait_jobs.items()):
+            if model==alias and job_id!=except_job:
+                self.quota.cancel_waiter(token)
+                self.quota_waiters.discard(token)
+                self.quota_wait_jobs.pop(token,None)
 
     def _model_failure(self, job, error):
-        state = self._state(job["expert"]["model"])
+        scope=getattr(getattr(error,"failure_scope",None),"value",None)
+        if scope is None:
+            scope="request" if error.reason in {"http_400","http_413","http_422"} else "model"
         permitted = error.retryable and (not error.uncertain or self.resilience["automatic_uncertain_retries"])
+        if scope in {"request","source"}:
+            if permitted and job["attempts"]<=self.execution["max_retries"]:
+                hint=error.retry_after_seconds
+                if hint is not None and hint>self.resilience["max_retry_after_seconds"]:
+                    job.update(status="deferred",reason="request_retry_after_exceeds_policy")
+                else:
+                    delay=retry_delay(self.resilience,job["attempts"],retry_after=hint,random=self.random)
+                    job.update(status="pending",reason="scheduled_request_retry",not_before=self.clock.time()+delay,
+                               possible_duplicate_billing=error.uncertain)
+                self.store.put("jobs",job["job_id"],job)
+            return
+        state = self._state(job["expert"]["model"])
         if not permitted:
             self._disable(job, "model_disabled_nonretryable_" + error.reason)
+            if scope=="provider":
+                for alias,model in self.profile["models"].items():
+                    if model["provider"]==job["model"]["provider"]:
+                        self._state(alias).update(state="disabled",reason="provider_disabled_"+error.reason,retry_at=None)
+                        self._clear_quota_waiters(alias)
+                self._save_health()
             return
         if state["state"] == "disabled": return
         if state["state"] == "cooldown" and state["probe_job_id"] != job["job_id"]:
@@ -318,6 +429,7 @@ class Engine:
         self.store.put("jobs",job["job_id"],job)
         self._save_health()
         self.audit(job,"scheduled_model_retry")
+        self._clear_quota_waiters(job["expert"]["model"],except_job=job["job_id"])
 
     def _model_success(self, job, *, cached=False):
         if not self.resilience: return
@@ -328,6 +440,8 @@ class Engine:
         self._save_health()
 
     def admit(self, job):
+        if not getattr(self,"quota_reconciliation_complete",True):
+            return None,"quota_receipt_reconciliation_pending"
         admission = job.get("token_admission")
         if admission is not None and not admission["admitted"]:
             self.split(job, "context_capacity_split_recovery")
@@ -337,37 +451,175 @@ class Engine:
         ledger = self._ledger()
         if ledger["calls"] >= self.execution["max_calls"]:
             return None, "request_budget_exhausted"
+        remaining_seconds=self.execution["deadline_seconds"]-ledger["request_seconds"]
+        if remaining_seconds<1:return None,"cumulative_request_time_budget_exhausted"
+        reserved_seconds=min(self.execution["timeout_seconds"],int(remaining_seconds))
         if self.resilience and job["attempts"] and ledger["retries"] >= self.resilience["max_retry_calls"]:
             return None, "aggregate_retry_budget_exhausted"
         if ledger["debit"] + reserve > self.execution["budget_usd"] + 1e-12 or ledger["stages"][stage] + reserve > self.execution["stage_budgets"][stage] + 1e-12:
             return None, "spending_budget_reservation_exhausted"
-        aid = "attempt_" + uuid.uuid4().hex
+        aid = job.get("quota_attempt_token") if self.quota else None
+        aid = aid or "attempt_" + uuid.uuid4().hex
+        lease=None
+        if self.quota:
+            tokens=job.get("token_admission",{}).get("input_tokens")
+            if type(tokens) is not int or tokens<0:
+                tokens=token_admission(job["model"],self.request(job)["prompt"],job["max_output_tokens"],
+                    tokenizer=self.tokenizers.get(job["expert"]["model"]))["input_tokens"]
+            admission=self.quota.try_acquire(str(self.project.store.read_setting("study_id") or digest(str(self.project.path))[:24]),
+                job["job_id"],aid,tokens+job["max_output_tokens"],retry=job["attempts"]>0)
+            if admission.lease is None:
+                job.update(reason=admission.reason,capacity_wait_started=job.get("capacity_wait_started") or now(),
+                           quota_wait_seconds=admission.retry_after,quota_config_conflict=admission.config_conflict,
+                           quota_attempt_token=aid)
+                self.quota_waiters.add(aid)
+                self.quota_wait_jobs[aid]=(job["expert"]["model"],job["job_id"])
+                self.store.put("jobs",job["job_id"],job)
+                return None,"quota_"+admission.reason
+            lease=admission.lease
+            self.quota_leases[aid]=lease
+            self.quota_waiters.discard(aid)
+            self.quota_wait_jobs.pop(aid,None)
+            job.pop("quota_attempt_token",None)
         attempt = {"attempt_id": aid, "job_id": job["job_id"], "run_id": self.run_id,
             "stage": stage, "policy_hash": self.policy, "reserved_usd": reserve,
             "budget_scope": self.budget_scope,
             "status": "dispatched", "request_count": 1, "created_at": now(), "is_retry":job["attempts"] > 0,
             "billing_kind": "provider_reported_token_estimate" if getattr(self.provider, "paid", False) else "simulated",
             "invoice_usd": None, "invoice_usd_reason": "provider_invoice_not_available"}
+        attempt["reserved_seconds"]=reserved_seconds
+        attempt["time_accounting_version"]=2
+        job["attempt_timeout_seconds"]=reserved_seconds
+        if lease:attempt["quota_lease_id"]=lease.lease_id
+        self.queue_wait_deadline=None
         job.update(status="running", attempts=job["attempts"]+1, run_id=self.run_id,
-                   reason="request_dispatched", attempt_id=aid, cache_bypass_once=False)
-        with self.store.connection() as db:
-            self.store.put("costs", aid, attempt, db)
-            self.store.put("jobs", job["job_id"], job, db)
+                   reason="request_dispatched", attempt_id=aid, cache_bypass_once=False,
+                   response_processed=False)
+        try:
+            with self.store.connection() as db:
+                self.store.put("costs", aid, attempt, db)
+                self.store.put("jobs", job["job_id"], job, db)
+        except BaseException:
+            if lease:self.quota.release(lease,outcome="not_sent")
+            raise
         ledger["debit"] += reserve
         ledger["stages"][stage] += reserve
         ledger["calls"] += 1
         ledger["retries"] += int(attempt["is_retry"])
+        ledger["request_seconds"]+=reserved_seconds
         if self.resilience:
-            self._state(job["expert"]["model"])["last_started_at"] = self.clock.time()
-            self._save_health()
+            try:
+                self._state(job["expert"]["model"])["last_started_at"] = self.clock.time()
+                self._save_health()
+            except BaseException:
+                # The caller cannot submit until admission returns. A local
+                # health failure therefore proves this request was never sent.
+                try:
+                    self.not_sent(job,attempt,"dispatch_not_started")
+                finally:
+                    # Even unavailable local settlement storage must not strand
+                    # known uninvoked capacity under a still-live notebook owner.
+                    retained=self.quota_leases.pop(aid,None)
+                    if retained:self.quota.release(retained,outcome="not_sent")
+                raise
         return attempt, None
+
+    def _ack_quota_receipt(self,attempt):
+        attempt.update(quota_receipt_version=QUOTA_RECEIPT_VERSION,
+            quota_receipt_scope_id=self.quota.scope_id,
+            quota_receipt_lease_id=attempt["quota_lease_id"])
+        self.store.put("costs",attempt["attempt_id"],attempt)
+
+    def _settle_quota_receipt(self,lease,attempt):
+        outcome="uncertain" if attempt["status"]=="uncertain" else "not_sent" if attempt["status"]=="not_sent" else "settled"
+        tokens=(attempt.get("input_tokens",0)+attempt.get("output_tokens",0)) if outcome=="settled" else None
+        try:
+            self.quota.release(lease,outcome=outcome,actual_tokens=tokens)
+        except ValueError:
+            if outcome!="settled":raise
+            # A verified local terminal attempt proves this call ended. It may
+            # resolve a registry's uncertain state; worker death alone may not.
+            proof={k:attempt.get(k) for k in ("attempt_id","job_id","quota_lease_id",
+                "status","settled_usd","input_tokens","output_tokens","request_count")}
+            self.quota.resolve_uncertain(lease,
+                evidence="local-attempt:"+attempt["attempt_id"]+":"+digest(proof)[:24],
+                actual_tokens=tokens)
+
+    def reconcile_quota_receipts(self):
+        """Close only identity-bound, known local terminal quota outcomes.
+
+        Unknown execution or usage never supplies this proof. Acknowledgments
+        bound each closed lease so bounded resume passes make durable progress.
+        """
+        self.quota_reconciliation_complete=True
+        if not self.quota:return
+        study_id=str(self.project.store.read_setting("study_id") or digest(str(self.project.path))[:24])
+        where="""json_extract(data,'$.status') IN ('settled','rejected','not_sent')
+            AND json_type(data,'$.quota_lease_id')='text'
+            AND (coalesce(json_extract(data,'$.quota_receipt_version'),'')!=?
+                OR coalesce(json_extract(data,'$.quota_receipt_scope_id'),'')!=?
+                OR coalesce(json_extract(data,'$.quota_receipt_lease_id'),'')!=json_extract(data,'$.quota_lease_id'))"""
+        for index,attempt in enumerate(self.store.iter_rows("costs",where=where,
+                params=(QUOTA_RECEIPT_VERSION,self.quota.scope_id),batch_size=32)):
+            if (index>=MAX_PLANNED_JOBS or self.store.read_setting("cancel_requested")
+                    or self.clock.monotonic()>=self.deadline):
+                self.quota_reconciliation_complete=False
+                self.planning_complete=False
+                return
+            job=self.store.get("jobs",attempt.get("job_id"))
+            status=attempt["status"]
+            usage=(attempt.get("input_tokens"),attempt.get("output_tokens"))
+            if (not job or job.get("job_id")!=attempt.get("job_id")
+                    or not isinstance(attempt.get("attempt_id"),str)
+                    or status=="settled" and (any(type(n) is not int or n<0 for n in usage)
+                        or sum(usage)>100_000_000)
+                    or status in {"rejected","not_sent"} and attempt.get("settled_usd")!=0
+                    or status=="not_sent" and attempt.get("request_count")!=0):
+                raise ValueError("Known quota outcome lacks a compatible durable local attempt receipt")
+            lease=self.quota.lease(attempt["quota_lease_id"])
+            if lease:
+                if (lease.scope_id!=self.quota.scope_id or lease.study_id!=study_id
+                        or lease.job_id!=attempt["job_id"] or lease.attempt_token!=attempt["attempt_id"]):
+                    raise ValueError("Quota terminal receipt identity does not match this study and attempt")
+                self._settle_quota_receipt(lease,attempt)
+            # Only terminal registry history is pruned. A missing lease beside a
+            # compatible known local completion needs no new call or new lease.
+            self._ack_quota_receipt(attempt)
+
+    def _terminal(self,job,attempt):
+        try:
+            if self.journal:self.journal.terminal(job,attempt)
+        finally:
+            lease=self.quota_leases.get(attempt["attempt_id"])
+            if lease:
+                self._settle_quota_receipt(lease,attempt)
+                self.quota_leases.pop(attempt["attempt_id"],None)
+                if attempt["status"] in {"settled","rejected","not_sent"}:
+                    self._ack_quota_receipt(attempt)
+
+    def not_sent(self,job,attempt,reason,*,journal_intent=False):
+        attempt.update(status="not_sent",settled_usd=0,settled_seconds=0,request_count=0,reason=reason,finished_at=now())
+        job.update(status="pending",reason=reason,attempts=max(0,job["attempts"]-1))
+        with self.store.connection() as db:
+            self.store.put("costs",attempt["attempt_id"],attempt,db)
+            self.store.put("jobs",job["job_id"],job,db)
+        self._adjust_reserve(attempt,0)
+        self._adjust_time(attempt,0)
+        self.ledger["calls"]-=1
+        self.ledger["retries"]-=int(attempt["is_retry"])
+        if journal_intent:self._terminal(job,attempt)
+        else:
+            lease=self.quota_leases.pop(attempt["attempt_id"],None)
+            if lease:self.quota.release(lease,outcome="not_sent")
 
     def request(self, job):
         source = self.source_map[job["source_id"]]
         text = source["text"][job["start"]:job["end"]]
-        return {"job_id": job["job_id"], "prompt": build_prompt(self.recipe, job["expert"], text, source),
+        return {"job_id": job["job_id"], "attempt_id":job.get("attempt_id"),"attempt_number":job["attempts"],
+                "logical_request_id":ident("logical",{"source_id":job["source_id"],"prompt_sha256":job["prompt_sha256"],"expert":job["expert"],"model":job["model"],"start":job["start"],"end":job["end"],"max_output_tokens":job["max_output_tokens"]}),
+                "prompt": build_prompt(self.recipe, job["expert"], text, source),
                 "text": text, "start": job["start"], "source": source, "expert": job["expert"],
-                "max_output_tokens": job["max_output_tokens"], "timeout_seconds": self.execution["timeout_seconds"],
+                "max_output_tokens": job["max_output_tokens"], "timeout_seconds": min(job.get("attempt_timeout_seconds",self.execution["timeout_seconds"]),max(1,int(getattr(self,"deadline",self.clock.monotonic()+self.execution["timeout_seconds"])-self.clock.monotonic()))),
                 "recipe": self.recipe}
 
     def audit(self, job, reason, proposal=None):
@@ -409,6 +661,7 @@ class Engine:
             "configured_model_version": job["model"]["version"], "reported_model_version": response.model_version,
             "reported_model_version_reason": None if response.model_version else "not_reported_by_provider",
             "prompt_version": VERSION, "prompt_sha256": job["prompt_sha256"], "recipe_sha256": self.policy,
+            "processing_version":PROCESSING_VERSION,
             "request_id": response.request_id, "cached": cached, "created_at": now(),
             "transport_identity": self.provider_identity,
             "runtime": job.get("runtime", runtime_manifest(job["model"])),
@@ -419,19 +672,36 @@ class Engine:
                 "origin": "quarry_transport_configuration"}),
             "token_admission": job.get("token_admission"),
             "token_admission_reason": None if job.get("token_admission") else "legacy_profile_without_total_context_capacity"}
-        for proposal in candidates:
+        response_hash=digest(response.text)
+        cursor=job.get("candidate_cursor",0) if job.get("candidate_processing_version")==PROCESSING_VERSION and job.get("candidate_response_sha256")==response_hash else 0
+        for index,proposal in enumerate(candidates):
+            if index<cursor:continue
+            if time.monotonic()>=getattr(self,"processing_deadline",float("inf")):
+                raise RuntimeError("Local processing interrupted; raw receipt retained")
             # Every successful proposal variant remains in the occurrence's
             # provenance, including conflicting attributes/quotes/translations.
             proposal_provenance = dict(provenance, proposal=proposal, proposal_origin="model_output")
-            grounded, proposal_errors = ground(proposal, source, job, self.recipe, proposal_provenance)
+            grounded, proposal_errors = ground(proposal, source, job, self.recipe, proposal_provenance,stream=True)
             if proposal_errors:
                 self.audit(job, ";".join(proposal_errors), proposal)
-            with self.store.connection() as db:
-                for term, occurrence in grounded:
+            occurrence_cursor=job.get("grounding_cursor",{})
+            resume_occurrence=(occurrence_cursor.get("occurrence",0) if occurrence_cursor.get("candidate")==index and occurrence_cursor.get("response_sha256")==response_hash and occurrence_cursor.get("processing_version")==PROCESSING_VERSION else 0)
+            for ordinal,(term,occurrence) in enumerate(grounded):
+                if ordinal<resume_occurrence:continue
+                if ordinal%64==0 and (time.monotonic()>=getattr(self,"processing_deadline",float("inf")) or shutil.disk_usage(self.project.path).free<256*1024*1024):
+                    raise RuntimeError("Grounding interrupted; committed evidence and raw receipt retained")
+                with self.store.connection() as db:
                     self.persist_grounded(term, occurrence, db)
+                    job["grounding_cursor"]={"candidate":index,"occurrence":ordinal+1,"response_sha256":response_hash,"processing_version":PROCESSING_VERSION}
+                    self.store.put("jobs",job["job_id"],job,db)
+            with self.store.connection() as db:
+                job.update(candidate_cursor=index+1,candidate_processing_version=PROCESSING_VERSION,candidate_response_sha256=response_hash)
+                job.pop("grounding_cursor",None)
+                self.store.put("jobs",job["job_id"],job,db)
         complete = complete and response.finish_reason in {"stop", "STOP"} and not errors
+        job["response_processed"]=True
         if complete:
-            job.update(status="done", reason="model_reported_complete", coverage_complete=True)
+            job.update(status="done", reason="model_reported_complete", coverage_complete=True,processing_version=PROCESSING_VERSION)
         else:
             self.split(job, "incomplete_response_split_recovery")
         self.store.put("jobs", job["job_id"], job)
@@ -454,47 +724,71 @@ class Engine:
         self.store.put("jobs", job["job_id"], job)
 
     def settle(self, job, attempt, response):
+        if not isinstance(response,Response) or not isinstance(response.text,str) or len(response.text.encode("utf-8"))>8_000_000:
+            raise ProviderError("invalid_provider_response",uncertain=True)
         known = (type(response.input_tokens) is int and response.input_tokens >= 0
                  and type(response.output_tokens) is int and response.output_tokens >= 0)
         if not known:
             # Keep exact grounded discoveries, but do not make more paid requests
             # after unknown usage. The full reserve remains charged to the budget.
-            self.accept(job, response)
-            job = self.store.get("jobs", job["job_id"])
             job.update(status="uncertain", reason="provider_usage_unknown")
             attempt.update(status="uncertain", finished_at=now())
-            self.store.put("jobs", job["job_id"], job)
-            self.store.put("costs", attempt["attempt_id"], attempt)
+            with self.store.connection() as db:
+                self.store.put("jobs",job["job_id"],job,db)
+                self.store.put("costs",attempt["attempt_id"],attempt,db)
+                self.store.put("cache",job["job_id"],{"key":job["job_id"],"response":asdict(response),
+                    "attempt_id":attempt["attempt_id"],"usage_status":"unknown","response_sha256":digest(response.text)},db)
+            receipt_failure=None
+            try:self._terminal(job,attempt)
+            except BaseException:
+                receipt_failure="local_accounting_receipt_failure"
+                self.incident(receipt_failure,job=job,attempt=attempt)
+            self.accept(job, response)
+            job.update(status="uncertain",reason="provider_usage_unknown")
+            self.store.put("jobs",job["job_id"],job)
             self.audit(job, "provider_usage_unknown")
             if self.resilience:
                 self._disable(job,"model_disabled_unknown_usage")
-                return None
-            return "provider_usage_unknown"
+                return receipt_failure
+            return receipt_failure or "provider_usage_unknown"
         billed = token_cost(job["model"], response.input_tokens, response.output_tokens)
         attempt.update(status="settled", settled_usd=billed, input_tokens=response.input_tokens,
                        output_tokens=response.output_tokens, finished_at=now(),
                        reservation_overrun=billed > attempt["reserved_usd"] + 1e-12)
+        seconds=max(0,attempt.get("latency_seconds",0))
+        attempt["settled_seconds"]=seconds
         # Cache response and settle atomically. Crash between this and grounding
         # replays the cached response without issuing a second API request.
         with self.store.connection() as db:
             self.store.put("costs", attempt["attempt_id"], attempt, db)
             self.store.put("cache", job["job_id"], {"key": job["job_id"], "response": asdict(response),
-                         "attempt_id": attempt["attempt_id"]}, db)
+                         "attempt_id": attempt["attempt_id"],"usage_status":"known","response_sha256":digest(response.text)}, db)
         self._adjust_reserve(attempt,billed)
+        self._adjust_time(attempt,seconds)
+        receipt_failure=None
+        try:self._terminal(job,attempt)
+        except BaseException:
+            receipt_failure="local_accounting_receipt_failure"
+            self.incident(receipt_failure,job=job,attempt=attempt)
         self.accept(job, response)
         self._model_success(job)
-        return "provider_contract_cost_overrun" if attempt["reservation_overrun"] else None
+        return receipt_failure or ("provider_contract_cost_overrun" if attempt["reservation_overrun"] else None)
 
     def failure(self, job, attempt, error):
         if not isinstance(error, ProviderError):
             error = ProviderError("adapter_timeout_outcome_unknown" if isinstance(error,TimeoutError) else "unhandled_provider_error",
                                   uncertain=True,retryable=isinstance(error,TimeoutError))
+        attempt.update(failure_reason=error.reason,failure_scope=getattr(getattr(error,"failure_scope",None),"value","uncertain"),
+                       retryable=error.retryable,outcome_uncertain=error.uncertain)
         if error.uncertain:
             job.update(status="uncertain", reason=error.reason)
             attempt.update(status="uncertain", finished_at=now())
         else:
             attempt.update(status="rejected", settled_usd=0, finished_at=now())
+            seconds=max(0,attempt.get("latency_seconds",0))
+            attempt["settled_seconds"]=seconds
             self._adjust_reserve(attempt,0)
+            self._adjust_time(attempt,seconds)
             retry = error.retryable and job["attempts"] <= self.execution["max_retries"]
             job.update(status="pending" if retry else "failed", reason=error.reason,
                        not_before=self.clock.time() + min(30, 2 ** job["attempts"]) if retry else 0)
@@ -502,6 +796,9 @@ class Engine:
             self.store.put("jobs", job["job_id"], job, db)
             self.store.put("costs", attempt["attempt_id"], attempt, db)
         self.audit(job, error.reason)
+        self._terminal(job,attempt)
+        if self.quota and getattr(getattr(error,"failure_scope",None),"value",None)=="provider" and error.retry_after_seconds is not None:
+            self.quota.cooldown(error.retry_after_seconds)
         if self.resilience and error.reason == "http_413" and not error.uncertain:
             self.split(job, "payload_too_large_split_recovery")
             # A per-window size problem must not disable an otherwise healthy model.
@@ -519,18 +816,97 @@ class Engine:
         return bool(job.get("children")) and all(self.coverage(c) for c in job["children"])
 
     def run(self, max_jobs=None):
-        with self.store.session():
-            return self._run(max_jobs)
+        try:
+            with self.store.session():return self._run(max_jobs)
+        except (OSError,sqlite3.Error):
+            self.incident("local_storage_failure")
+            raise RuntimeError("Quarry storage unavailable; last durable state retained; run doctor after storage recovery") from None
+
+    def _invoke(self,request,attempt):
+        lease=self.quota_leases.get(attempt["attempt_id"])
+        if lease:
+            try:self.quota.mark_dispatched(lease)
+            except BaseException:
+                raise ProviderError("quota_dispatch_not_started",uncertain=False,retryable=False) from None
+        if getattr(self.provider,"enforceable_deadline",False):request["cancellation_event"]=self.cancel_event
+        return self.provider.complete(request)
+
+    def _processing_failure(self,job,attempt):
+        cache=self.store.get("cache",job["job_id"])
+        if cache and cache.get("attempt_id")==attempt["attempt_id"]:
+            job.update(status="uncertain" if cache.get("usage_status")=="unknown" else "pending",
+                       reason="raw_response_saved_processing_failed",coverage_complete=False)
+        else:
+            durable=self.store.get("costs",attempt["attempt_id"])
+            if durable and durable["status"] in {"settled","rejected","not_sent"}:
+                # A failed secondary journal/quota receipt must not overwrite
+                # a committed provider outcome with fabricated uncertainty.
+                if job["status"]=="running":
+                    job.update(status="uncertain",reason="local_failure_response_not_durable",coverage_complete=False)
+            else:
+                job.update(status="uncertain",reason="local_failure_response_not_durable",coverage_complete=False)
+                attempt.update(status="uncertain",finished_at=now())
+                self.store.put("costs",attempt["attempt_id"],attempt)
+        self.store.put("jobs",job["job_id"],job)
+        self.incident("local_processing_failure",job=job,attempt=attempt)
+
+    def _consume(self,future,job,attempt,started):
+        self.processing_deadline=min(time.monotonic()+SHUTDOWN_GRACE_SECONDS,getattr(self,"drain_deadline",float("inf")))
+        attempt["latency_seconds"]=max(0,self.clock.monotonic()-started)
+        if self.resilience:
+            samples=self._state(job["expert"]["model"])["latency_samples_seconds"]
+            samples.append(attempt["latency_seconds"]);del samples[:-32]
+        try:
+            try:response=future.result()
+            except BaseException as error:return self.failure(job,attempt,error)
+            try:return self.settle(job,attempt,response)
+            except ProviderError as error:return self.failure(job,attempt,error)
+            except (OSError,sqlite3.Error):
+                self._processing_failure(job,attempt)
+                self.incident("local_storage_failure",job=job,attempt=attempt)
+                return "local_storage_failure"
+            except BaseException:
+                self._processing_failure(job,attempt)
+                return "local_processing_failure"
+        except (OSError,sqlite3.Error):
+            self.storage_failed=True
+            self.incident("local_storage_failure",job=job,attempt=attempt)
+            return "local_storage_failure"
+        except BaseException:
+            # Journal/quota receipt failures cannot erase the local provider receipt.
+            try:self._processing_failure(job,attempt)
+            except (OSError,sqlite3.Error):self.storage_failed=True
+            self.incident("local_finalization_failure",job=job,attempt=attempt)
+            return "local_finalization_failure"
+
+    def replay_cache(self,job,cached):
+        if cached.get("response_sha256") and digest(cached["response"]["text"])!=cached["response_sha256"]:
+            raise ValueError("saved response receipt hash mismatch")
+        token=job.pop("quota_attempt_token",None)
+        if token and self.quota:
+            self.quota.cancel_waiter(token)
+            self.quota_waiters.discard(token)
+            self.quota_wait_jobs.pop(token,None)
+        self.processing_deadline=min(time.monotonic()+SHUTDOWN_GRACE_SECONDS,getattr(self,"drain_deadline",float("inf")))
+        self.accept(job,Response(**cached["response"]),cached=True)
+        if cached.get("usage_status")=="unknown":
+            job.update(status="uncertain",reason="provider_usage_unknown",response_processed=True)
+            self.store.put("jobs",job["job_id"],job)
+            if self.resilience:self._disable(job,"model_disabled_unknown_usage")
+            else:return "provider_usage_unknown"
+        else:self._model_success(job,cached=True)
+        return None
 
     def _run(self, max_jobs=None):
         if max_jobs is not None and (type(max_jobs) is not int or max_jobs < 0):
             raise ValueError("max_jobs must be a nonnegative integer")
         self.deadline = self.clock.monotonic() + self.execution["deadline_seconds"]
-        roots = self.prepare()
+        roots = self.prepare(streaming=True)
         run = {"run_id": self.run_id, "created_at": now(), "status": "running",
                "recipe": self.recipe, "profile": self.profile, "policy_hash": self.policy,
                "prompts":prompt_manifest(), "budget_scope":self.budget_scope,
-               "root_job_ids": roots, "transport_identity": self.provider_identity,
+               "root_job_count":len(roots), "transport_identity": self.provider_identity,
+               "processing_version":PROCESSING_VERSION,"execution_version":EXECUTION_VERSION,
                "billing_kind": "provider_reported_token_estimate" if getattr(self.provider,"paid",False) else "simulated"}
         run["inference_runtime"] = {alias: runtime_manifest(model) for alias, model in self.profile["models"].items()}
         run["declared_cluster_runtimes"] = self.cluster_runtimes
@@ -546,13 +922,18 @@ class Engine:
         run["model_health"] = [self._state(a) for a in aliases] if self.resilience else []
         if self.resilience: self._save_health()
         rotation = 0
+        drain_deadline=None
         run["runtime_limits"] = {"configured_concurrency":self.execution["concurrency"], "active_concurrency":workers,
-                                 "resilience":self.resilience, "source_cache_entries":self.source_map.limit}
+                                 "resilience":self.resilience, "source_cache_entries":self.source_map.limit,
+                                 "cumulative_request_seconds_limit":self.execution["deadline_seconds"],
+                                 "historical_time_accounting":"pre-recovery-2 attempts lack request-time reservations"}
         self.store.put("runs",self.run_id,run)
         try:
             while True:
-                if shutil.disk_usage(self.project.path).free < 256*1024*1024:
+                if shutil.disk_usage(self.project.path).free < 256*1024*1024+workers*8_000_000:
                     stop = "local_disk_reserve_exhausted"
+                if self.store.path.stat().st_size+sum(p.stat().st_size for p in self.project.path.glob("project.sqlite3-wal"))>2*1024*1024*1024:
+                    stop="local_store_capacity_exhausted"
                 if self.store.read_setting("cancel_requested"):
                     stop = "cancelled_by_researcher"
                 if self.clock.monotonic() >= deadline:
@@ -561,6 +942,18 @@ class Engine:
                     stop = stop or "unresolved_uncertain_api_outcome"
                 if max_jobs is not None and dispatched >= max_jobs:
                     stop = stop or "interrupted_at_job_limit"
+                if stop and drain_deadline is None:
+                    drain_deadline=time.monotonic()+SHUTDOWN_GRACE_SECONDS
+                    self.drain_deadline=drain_deadline
+                if drain_deadline is not None and time.monotonic()>=drain_deadline:break
+                if not stop:
+                    for job in self.store.run_cached_jobs(self.run_id):
+                        stop=self.replay_cache(job,self.store.get("cache",job["job_id"])) or stop
+                        if stop:break
+                    # Replay has no provider admission. Disabled circuits,
+                    # account capacity and exhausted paid-call budgets must
+                    # not strand already committed response receipts.
+                    if not stop and self.store.run_cached_jobs(self.run_id,limit=1):continue
                 counts = {alias:sum(j["expert"]["model"] == alias for j,_,_ in inflight.values()) for alias in aliases}
                 pending = []
                 ordered = aliases[rotation:] + aliases[:rotation]
@@ -598,8 +991,7 @@ class Engine:
                         if self.clock.time() < state["last_started_at"] + self.resilience["min_request_interval_seconds"]: continue
                     cached = self.store.get("cache", job["job_id"])
                     if cached and not job.get("cache_bypass_once"):
-                        self.accept(job, Response(**cached["response"]), cached=True)
-                        self._model_success(job, cached=True)
+                        stop=self.replay_cache(job,cached) or stop
                         continue
                     attempt, reason = self.admit(job)
                     if reason:
@@ -608,12 +1000,33 @@ class Engine:
                         if reason == "aggregate_retry_budget_exhausted":
                             self._disable(job,reason)
                             continue
+                        if reason.startswith("quota_"):
+                            if inflight:continue
+                            diagnostics=self.quota.diagnostics()
+                            entirely_uncertain=diagnostics["states"].get("uncertain",0)>=diagnostics["effective_limits"]["max_inflight"]
+                            delay=job.get("quota_wait_seconds")
+                            transient=reason in {"quota_account_fair_queue","quota_account_inflight_limit","quota_account_registry_busy","quota_account_cooldown","quota_account_request_rate","quota_account_token_rate"}
+                            if transient and not entirely_uncertain and (delay is None or delay<=QUEUE_WAIT_SECONDS):
+                                self.queue_wait_deadline=self.queue_wait_deadline or min(self.deadline,self.clock.monotonic()+QUEUE_WAIT_SECONDS)
+                                if self.clock.monotonic()<self.queue_wait_deadline:break
+                            stop=reason
+                            break
                         # A live reservation may be released on settlement. Wait
                         # before deciding that a spending cap leaves work pending.
-                        if not inflight or reason != "spending_budget_reservation_exhausted":
+                        if not inflight or reason not in {"spending_budget_reservation_exhausted","cumulative_request_time_budget_exhausted"}:
                             stop = reason
                         break
-                    future = executor.submit(self.provider.complete, self.request(job))
+                    intent=False
+                    try:
+                        request=self.request(job)
+                        if self.journal:
+                            self.journal.intent(job,attempt);intent=True
+                        future = executor.submit(self._invoke,request,attempt)
+                    except BaseException:
+                        self.not_sent(job,attempt,"dispatch_not_started",journal_intent=intent)
+                        self.incident("local_dispatch_failure",job=job,attempt=attempt)
+                        stop="local_dispatch_failure"
+                        break
                     inflight[future] = (job, attempt, self.clock.monotonic())
                     counts[alias] += 1
                     dispatched += 1
@@ -630,31 +1043,39 @@ class Engine:
                 completed, _ = wait(inflight, timeout=0.2, return_when=FIRST_COMPLETED)
                 for future in completed:
                     job, attempt, started = inflight.pop(future)
-                    attempt["latency_seconds"] = max(0,self.clock.monotonic()-started)
-                    if self.resilience:
-                        samples=self._state(job["expert"]["model"])["latency_samples_seconds"]
-                        samples.append(attempt["latency_seconds"])
-                        del samples[:-32]
-                    try:
-                        response = future.result()
-                        if not isinstance(response, Response):
-                            raise ProviderError("invalid_provider_response", uncertain=True)
-                    except BaseException as error:
-                        stop = self.failure(job, attempt, error) or stop
-                    else:
-                        stop = self.settle(job, attempt, response) or stop
-        except KeyboardInterrupt:
-            stop = "keyboard_interrupt"
-            # Finite provider timeouts bound outstanding requests. Account for
-            # responses that return while cancellation waits, preserving evidence.
-            for future, (job, attempt, started) in list(inflight.items()):
-                try:
-                    self.settle(job, attempt, future.result())
-                except BaseException as error:
-                    self.failure(job, attempt, error)
+                    stop = self._consume(future,job,attempt,started) or stop
+        except BaseException as error:
+            stop="keyboard_interrupt" if isinstance(error,KeyboardInterrupt) else "local_orchestration_failure"
+            self.incident(stop)
         finally:
-            executor.shutdown(wait=True, cancel_futures=False)
-        complete = self.planning_complete and all(self.coverage(k) for k in roots)
+            # One finalizer for every exit path. Already returned evidence is
+            # processed even when another job fails. Never await an arbitrary
+            # Python adapter indefinitely here.
+            drain_deadline=drain_deadline or time.monotonic()+SHUTDOWN_GRACE_SECONDS
+            self.drain_deadline=drain_deadline
+            while inflight and time.monotonic()<drain_deadline:
+                completed,_=wait(inflight,timeout=min(.2,max(0,drain_deadline-time.monotonic())),return_when=FIRST_COMPLETED)
+                for future in completed:
+                    job,attempt,started=inflight.pop(future)
+                    stop=self._consume(future,job,attempt,started) or stop
+            if inflight:
+                self.cancel_event.set()
+                completed,_=wait(inflight,timeout=2)
+                for future in completed:
+                    job,attempt,started=inflight.pop(future)
+                    stop=self._consume(future,job,attempt,started) or stop
+                for future,(job,attempt,started) in list(inflight.items()):
+                    try:self.failure(job,attempt,ProviderError("shutdown_deadline_outcome_unknown",uncertain=True))
+                    except BaseException:self.incident("unresolved_shutdown_attempt",job=job,attempt=attempt)
+                stop=stop or "shutdown_deadline_outcome_unknown"
+            executor.shutdown(wait=not inflight,cancel_futures=True)
+            if self.quota:
+                for token in self.quota_waiters:
+                    try:self.quota.cancel_waiter(token)
+                    except BaseException:self.incident("quota_queue_cleanup_failure")
+        if self.storage_failed:
+            raise RuntimeError("Quarry storage unavailable; inspect last durable run and attempts after recovery")
+        complete = not (stop and stop.startswith("local_")) and self.planning_complete and all(self.coverage(k) for k in roots)
         if not self.planning_complete: stop = stop or "planning_limit_or_cancel_exhausted"
         model_health = [self._state(a) for a in aliases] if self.resilience else []
         if self.resilience: self._save_health()

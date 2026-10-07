@@ -48,8 +48,17 @@ DNS/TLS/read cannot occupy its lane indefinitely, including after the parent
 process disappears. With 180-second request timeouts, five full timeouts and the
 four base waits take up to 29.5 minutes before disabling a model; maximum default
 jitter raises that to about 32.4 minutes. Server delays can increase this. Healthy
-lanes continue throughout. Cancellation and overall deadlines stop new dispatch
-and wait at most the outstanding built-in request deadlines for settlement.
+lanes continue throughout. Cancellation and overall deadlines stop new dispatch.
+The engine drains returned results for at most 30 seconds, then cancels supported
+process transports with their finite cleanup allowance and records unresolved
+attempts. A provider may continue remote generation after transport cancellation.
+Browser and MCP startup preserve a stop request delivered after the start reply.
+
+The cumulative request-time budget persists across resumes and charges measured
+request latency or the full timeout reservation for an unknown outcome. Queue
+waits and source planning are excluded from that accounting; the separate finite
+invocation deadline includes both. Attempts saved before `recovery-2` have no
+historical request-time measurement, so their earlier usage is unknown.
 
 When every configured model is unavailable, or the Gemini-only profile fails,
 the run ends visibly partial. A remaining model cannot imply complete paired
@@ -225,9 +234,9 @@ project.store.backup("backups/study.sqlite3")
 | Disk exhaustion | Stop dispatch below 256 MiB free; SQLite durable transactions; export staging prevents half-written final files. This cannot stop another process exhausting disk between checks. Maintain substantial spare storage. |
 | WAL growth, competing readers/writers | Short transactions, 30-second bounded busy wait, passive checkpoint, one collection lock per project. Keep projects on local disks, not network/sync filesystems. |
 | Backup during WAL writes | SQLite online backup with bounded progress and integrity check; never copy just the active database file. Restore the backup as `project.sqlite3` in a new directory. |
-| Large freeze/export | On-disk export staging, streamed JSONL/CSV/dataset serialization, Parquet batches. Snapshot creation and Python dataset/export views still materialize the frozen dataset in RAM. Huge PDF-heavy corpora need suitable RAM or separate finite study batches. |
+| Large freeze/export | On-disk export staging, streamed JSONL/CSV/dataset serialization, Parquet batches. Inventory is limited to 64 MiB serialized table data and a frozen dataset to 128 MiB. Snapshot creation and Python dataset/export views still materialize the frozen dataset in RAM; these serialized limits are not peak-RSS limits. Partition larger collections into finite studies. |
 | Bad source, inaccessible page, OCR needed | Existing source/page limits, bounded fetch/PDF parsing, explicit failures and pending discovery; OCR remains an extension. Extraction retries do not make blocked websites accessible. |
-| Custom Python provider never returns | A Python thread cannot forcibly stop arbitrary running code. Custom adapters must implement finite timeouts or their own reviewed process isolation. Built-in HTTP has the stronger deadline guarantee. |
+| Custom Python provider never returns | Trusted notebook/test Python providers must return cooperatively. A Python thread cannot forcibly stop arbitrary running code or guarantee process shutdown. Production custom transports must use the reviewed process-adapter boundary with finite request/response sizes and deadlines. |
 | Unknown provider invoice / service quota changes | Preserve reservations and safe categories; verify current account quotas/rates before an authorized pilot; do not infer an invoice from token estimates. |
 | Publication overclaims | Export failures, degradation and model coverage; audit exact provenance; use complete held-out source labels for measured recall. Candidate counts and successful retries are not extraction-quality evidence. |
 

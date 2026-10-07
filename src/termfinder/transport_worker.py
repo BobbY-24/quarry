@@ -4,7 +4,7 @@ import json
 import signal
 import sys
 
-from .providers import HTTPProvider, ProviderError
+from .providers import HTTPProvider, ProviderError, RejectionContract
 
 
 def main():
@@ -13,15 +13,20 @@ def main():
     # is gone. It cannot cancel generation already accepted upstream.
     signal.alarm(30)
     try:
-        value = json.loads(sys.stdin.buffer.read(20_000_001))
+        raw = sys.stdin.buffer.read(20_000_001)
+        if len(raw) > 20_000_000:
+            raise ProviderError("transport_request_size_limit", failure_scope="request")
+        value = json.loads(raw)
         signal.setitimer(signal.ITIMER_REAL,max(1,min(1800,float(value["request"]["timeout_seconds"]))))
-        result = HTTPProvider(value["profile"], _direct=True).complete(value["request"])
+        declaration = value.get("rejection_contract")
+        contract = None if declaration is None else RejectionContract(declaration["reference"], frozenset(declaration["status_codes"]))
+        result = HTTPProvider(value["profile"], _direct=True, rejection_contract=contract).complete(value["request"])
         output = {"response":asdict(result)}
     except ProviderError as error:
         output = {"error":error.reason,"uncertain":error.uncertain,"retryable":error.retryable,
-                  "retry_after_seconds":error.retry_after_seconds}
+                  "retry_after_seconds":error.retry_after_seconds,"failure_scope":error.failure_scope.value}
     except BaseException:
-        output = {"error":"transport_worker_error","uncertain":True,"retryable":False}
+        output = {"error":"transport_worker_error","uncertain":True,"retryable":False,"failure_scope":"uncertain"}
     sys.stdout.write(json.dumps(output))
     signal.alarm(0)
 

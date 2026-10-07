@@ -1,4 +1,5 @@
 .venv/
+.ci/
 .venv-*/
 .build-wheelhouse/
 __pycache__/

@@ -19,6 +19,7 @@ def _recipe(value):
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="termfinder", description="Quarry: research collection with durable evidence, resume, and frozen datasets")
     p.add_argument("--project", default=".", help="Project directory containing project.sqlite3 (default: current directory)")
+    p.add_argument("--operation-id", help="Opaque durable mutation ID; reuse it only for the same command and parameters after a lost reply")
     sub = p.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init", help="Configure a project from a validated starter recipe or JSON file")
     init.add_argument("path", nargs="?", help="New or existing project directory")
@@ -119,6 +120,13 @@ def parser() -> argparse.ArgumentParser:
         group.add_argument("--allow-paid", action="store_true", help="Explicitly authorize configured provider API calls for this command")
         run.add_argument("--max-jobs", type=int, help="Bound work in this invocation, leaving remaining jobs pending")
     sub.add_parser("status", help="Show progress, coverage, failures, and actual costs")
+    sub.add_parser("doctor", help="Read bounded recovery diagnostics; never retry, clear unknown charges, or call a model")
+    operation = sub.add_parser("operation", help="Inspect one durable operation receipt before repeating a mutation")
+    operation.add_argument("operation_id")
+    quota = sub.add_parser("configure-quota", help="Configure one local shared provider-account gate; every participating same-host study must use the same registry and scope")
+    quota.add_argument("--registry", type=Path, required=True, help="Reviewed local filesystem registry; never shared/NFS storage")
+    quota.add_argument("--scope-id", required=True, help="Opaque operator account label; never credentials or their hash")
+    quota.add_argument("--limits", type=Path, help="Validated finite QuotaLimits JSON; omit for conservative defaults")
     sub.add_parser("cancel", help="Request durable cancellation; resume can process remaining work")
     sub.add_parser("large-run", help="Upgrade execution caps/backoff for an existing project; preserve spending and source scope")
     reset = sub.add_parser("reset-model", help="Explicitly re-enable a disabled model after resolving its outage/configuration")
@@ -226,6 +234,228 @@ def _write_or_print(value, path):
     _json(value)
 
 
+def _operation_exit(value):
+    """A durable mutation receipt still carries the command's failure signal."""
+    return 2 if (isinstance(value, dict) and value.get("operation_id")
+        and value.get("parameter_sha256") and value.get("status") in {"failed", "uncertain"}) else 0
+
+
+def _execute_args(project, args):
+    command = args.command
+    if command == "doctor":
+        _json(project.doctor())
+        return 0
+    if command == "operation":
+        from .operations import OperationManager
+        _json(OperationManager(project).receipt(args.operation_id))
+        return 0
+    if command == "configure-quota":
+        from .config import read_json
+        limits = read_json(args.limits) if args.limits else None
+        if args.operation_id is not None:
+            from .operations import OperationManager
+            result = OperationManager(project).execute(args.operation_id, "configure_quota", {
+                "registry_path": str(args.registry.absolute()), "scope_id": args.scope_id, "limits": limits},
+                lambda: project.configure_quota(args.registry, args.scope_id, limits))
+        else:
+            result = project.configure_quota(args.registry, args.scope_id, limits)
+        _json(result)
+        return _operation_exit(result)
+    if command == "prepare-agent":
+        from .agent_setup import write_handoff
+        from .config import read_json
+        if args.brief:
+            brief = read_json(args.brief)
+        else:
+            brief = {"data_type": args.data_type, "research_question": args.idea,
+                     "domains": args.domain, "local_roots": args.local_root,
+                     "budget_usd": args.budget, "max_sources": args.max_sources,
+                     "mode": args.mode}
+            if args.profile is not None:
+                brief["model_profile"] = args.profile
+            for key, value in (("inclusion_criteria", args.include), ("exclusion_criteria", args.exclude),
+                               ("languages", args.language), ("communities", args.community)):
+                if value:
+                    brief[key] = value
+            if args.policy:
+                brief["starter_recipe"] = args.policy
+        result = write_handoff(project.prepare_agent_setup(brief), args.out)
+    elif command == "configure-compute":
+        from .config import read_json
+        result = project.configure_compute(backend=args.backend, preset=args.preset,
+            base_url=args.base_url, model=args.model, model_version=args.model_version,
+            credential_env=args.credential_env, input_per_million=args.input_per_million,
+            output_per_million=args.output_per_million,
+            context_limit_tokens=args.context_limit_tokens,
+            max_output_tokens=args.max_output_tokens, response_format=args.response_format,
+            runtime=read_json(args.runtime_manifest) if args.runtime_manifest else None,
+            configuration_reference=args.configuration_reference)
+    elif command == "compute":
+        result = project.compute()
+    elif command == "configure-cluster":
+        from .config import read_json
+        result = project.configure_cluster(read_json(args.profile))
+    elif command == "tune-cluster":
+        result = project.configure_cluster_throughput(concurrency=args.concurrency,
+            model_concurrency=args.model_concurrency, configuration_reference=args.configuration_reference)
+    elif command == "cluster-review":
+        result = project.cluster().prepare(args.review_id)
+    elif command in {"cluster-submit", "cluster-resume"}:
+        method = project.cluster().submit if command == "cluster-submit" else project.cluster().resume
+        result = method(args.cluster_review_id, human_approved=args.researcher_approved,
+            approval_reference=args.approval_reference, allow_execution=args.allow_cluster, allow_paid=args.allow_paid)
+    elif command == "cluster-status":
+        if args.refresh_scheduler and not args.allow_cluster:
+            raise ValueError("Scheduler refresh requires --allow-cluster")
+        result = project.cluster().status(args.job_id, refresh=args.refresh_scheduler)
+    elif command == "cluster-cancel":
+        if not args.allow_cluster:
+            raise ValueError("Scheduler cancellation requires --allow-cluster")
+        result = project.cluster().cancel(args.job_id)
+    elif command == "cluster-resolve":
+        if not args.allow_cluster:
+            raise ValueError("Scheduler reconciliation requires --allow-cluster")
+        result = project.cluster().resolve_submission(args.job_id, scheduler_job_id=args.scheduler_job_id,
+            verified_absent=args.verified_absent, reconciliation_reference=args.reconciliation_reference)
+    elif command == "cluster-import":
+        result = project.cluster().import_result(args.job_id)
+    elif command == "validate-plan":
+        from .config import read_json
+        result = project.validate_agent_bundle(read_json(args.bundle))
+        _write_or_print(result, args.out)
+        return 0 if result["valid"] else 2
+    elif command == "apply-plan":
+        from .config import read_json
+        result = project.apply_agent_bundle(read_json(args.bundle))
+    elif command == "ingest-plan":
+        result = project.ingest_agent_sources()
+    elif command == "freeze-corpus":
+        result = project.freeze_agent_corpus(args.name, args.seed)
+    elif command == "publication-audit":
+        result = project.publication_audit(args.version)
+        _write_or_print(result, args.out)
+        return 0 if result["integrity_passed"] else 2
+    elif command == "review-plan":
+        from .config import read_json
+        from .workflow import prepare_review
+        result = prepare_review(project, read_json(args.bundle) if args.bundle else None,
+                                fetch_remote=args.fetch_reviewed_websites)
+    elif command == "current-review":
+        from .workflow import current_review
+        result = current_review(project)
+    elif command == "approve-review":
+        from .workflow import approve_review
+        result = approve_review(project, args.review_id)
+    elif command == "run-review":
+        from .workflow import run_review
+        provider = None
+        if args.offline:
+            from .providers import FakeProvider
+            provider = FakeProvider()
+        result = run_review(project, args.review_id, provider=provider,
+                            allow_paid=args.allow_paid, max_jobs=args.max_jobs)
+    elif command == "release":
+        from .workflow import release_dataset
+        result = release_dataset(project, args.name, formats=args.formats.split(","), version_id=args.version)
+    elif command == "init":
+        recipe = _recipe(args.recipe)
+        if args.mode:
+            recipe["mode"] = args.mode
+        result = project.configure(recipe, args.profile)
+    elif command == "ingest":
+        urls = list(args.url)
+        if args.url_list:
+            urls.extend(line.strip() for line in args.url_list.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#"))
+        if not args.paths and not urls:
+            raise ValueError("Ingest requires local paths, --url, or --url-list")
+        metadata = json.loads(args.metadata.read_text(encoding="utf-8")) if args.metadata else None
+        result = {"source_ids": project.ingest(paths=args.paths, urls=urls, metadata=metadata)}
+    elif command == "estimate":
+        assumptions = {}
+        if args.average_chars is not None:
+            assumptions["average_chars"] = args.average_chars
+        if args.cache_hit_rate is not None:
+            assumptions["cache_hit_rate"] = args.cache_hit_rate
+        result = project.estimate(links=args.links, **assumptions)
+    elif command in {"collect", "resume"}:
+        print("Pre-collection estimate: " + json.dumps(project.estimate(), ensure_ascii=False, sort_keys=True, default=str), file=sys.stderr)
+        provider = None
+        if args.offline:
+            from .providers import FakeProvider
+            provider = FakeProvider()
+        result = getattr(project, command)(provider=provider, allow_paid=args.allow_paid, max_jobs=args.max_jobs)
+    elif command == "status":
+        result = project.status()
+    elif command == "cancel":
+        project.cancel()
+        result = project.status()
+    elif command == "large-run":
+        result = project.configure_large_run()
+    elif command == "reset-model":
+        result = project.reset_model(args.model_alias)
+    elif command == "backup":
+        result = project.store.backup(args.out)
+    elif command == "retry-job":
+        project.retry_failed(args.job_id)
+        result = {"job_id": args.job_id, "status": "pending"}
+    elif command == "resolve-uncertain":
+        project.resolve_uncertain(args.job_id, retry=args.retry, acknowledge_possible_duplicate_billing=args.acknowledge_possible_duplicate_billing)
+        result = {"job_id": args.job_id, "status": "pending" if args.retry else "failed", "unknown_reserves_retained": True}
+    elif command == "versions":
+        result = {"versions": project.versions()}
+    elif command == "inspect":
+        result = project.inventory()
+        if args.record:
+            result = {"records": [row for row in result["records"] if row.get("record_id") == args.record],
+                      "occurrences": [row for row in result["occurrences"] if row.get("record_id", row.get("term_id")) == args.record]}
+            if not result["records"]:
+                raise ValueError("Unknown record ID")
+        elif args.term:
+            result = {"terms": [row for row in result["terms"] if row.get("term_id", row.get("id")) == args.term], "occurrences": [row for row in result["occurrences"] if row.get("term_id") == args.term], "annotations": [row for row in result["annotations"] if row.get("term_id") == args.term], "relations": [row for row in result["relations"] if args.term in (row.get("term_a"), row.get("term_b"))]}
+            if not result["terms"]:
+                raise ValueError("Unknown term ID")
+        elif args.source:
+            result = {"sources": [row for row in result["sources"] if row.get("source_id", row.get("id")) == args.source], "occurrences": [row for row in result["occurrences"] if row.get("source_id") == args.source], "jobs": [row for row in result["jobs"] if row.get("source_id") == args.source], "audit": [row for row in result["audit"] if row.get("source_id") == args.source]}
+            if not result["sources"]:
+                raise ValueError("Unknown source ID")
+    elif command == "annotate":
+        attributes = json.loads(args.attributes.read_text(encoding="utf-8")) if args.attributes else None
+        result = {"annotation_id": project.annotate(args.term_id, args.status, args.note, attributes, args.actor)}
+    elif command == "undo-annotation":
+        project.undo_annotation(args.annotation_id)
+        result = {"undone_annotation_id": args.annotation_id}
+    elif command == "relate":
+        result = {"relation_id": project.relate(args.term_a, args.term_b, args.kind, args.actor)}
+    elif command == "undo-relation":
+        project.undo_relation(args.relation_id)
+        result = {"undone_relation_id": args.relation_id}
+    elif command == "snapshot":
+        result = {"version_id": project.snapshot(args.name)}
+    elif command == "export":
+        result = project.export(args.version, args.out, formats=[part.strip() for part in args.formats.split(",") if part.strip()])
+    elif command == "discover":
+        from .discovery import StaticManifestSearch
+        adapter = StaticManifestSearch(args.manifest, local_root=args.local_root) if args.manifest else None
+        result = project.discover(seeds=args.seed, search_adapter=adapter, resume=args.resume)
+    elif command in {"evaluate", "split"}:
+        from .evaluation import evaluate, read_gold, source_splits
+        dataset = project.dataset(args.version)
+        if command == "split":
+            result = source_splits(dataset["sources"], seed=args.seed, group_field=args.group_field)
+        else:
+            heldout = json.loads(args.split_manifest.read_text(encoding="utf-8"))["splits"]["test"] if args.split_manifest else None
+            result = evaluate(dataset, read_gold(args.gold), unit=args.unit, require_sense=args.require_sense, heldout_source_ids=heldout)
+        _write_or_print(result, args.out)
+        return 0
+    elif command == "serve":
+        from .web import serve
+        serve(project, port=args.port, allow_paid=args.allow_paid)
+        return 0
+    else:
+        raise ValueError("Unknown command")
+    return result
+
+
 def main(argv=None) -> int:
     args = parser().parse_args(argv)
     try:
@@ -255,201 +485,47 @@ def main(argv=None) -> int:
             return mcp_main(mode + (["--allow-paid"] if args.allow_paid else []) + (["--allow-cluster"] if args.allow_cluster else []) + roots)
         from .project import Project
         project = Project(args.path if args.command == "init" and args.path else args.project)
-        command = args.command
-        if command == "prepare-agent":
-            from .agent_setup import write_handoff
-            from .config import read_json
-            if args.brief:
-                brief = read_json(args.brief)
-            else:
-                brief = {"data_type": args.data_type, "research_question": args.idea,
-                         "domains": args.domain, "local_roots": args.local_root,
-                         "budget_usd": args.budget, "max_sources": args.max_sources,
-                         "mode": args.mode}
-                if args.profile is not None:
-                    brief["model_profile"] = args.profile
-                for key, value in (("inclusion_criteria", args.include), ("exclusion_criteria", args.exclude),
-                                   ("languages", args.language), ("communities", args.community)):
-                    if value:
-                        brief[key] = value
-                if args.policy:
-                    brief["starter_recipe"] = args.policy
-            result = write_handoff(project.prepare_agent_setup(brief), args.out)
-        elif command == "configure-compute":
-            from .config import read_json
-            result = project.configure_compute(backend=args.backend, preset=args.preset,
-                base_url=args.base_url, model=args.model, model_version=args.model_version,
-                credential_env=args.credential_env, input_per_million=args.input_per_million,
-                output_per_million=args.output_per_million,
-                context_limit_tokens=args.context_limit_tokens,
-                max_output_tokens=args.max_output_tokens, response_format=args.response_format,
-                runtime=read_json(args.runtime_manifest) if args.runtime_manifest else None,
-                configuration_reference=args.configuration_reference)
-        elif command == "compute":
-            result = project.compute()
-        elif command == "configure-cluster":
-            from .config import read_json
-            result = project.configure_cluster(read_json(args.profile))
-        elif command == "tune-cluster":
-            result = project.configure_cluster_throughput(concurrency=args.concurrency,
-                model_concurrency=args.model_concurrency, configuration_reference=args.configuration_reference)
-        elif command == "cluster-review":
-            result = project.cluster().prepare(args.review_id)
-        elif command in {"cluster-submit", "cluster-resume"}:
-            method = project.cluster().submit if command == "cluster-submit" else project.cluster().resume
-            result = method(args.cluster_review_id, human_approved=args.researcher_approved,
-                approval_reference=args.approval_reference, allow_execution=args.allow_cluster, allow_paid=args.allow_paid)
-        elif command == "cluster-status":
-            if args.refresh_scheduler and not args.allow_cluster:
-                raise ValueError("Scheduler refresh requires --allow-cluster")
-            result = project.cluster().status(args.job_id, refresh=args.refresh_scheduler)
-        elif command == "cluster-cancel":
-            if not args.allow_cluster:
-                raise ValueError("Scheduler cancellation requires --allow-cluster")
-            result = project.cluster().cancel(args.job_id)
-        elif command == "cluster-resolve":
-            if not args.allow_cluster:
-                raise ValueError("Scheduler reconciliation requires --allow-cluster")
-            result = project.cluster().resolve_submission(args.job_id, scheduler_job_id=args.scheduler_job_id,
-                verified_absent=args.verified_absent, reconciliation_reference=args.reconciliation_reference)
-        elif command == "cluster-import":
-            result = project.cluster().import_result(args.job_id)
-        elif command == "validate-plan":
-            from .config import read_json
-            result = project.validate_agent_bundle(read_json(args.bundle))
-            _write_or_print(result, args.out)
-            return 0 if result["valid"] else 2
-        elif command == "apply-plan":
-            from .config import read_json
-            result = project.apply_agent_bundle(read_json(args.bundle))
-        elif command == "ingest-plan":
-            result = project.ingest_agent_sources()
-        elif command == "freeze-corpus":
-            result = project.freeze_agent_corpus(args.name, args.seed)
-        elif command == "publication-audit":
-            result = project.publication_audit(args.version)
-            _write_or_print(result, args.out)
-            return 0 if result["integrity_passed"] else 2
-        elif command == "review-plan":
-            from .config import read_json
-            from .workflow import prepare_review
-            result = prepare_review(project, read_json(args.bundle) if args.bundle else None,
-                                    fetch_remote=args.fetch_reviewed_websites)
-        elif command == "current-review":
-            from .workflow import current_review
-            result = current_review(project)
-        elif command == "approve-review":
-            from .workflow import approve_review
-            result = approve_review(project, args.review_id)
-        elif command == "run-review":
-            from .workflow import run_review
-            provider = None
-            if args.offline:
-                from .providers import FakeProvider
-                provider = FakeProvider()
-            result = run_review(project, args.review_id, provider=provider,
-                                allow_paid=args.allow_paid, max_jobs=args.max_jobs)
-        elif command == "release":
-            from .workflow import release_dataset
-            result = release_dataset(project, args.name, formats=args.formats.split(","), version_id=args.version)
-        elif command == "init":
-            recipe = _recipe(args.recipe)
-            if args.mode:
-                recipe["mode"] = args.mode
-            result = project.configure(recipe, args.profile)
-        elif command == "ingest":
-            urls = list(args.url)
-            if args.url_list:
-                urls.extend(line.strip() for line in args.url_list.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#"))
-            if not args.paths and not urls:
-                raise ValueError("Ingest requires local paths, --url, or --url-list")
-            metadata = json.loads(args.metadata.read_text(encoding="utf-8")) if args.metadata else None
-            result = {"source_ids": project.ingest(paths=args.paths, urls=urls, metadata=metadata)}
-        elif command == "estimate":
-            assumptions = {}
-            if args.average_chars is not None:
-                assumptions["average_chars"] = args.average_chars
-            if args.cache_hit_rate is not None:
-                assumptions["cache_hit_rate"] = args.cache_hit_rate
-            result = project.estimate(links=args.links, **assumptions)
-        elif command in {"collect", "resume"}:
-            print("Pre-collection estimate: " + json.dumps(project.estimate(), ensure_ascii=False, sort_keys=True, default=str), file=sys.stderr)
-            provider = None
-            if args.offline:
-                from .providers import FakeProvider
-                provider = FakeProvider()
-            result = getattr(project, command)(provider=provider, allow_paid=args.allow_paid, max_jobs=args.max_jobs)
-        elif command == "status":
-            result = project.status()
-        elif command == "cancel":
-            project.cancel()
-            result = project.status()
-        elif command == "large-run":
-            result = project.configure_large_run()
-        elif command == "reset-model":
-            result = project.reset_model(args.model_alias)
-        elif command == "backup":
-            result = project.store.backup(args.out)
-        elif command == "retry-job":
-            project.retry_failed(args.job_id)
-            result = {"job_id": args.job_id, "status": "pending"}
-        elif command == "resolve-uncertain":
-            project.resolve_uncertain(args.job_id, retry=args.retry, acknowledge_possible_duplicate_billing=args.acknowledge_possible_duplicate_billing)
-            result = {"job_id": args.job_id, "status": "pending" if args.retry else "failed", "unknown_reserves_retained": True}
-        elif command == "versions":
-            result = {"versions": project.versions()}
-        elif command == "inspect":
-            result = project.inventory()
-            if args.record:
-                result = {"records": [row for row in result["records"] if row.get("record_id") == args.record],
-                          "occurrences": [row for row in result["occurrences"] if row.get("record_id", row.get("term_id")) == args.record]}
-                if not result["records"]:
-                    raise ValueError("Unknown record ID")
-            elif args.term:
-                result = {"terms": [row for row in result["terms"] if row.get("term_id", row.get("id")) == args.term], "occurrences": [row for row in result["occurrences"] if row.get("term_id") == args.term], "annotations": [row for row in result["annotations"] if row.get("term_id") == args.term], "relations": [row for row in result["relations"] if args.term in (row.get("term_a"), row.get("term_b"))]}
-                if not result["terms"]:
-                    raise ValueError("Unknown term ID")
-            elif args.source:
-                result = {"sources": [row for row in result["sources"] if row.get("source_id", row.get("id")) == args.source], "occurrences": [row for row in result["occurrences"] if row.get("source_id") == args.source], "jobs": [row for row in result["jobs"] if row.get("source_id") == args.source], "audit": [row for row in result["audit"] if row.get("source_id") == args.source]}
-                if not result["sources"]:
-                    raise ValueError("Unknown source ID")
-        elif command == "annotate":
-            attributes = json.loads(args.attributes.read_text(encoding="utf-8")) if args.attributes else None
-            result = {"annotation_id": project.annotate(args.term_id, args.status, args.note, attributes, args.actor)}
-        elif command == "undo-annotation":
-            project.undo_annotation(args.annotation_id)
-            result = {"undone_annotation_id": args.annotation_id}
-        elif command == "relate":
-            result = {"relation_id": project.relate(args.term_a, args.term_b, args.kind, args.actor)}
-        elif command == "undo-relation":
-            project.undo_relation(args.relation_id)
-            result = {"undone_relation_id": args.relation_id}
-        elif command == "snapshot":
-            result = {"version_id": project.snapshot(args.name)}
-        elif command == "export":
-            result = project.export(args.version, args.out, formats=[part.strip() for part in args.formats.split(",") if part.strip()])
-        elif command == "discover":
-            from .discovery import StaticManifestSearch
-            adapter = StaticManifestSearch(args.manifest, local_root=args.local_root) if args.manifest else None
-            result = project.discover(seeds=args.seed, search_adapter=adapter, resume=args.resume)
-        elif command in {"evaluate", "split"}:
-            from .evaluation import evaluate, read_gold, source_splits
-            dataset = project.dataset(args.version)
-            if command == "split":
-                result = source_splits(dataset["sources"], seed=args.seed, group_field=args.group_field)
-            else:
-                heldout = json.loads(args.split_manifest.read_text(encoding="utf-8"))["splits"]["test"] if args.split_manifest else None
-                result = evaluate(dataset, read_gold(args.gold), unit=args.unit, require_sense=args.require_sense, heldout_source_ids=heldout)
-            _write_or_print(result, args.out)
-            return 0
-        elif command == "serve":
-            from .web import serve
-            serve(project, port=args.port, allow_paid=args.allow_paid)
-            return 0
+        mutations = {"prepare-agent", "configure-compute", "configure-cluster", "tune-cluster",
+            "cluster-review", "cluster-submit", "cluster-resume", "cluster-cancel", "cluster-resolve",
+            "cluster-import", "apply-plan", "ingest-plan", "freeze-corpus", "review-plan", "approve-review",
+            "run-review", "release", "init", "ingest", "collect", "resume", "cancel", "large-run",
+            "reset-model", "retry-job", "resolve-uncertain", "annotate", "undo-annotation", "relate",
+            "undo-relation", "snapshot", "export", "discover", "backup"}
+        if args.operation_id is not None and args.command in mutations:
+            from .operations import OperationManager
+            from .store import digest
+            parameters = {key: str(value) if isinstance(value, Path) else value
+                for key, value in vars(args).items() if key != "operation_id"}
+            # Bind explicitly supplied input-file bytes, not output paths.
+            for key in ("brief", "bundle", "metadata", "runtime_manifest", "attributes", "manifest", "url_list"):
+                value = getattr(args, key, None)
+                if value is not None:
+                    path = Path(value)
+                    if path.stat().st_size > 32_000_000:
+                        raise ValueError("Input file exceeds operation binding limit")
+                    parameters[key + "_sha256"] = digest(path.read_text(encoding="utf-8"))
+            for key, presets in (("recipe", {"neologisms", "cultural", "jargon"}),
+                    ("profile", {"fake", "glm-deepseek", "gemini", "configured"})):
+                value = getattr(args, key, None)
+                if value is not None and str(value) not in presets:
+                    from .cluster import file_sha256
+                    parameters[key + "_sha256"] = file_sha256(Path(value), limit=32_000_000)
+            paths = getattr(args, "paths", ())
+            if len(paths) > 1000:
+                raise ValueError("Operation source list exceeds finite binding limit")
+            if paths:
+                from .cluster import file_sha256
+                parameters["source_file_hashes"] = {str(path): file_sha256(path, limit=32_000_000) for path in paths}
+            result = OperationManager(project).execute(args.operation_id, "cli:" + args.command,
+                parameters, lambda: _execute_args(project, args),
+                atomic=args.command in {"approve-review", "cancel", "retry-job", "resolve-uncertain",
+                    "annotate", "undo-annotation", "relate", "undo-relation", "reset-model"})
         else:
-            raise ValueError("Unknown command")
+            result = _execute_args(project, args)
+        if type(result) is int:
+            return result
         _json(result)
-        return 0
+        return _operation_exit(result)
     except (ValueError, RuntimeError, OSError, KeyError) as exc:
         if args.command.startswith("cluster-") or args.command in {"configure-cluster", "tune-cluster"}:
             print("termfinder: Cluster operation was blocked or failed. Inspect the saved job state and validated site profile; verify the concrete approval, execution gates and finite resource limits. No supplied values or scheduler exception bodies are echoed.", file=sys.stderr)
