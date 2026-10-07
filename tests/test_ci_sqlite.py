@@ -3,6 +3,7 @@ import hashlib
 import importlib.util
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 import urllib.request
@@ -75,6 +76,56 @@ class SQLiteCIContractTests(unittest.TestCase):
             self.assertNotIn("sh", command)
         with self.assertRaises(ValueError):
             CI_SQLITE.compiler_arguments("Windows", Path("source/sqlite3.c"), Path("lib/library"))
+
+    def test_compiler_diagnostic_has_fixed_category_and_omits_paths_assignments(self):
+        output = (b"<build>: fatal error: /private/fixture/include/stdio.h: No such file or directory\n"
+                  b"error: KEY=synthetic-fixture-marker\n"
+                  b"arbitrary noncompiler output\n")
+        facts = CI_SQLITE.compiler_failure_facts(1, output, True)
+        self.assertEqual(facts["compiler_failure_category"], "compiler_header_unavailable")
+        self.assertIn("<path>", facts["compiler_diagnostics"][0])
+        self.assertNotIn("/private", str(facts))
+        self.assertNotIn("synthetic-fixture-marker", str(facts))
+        self.assertNotIn("arbitrary noncompiler output", str(facts))
+
+    def test_runtime_failure_facts_are_bounded_to_public_sqlite_identity(self):
+        with self.assertRaises(CI_SQLITE.ProvisionFailure) as caught:
+            CI_SQLITE.validate_metadata("3.51.2", CI_SQLITE.SOURCE_ID, 3, ["THREADSAFE=1"])
+        self.assertEqual(caught.exception.category, "selected_runtime_release_mismatch")
+        self.assertEqual(caught.exception.facts["actual_sqlite_version"], "3.51.2")
+        self.assertEqual(CI_SQLITE.safe_runtime_facts("synthetic-key", "/private/fixture", "secret-like", []),
+                         {"actual_sqlite_version": None, "actual_sqlite_source_id": None,
+                          "actual_threadsafety": None, "serialized_compile_option": False})
+
+    def test_native_linkage_parser_ignores_module_header_and_matches_only_dependencies(self):
+        header = "/private/fixture/_sqlite3.cpython-312-darwin.so:\n"
+        self.assertFalse(CI_SQLITE.shared_sqlite_dependency("Darwin", header + "\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0)\n"))
+        self.assertTrue(CI_SQLITE.shared_sqlite_dependency("Darwin", header + "\t@rpath/libsqlite3.0.dylib (compatibility version 9.0.0)\n"))
+        self.assertTrue(CI_SQLITE.shared_sqlite_dependency("Linux", " 0x0001 (NEEDED) Shared library: [libsqlite3.so.0]\n"))
+        self.assertFalse(CI_SQLITE.shared_sqlite_dependency("Linux", "/private/libsqlite3.so.0\n 0x0001 (NEEDED) Shared library: [libc.so.6]\n"))
+
+    def test_builtin_runtime_facts_export_only_candidate_names_and_booleans(self):
+        with patch.object(CI_SQLITE.Path, "is_file", return_value=False), patch.object(CI_SQLITE.subprocess, "Popen", side_effect=AssertionError("builtin needs no inspector")):
+            facts = CI_SQLITE.native_runtime_facts(SimpleNamespace(), "Darwin")
+        self.assertEqual(facts["sqlite_module_kind"], "builtin")
+        self.assertIsNone(facts["native_sqlite_shared_dependency"])
+        self.assertEqual(facts["homebrew_python_candidates"], {"3.11": False, "3.12": False, "3.13": False})
+        self.assertNotIn("/", str(facts))
+
+    def test_native_inspector_uses_fixed_tool_clean_env_and_never_exports_raw_output(self):
+        commands = []
+        def inspect(command, **options):
+            commands.append(command)
+            self.assertEqual(set(options["env"]), {"PATH", "TMPDIR"})
+            options["stdout"].write(b"/private/fixture/_sqlite3.so:\n\t@rpath/libsqlite3.0.dylib (compatibility version 9.0.0)\nprivate-fixture-marker\n")
+            return SimpleNamespace(wait=lambda **_: 0, returncode=0)
+        with patch.object(CI_SQLITE.Path, "is_file", return_value=True), patch.object(CI_SQLITE.subprocess, "Popen", side_effect=inspect):
+            facts = CI_SQLITE.native_runtime_facts(SimpleNamespace(__file__="/private/fixture/_sqlite3.so"), "Darwin")
+        self.assertEqual(commands, [["/usr/bin/otool", "-L", "/private/fixture/_sqlite3.so"]])
+        self.assertIs(facts["native_sqlite_shared_dependency"], True)
+        self.assertEqual(facts["native_linkage_inspection"], "inspected")
+        self.assertNotIn("private-fixture-marker", str(facts))
+        self.assertNotIn("/private", str(facts))
 
 
 if __name__ == "__main__":

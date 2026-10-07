@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import signal
 import ssl
 import subprocess
@@ -34,6 +35,46 @@ ARCHIVE_LIMIT = 5_000_000
 SOURCE_LIMIT = 16_000_000
 MEMBERS = {f"{ARCHIVE_ROOT}/{name}" for name in ("sqlite3.c", "sqlite3.h", "sqlite3ext.h", "shell.c")}
 FLAGS = ["-O2", "-fPIC", "-DSQLITE_THREADSAFE=1", "-DSQLITE_ENABLE_COLUMN_METADATA"]
+
+
+class ProvisionFailure(ValueError):
+    """Fixed diagnostic category and reviewed facts, never arbitrary errors."""
+    def __init__(self, category, facts=None):
+        super().__init__(category)
+        self.category = category
+        self.facts = facts or {}
+
+
+def compiler_failure_facts(code, output, bounded):
+    text = output.decode("utf-8", errors="replace")
+    lower = text.lower()
+    if not bounded:
+        category = "compiler_output_limit"
+    elif "operation not permitted" in lower or "permission denied" in lower:
+        category = "compiler_permission_denied"
+    elif "cannot execute" in lower or "execvp" in lower or "cannot find 'ld'" in lower:
+        category = "compiler_tool_unavailable"
+    elif "no such file or directory" in lower and (".h" in lower or "include" in lower):
+        category = "compiler_header_unavailable"
+    elif "cannot find" in lower or "library not found" in lower or "undefined reference" in lower:
+        category = "compiler_link_failure"
+    else:
+        category = "compiler_failed"
+    # Only first compiler-labelled error lines from the clean, hash-bound build
+    # are retained. Strip local paths and assignments; cap both count and size.
+    diagnostics = []
+    for line in text.splitlines():
+        if not any(marker in line.lower() for marker in ("fatal error:", "error:", "cannot find", "collect2:")):
+            continue
+        if "=" in line or len(line) > 1200:
+            continue
+        line = re.sub(r"/[^\s:'\"]+", "<path>", line)
+        diagnostics.append(line[:300])
+        if len(diagnostics) == 3:
+            break
+    return {"compiler_failure_category": category, "compiler_exit_code": code,
+            "compiler_output_bounded": bounded, "compiler_output_sha256": hashlib.sha256(output).hexdigest(),
+            "compiler_diagnostics": diagnostics}
 
 
 def sha256(path):
@@ -155,7 +196,8 @@ def compile_bounded(command, environment):
         log.seek(0)
         output = log.read(1_048_577)
     if len(output) > 1_048_576 or process.returncode:
-        raise RuntimeError("SQLite compiler failed or exceeded its bounded output")
+        facts = compiler_failure_facts(process.returncode, output[:1_048_576], len(output) <= 1_048_576)
+        raise ProvisionFailure(facts["compiler_failure_category"], facts)
     return hashlib.sha256(output).hexdigest()
 
 
@@ -205,19 +247,93 @@ def build(archive, prefix):
     return manifest
 
 
+def safe_runtime_facts(version, source_id, threadsafety, compile_options):
+    safe_version = version if isinstance(version, str) and re.fullmatch(r"\d{1,3}\.\d{1,3}\.\d{1,3}", version) else None
+    safe_source = source_id if isinstance(source_id, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [a-f0-9]{64}(?: alt\d)?", source_id) else None
+    return {"actual_sqlite_version": safe_version, "actual_sqlite_source_id": safe_source,
+            "actual_threadsafety": threadsafety if type(threadsafety) is int and 0 <= threadsafety <= 3 else None,
+            "serialized_compile_option": "THREADSAFE=1" in compile_options}
+
+
+def shared_sqlite_dependency(system, output):
+    if system == "Darwin":
+        dependencies = [line.strip().split(" (", 1)[0] for line in output.splitlines() if line[:1].isspace()]
+        return any(re.search(r"(?:^|/)libsqlite3(?:\.\d+)?\.dylib$", name, flags=re.IGNORECASE)
+                   or re.search(r"(?:^|/)sqlite3?\.framework/", name, flags=re.IGNORECASE)
+                   for name in dependencies)
+    if system == "Linux":
+        dependencies = re.findall(r"\(NEEDED\).*?\[([^\]\n]+)\]", output)
+        return any(re.fullmatch(r"libsqlite3\.so(?:\.\d+)*", name) for name in dependencies)
+    raise ValueError("Unsupported native metadata inspection platform")
+
+
+def native_runtime_facts(module, system=None):
+    system = system or platform.system()
+    facts = {"sqlite_module_kind": "native_extension" if getattr(module, "__file__", None) else "builtin",
+             "native_sqlite_shared_dependency": None,
+             "native_linkage_inspection": "not_a_native_extension",
+             "homebrew_python_candidates": {version: any(Path(prefix, f"python@{version}", "bin", f"python{version}").is_file()
+                  for prefix in ("/usr/local/opt", "/opt/homebrew/opt")) for version in ("3.11", "3.12", "3.13")}}
+    native = getattr(module, "__file__", None)
+    if not native:
+        return facts
+    if system == "Darwin":
+        command = ["/usr/bin/otool", "-L", native]
+    elif system == "Linux":
+        command = ["/usr/bin/readelf", "-d", native]
+    else:
+        facts["native_linkage_inspection"] = "unsupported_platform"
+        return facts
+    if not Path(command[0]).is_file():
+        facts["native_linkage_inspection"] = "metadata_tool_unavailable"
+        return facts
+    environment = {"PATH": "/usr/bin:/bin", "TMPDIR": os.environ.get("TMPDIR", tempfile.gettempdir())}
+    with tempfile.TemporaryFile(dir=environment["TMPDIR"]) as log:
+        try:
+            process = subprocess.Popen(command, env=environment, stdin=subprocess.DEVNULL, stdout=log,
+                                       stderr=subprocess.STDOUT, start_new_session=True)
+        except OSError:
+            facts["native_linkage_inspection"] = "metadata_tool_launch_failed"
+            return facts
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=2)
+            facts["native_linkage_inspection"] = "metadata_tool_timeout"
+            return facts
+        log.seek(0)
+        output = log.read(65_537)
+    if process.returncode or len(output) > 65_536:
+        facts["native_linkage_inspection"] = "metadata_tool_failed" if process.returncode else "metadata_output_limit"
+        return facts
+    facts["native_sqlite_shared_dependency"] = shared_sqlite_dependency(system, output.decode("utf-8", errors="replace"))
+    facts["native_linkage_inspection"] = "inspected"
+    return facts
+
+
 def validate_metadata(version, source_id, threadsafety, compile_options):
+    facts = safe_runtime_facts(version, source_id, threadsafety, compile_options)
     if version != VERSION or source_id != SOURCE_ID:
-        raise ValueError("Selected Python did not load the pinned patched SQLite release")
+        raise ProvisionFailure("selected_runtime_release_mismatch", facts)
     if threadsafety != 3 or "THREADSAFE=1" not in compile_options:
-        raise ValueError("Selected SQLite runtime must support serialized thread safety")
+        raise ProvisionFailure("selected_runtime_thread_safety_mismatch", facts)
 
 
 def check_runtime():
+    import _sqlite3
     import sqlite3
     with sqlite3.connect(":memory:") as database:
         source_id = database.execute("select sqlite_source_id()").fetchone()[0]
         options = sorted(row[0] for row in database.execute("pragma compile_options"))
-        validate_metadata(sqlite3.sqlite_version, source_id, sqlite3.threadsafety, options)
+        try:
+            validate_metadata(sqlite3.sqlite_version, source_id, sqlite3.threadsafety, options)
+        except ProvisionFailure as error:
+            error.facts.update(native_runtime_facts(_sqlite3))
+            raise
         if database.execute("select json_extract('{\"value\":\"é🧪\"}', '$.value')").fetchone()[0] != "é🧪":
             raise ValueError("Selected SQLite runtime lacks working Unicode JSON extraction")
     with tempfile.TemporaryDirectory(prefix="quarry-sqlite-health-") as temporary:
@@ -236,6 +352,7 @@ def check_runtime():
                 raise ValueError("Selected SQLite runtime failed its WAL integrity check")
     return {"sqlite_version": sqlite3.sqlite_version, "sqlite_source_id": source_id,
             "threadsafety": sqlite3.threadsafety, "compile_options": options,
+            **native_runtime_facts(_sqlite3),
             "checks": {"exact_release": True, "serialized_thread_safety": True, "unicode_json": True, "wal_two_connections": True, "integrity": True}}
 
 
@@ -251,6 +368,8 @@ def main(argv=None):
     started = time.monotonic()
     try:
         result = acquire(archive) if args.command == "acquire" else build(archive, prefix) if args.command == "build" else check_runtime()
+    except ProvisionFailure as error:
+        result = {"success": False, "category": error.category, **error.facts}
     except Exception as error:
         result = {"success": False, "category": type(error).__name__}
     else:
