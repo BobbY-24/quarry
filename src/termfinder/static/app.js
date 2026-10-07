@@ -19,12 +19,33 @@ const show = value => JSON.stringify(value, null, 2);
 function message(text, error=false) { $('message').textContent=text; $('message').className=error?'error':''; }
 async function api(path, body) {
   const options={headers:{'X-Termfinder-Token':token}};
-  if(body !== undefined){options.method='POST';options.headers['Content-Type']='application/json';options.body=JSON.stringify(body);}
+  let operationKey=null,operationId=null;
+  if(body !== undefined){
+    if(!['estimate','agent-setup/validate','publication-audit'].includes(path)){
+      const bytes=new TextEncoder().encode(JSON.stringify([path,body]));
+      const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),v=>v.toString(16).padStart(2,'0')).join('');
+      operationKey='quarry.operation.'+hash;
+      operationId=body.operation_id||sessionStorage.getItem(operationKey)||crypto.randomUUID();
+      sessionStorage.setItem(operationKey,operationId);
+      body={...body,operation_id:operationId};
+    }
+    options.method='POST';options.headers['Content-Type']='application/json';options.body=JSON.stringify(body);
+  }
   const controller=new AbortController();options.signal=controller.signal;
   const timer=setTimeout(()=>controller.abort(),body===undefined?30000:600000);
   try{const response=await fetch('/api/'+path,options);const result=await response.json();
-    if(!response.ok)throw new Error(result.error||'Request failed');return result;
-  }catch(error){if(error.name==='AbortError')throw new Error('The browser request timed out. Collection may still be running; check saved progress before repeating an action.');throw error;}finally{clearTimeout(timer);}
+    if(!response.ok)throw new Error(result.error||'Request failed');
+    if(result.operation_id){
+      if(result.status==='succeeded'){
+        if(result.transient_result!==undefined){if(operationKey)sessionStorage.removeItem(operationKey);return result.transient_result;}
+        if(result.result===undefined||result.result_reason)throw new Error(`Operation ${result.operation_id} finished. Its full result exceeded the receipt limit; inspect saved progress or exports.`);
+        if(operationKey)sessionStorage.removeItem(operationKey);
+        return result.result;
+      }
+      throw new Error(`Operation ${result.operation_id} is ${result.status}. Check saved progress and its receipt before repeating this action. The same action reuses this ID.`);
+    }
+    return result;
+  }catch(error){if(error.name==='AbortError')throw new Error(`The browser reply timed out. Check saved progress before retrying; this action will reuse operation ${operationId||'its original ID'}.`);throw error;}finally{clearTimeout(timer);}
 }
 function action(id, fn, available=()=>true) { $(id).addEventListener('click',async()=>{const button=$(id);if(!available())return;busyActions.add(id);button.disabled=true;try{await fn();}catch(e){message(e.message,true);}finally{busyActions.delete(id);button.disabled=!available();}}); }
 function lines(id){return $(id).value.split('\n').map(x=>x.trim()).filter(Boolean);}

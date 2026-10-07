@@ -20,7 +20,7 @@ import uuid
 import re
 
 from .cluster import (ACTIVE, JOB_ID, VERSION, ClusterController, file_sha256,
-    metadata_lock, package_fingerprint, read_json, status_summary, verify_bundle, write_json)
+    dispatch_journal, metadata_lock, package_fingerprint, read_json, status_summary, verify_bundle, write_json)
 from .project import Project
 from .store import now
 from .workflow import run_review
@@ -53,6 +53,7 @@ def _retain_checkpoints(bundle, state, owned):
                 references.add(receipt["file"])
     keep = references | set(owned[-2:])
     retained = []
+    pruned = False
     for relative in owned:
         if not isinstance(relative, str) or not re.fullmatch(r"checkpoints/checkpoint_[0-9a-f]{32}\.sqlite3", relative):
             raise ValueError("Unsafe owned checkpoint generation")
@@ -66,6 +67,13 @@ def _retain_checkpoints(bundle, state, owned):
             if not path.is_file():
                 raise ValueError("Checkpoint generation is not a regular file")
             path.unlink()
+            pruned = True
+    if pruned:
+        descriptor = os.open(bundle / "checkpoints", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
     return retained
 
 
@@ -90,8 +98,17 @@ def run_bundle(bundle, submission, *, execute=False, provider=None, max_jobs=Non
     root = bundle.parent.parent
     with metadata_lock(root):
         state, job = _job(root, submission)
-        if job["state"] not in {"submitted", "pending", "running", "submitting"} or job.get("started_at"):
+        if job["state"] not in {"submitted", "pending", "running", "submitting", "submission_unknown"} or job.get("started_at"):
             raise ValueError("Submission cannot start again; use an explicit resumed allocation")
+        scheduler_id = os.environ.get("SLURM_JOB_ID")
+        restart = os.environ.get("SLURM_RESTART_COUNT", "0")
+        if (restart != "0" or scheduler_id is not None and not re.fullmatch(r"[1-9][0-9]{0,17}", scheduler_id)
+                or scheduler_id is not None and job.get("scheduler_job_id") not in {None, scheduler_id}
+                or install_signals and provider is None and scheduler_id is None):
+            raise ValueError("Worker allocation identity changed or requeue is unsupported")
+        generation = job.get("execution_generation")
+        if not isinstance(generation, str) or not re.fullmatch(r"execution_[0-9a-f]{32}", generation):
+            raise ValueError("Worker execution generation is missing")
         if (job["cluster_review_id"] != manifest["cluster_review_id"]
                 or job["approval"]["binding_sha256"] != manifest["binding_sha256"]
                 or job["approval"].get("human_approved") is not True):
@@ -108,7 +125,9 @@ def run_bundle(bundle, submission, *, execute=False, provider=None, max_jobs=Non
             job.update(state="failed", reason="reviewed_runtime_integrity_failed", finished_at=now())
             write_json(root / "state.json", state)
             raise
-        job.update(state="running", started_at=now())
+        job.update(state="running", started_at=now(), execution_claim={"generation": generation,
+            "scheduler_job_id": scheduler_id or job.get("scheduler_job_id"),
+            "restart_count": 0, "claimed_at": now()})
         write_json(root / "state.json", state)
         allow_paid = job["allow_paid"]
         checkpoint = job.get("resume_checkpoint")
@@ -128,12 +147,19 @@ def run_bundle(bundle, submission, *, execute=False, provider=None, max_jobs=Non
         shutil.copyfile(input_path, active / "project.sqlite3")
         shutil.copytree(bundle / "human-review", active / "human-review")
         project = Project(active)
+        if project.store.read_setting("quota_configuration"):
+            raise ValueError("GT workers cannot reuse a control host's local quota registry")
+        project._dispatch_journal = dispatch_journal(manifest, bundle, execution={
+            "submission_id": submission, "generation": generation,
+            "scheduler_job_id": scheduler_id or job.get("scheduler_job_id")})
+        project._dispatch_journal.reconcile(project.store)
     except Exception:
         if active_parent:
             shutil.rmtree(active_parent)
         with metadata_lock(root):
             latest, record = _job(root, submission)
-            record.update(state="failed", reason="node_local_staging_failed", finished_at=now())
+            record.update(state="failed", reason="node_local_staging_failed",
+                finished_at=now(), worker_finished_at=now())
             write_json(root / "state.json", latest)
         raise
     started = allocated_started
@@ -144,6 +170,7 @@ def run_bundle(bundle, submission, *, execute=False, provider=None, max_jobs=Non
     owned_checkpoints = []
     old_handlers = {}
     server = None
+    preserve_local_recovery = True
 
     def request_stop(label):
         reason["value"] = reason["value"] or label
@@ -157,8 +184,23 @@ def run_bundle(bundle, submission, *, execute=False, provider=None, max_jobs=Non
         with checkpoint_lock:
             directory = bundle / "checkpoints"
             directory.mkdir(mode=0o700, exist_ok=True)
+            if (bundle.is_symlink() or directory.is_symlink() or not directory.is_dir()
+                    or directory.stat().st_uid != os.getuid() or directory.stat().st_mode & 0o077):
+                raise ValueError("Durable checkpoint directory must be private, owned and contain no symlink")
             path = directory / ("checkpoint_" + uuid.uuid4().hex + ".sqlite3")
             project.store.backup(path)
+            # SQLite online backup establishes consistency; fsync establishes
+            # the actual durable boundary before the JSON receipt is published.
+            descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+            try:
+                os.fsync(descriptor)
+            finally:
+                os.close(descriptor)
+            directory_descriptor = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            try:
+                os.fsync(directory_descriptor)
+            finally:
+                os.close(directory_descriptor)
             owned_checkpoints.append(path.relative_to(bundle).as_posix())
             receipt = {"file": path.relative_to(bundle).as_posix(), "sha256": file_sha256(path),
                 "created_at": now(), "consistency": "sqlite_online_backup", "final": final}
@@ -219,6 +261,7 @@ def run_bundle(bundle, submission, *, execute=False, provider=None, max_jobs=Non
         project.store.setting("cluster_execution", {"version": VERSION,
             "cluster_review_id": manifest["cluster_review_id"], "binding_sha256": manifest["binding_sha256"],
             "job_id": submission, "runtime": deepcopy(profile["runtime"]),
+            "execution_generation": generation,
             "collector_package": deepcopy(manifest["binding"]["collector_package"]),
             "model_artifacts": deepcopy(profile["model_artifacts"]), "resources": deepcopy(profile),
             "artifact_identity_note": "Checkpoint hashes are operator declarations for the existing endpoint, not remote attestation",
@@ -251,12 +294,14 @@ def run_bundle(bundle, submission, *, execute=False, provider=None, max_jobs=Non
             worker_gpu_hours_lower_bound=elapsed * profile["gpus"] / 3600, stop_reason=reason["value"])
         project.store.setting("cluster_execution", execution)
         checkpoint_now(final=True, result=result)
+        preserve_local_recovery = False
         return {"job_id": submission, "result": result, "worker_gpu_hours_lower_bound": execution["worker_gpu_hours_lower_bound"],
             "runtime": deepcopy(profile["runtime"])}
     except BaseException:
         monitor_done.set()
         try:
             checkpoint_now()
+            preserve_local_recovery = False
         except Exception:
             pass
         with metadata_lock(root):
@@ -266,13 +311,31 @@ def run_bundle(bundle, submission, *, execute=False, provider=None, max_jobs=Non
         raise
     finally:
         monitor_done.set()
-        if server is not None:
-            server.close()
-        if install_signals:
-            signal.alarm(0)
-            for signum, old in old_handlers.items():
-                signal.signal(signum, old)
-        shutil.rmtree(active_parent)
+        try:
+            if server is not None:
+                server.close()
+            # A worker receipt alone does not prove the owned server stopped.
+            # Scheduler-terminal observation may release this fence after a
+            # hard crash; an unknown query never releases it.
+            with metadata_lock(root):
+                latest, record = _job(root, submission)
+                elapsed = max(0, time.monotonic() - started)
+                record["worker_finished_at"] = now()
+                record["cleanup_elapsed_seconds"] = max(0, elapsed - record.get("worker_elapsed_seconds", 0))
+                record["worker_elapsed_seconds"] = round(elapsed, 6)
+                record["worker_gpu_hours_lower_bound"] = elapsed * profile["gpus"] / 3600
+                if preserve_local_recovery:
+                    record["node_local_recovery"] = {"required": True, "directory": str(active),
+                        "reason": "latest_changes_not_in_published_durable_checkpoint",
+                        "availability": "only_if_original_node_storage_survives"}
+                write_json(root / "state.json", latest)
+        finally:
+            if install_signals:
+                signal.alarm(0)
+                for signum, old in old_handlers.items():
+                    signal.signal(signum, old)
+            if not preserve_local_recovery:
+                shutil.rmtree(active_parent)
 
 
 def main(argv=None):

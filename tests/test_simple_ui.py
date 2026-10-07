@@ -143,7 +143,7 @@ class SimpleBrowserTests(unittest.TestCase):
 
     def test_reviewed_worker_uses_saved_admission_and_never_hides_real_profile(self):
         server = ResearchServer.__new__(ResearchServer)
-        server.project = SimpleNamespace(profile={"id": "fake"})
+        server.project = SimpleNamespace(profile={"id": "fake"}, store=SimpleNamespace(setting=lambda *args: None))
         server.allow_paid, server.worker, server.worker_lock = False, None, threading.Lock()
         with patch("termfinder.workflow.run_review", return_value={"status": "complete"}) as run, \
              patch("termfinder.workflow.check_review", return_value={"ready": True}) as preflight:

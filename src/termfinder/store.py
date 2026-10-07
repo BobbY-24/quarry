@@ -15,7 +15,17 @@ import time
 from .config import canonical
 
 TABLES = ("sources", "terms", "occurrences", "runs", "jobs", "audit", "annotations",
-          "relations", "discovery", "costs", "cache", "versions")
+          "relations", "discovery", "costs", "cache", "versions", "incidents", "operations")
+
+
+def validate_sqlite_runtime():
+    # SQLite's documented 2026 WAL-reset fix is necessary for concurrent UI/
+    # collector connections. A vendor backport with another version needs an
+    # independently reviewed build; no silent assumption of patch coverage.
+    version=sqlite3.sqlite_version_info
+    if version<(3,51,3) and version not in {(3,44,6),(3,50,7)}:
+        raise ValueError("Quarry requires patched SQLite >=3.51.3 or verified 3.44.6/3.50.7; upgrade the Python runtime before opening a project")
+    return sqlite3.sqlite_version
 
 
 def now():
@@ -33,6 +43,7 @@ def ident(prefix, value):
 
 class Store:
     def __init__(self, path, *, path_guard=None):
+        validate_sqlite_runtime()
         self.path = Path(path)
         if path_guard is not None and not callable(path_guard):
             raise ValueError("Invalid store path guard")
@@ -44,6 +55,9 @@ class Store:
         with self.connection() as db:
             db.execute("PRAGMA journal_mode=WAL")
             db.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+            row = db.execute("SELECT value FROM settings WHERE key='schema_version'").fetchone()
+            if row and json.loads(row[0]) != 1:
+                raise ValueError("unsupported project database schema")
             for table in TABLES:
                 db.execute(f"CREATE TABLE IF NOT EXISTS {table} (id TEXT PRIMARY KEY, data TEXT NOT NULL)")
             db.execute("CREATE TABLE IF NOT EXISTS run_jobs (run_id TEXT NOT NULL, job_id TEXT NOT NULL, is_root INTEGER NOT NULL, PRIMARY KEY(run_id,job_id))")
@@ -136,6 +150,11 @@ class Store:
             with self.connection() as conn: return self.count(table, where=where, params=params, db=conn)
         return db.execute(f"SELECT count(*) FROM {table} WHERE {where}", params).fetchone()[0]
 
+    def table_bytes(self, tables):
+        if any(table not in TABLES for table in tables):raise ValueError("unknown table")
+        with self.connection() as db:
+            return sum(db.execute(f"SELECT coalesce(sum(length(CAST(data AS BLOB))),0) FROM {table}").fetchone()[0] for table in tables)
+
     def register_jobs(self, run_id, ids, *, root=False, db=None):
         if db is None:
             with self.connection() as conn: return self.register_jobs(run_id, ids, root=root, db=conn)
@@ -156,10 +175,38 @@ class Store:
         if limit is not None: sql += " LIMIT ?"; args.append(limit)
         with self.connection() as db: return [json.loads(row[0]) for row in db.execute(sql,args)]
 
+    def run_cached_jobs(self, run_id, *, limit=64):
+        """Bounded local replay queue; model/account health gates only inference."""
+        with self.connection() as db:
+            rows=db.execute("""SELECT j.data FROM jobs j JOIN run_jobs m ON m.job_id=j.id
+                JOIN cache c ON c.id=j.id WHERE m.run_id=?
+                AND json_extract(j.data,'$.status') IN ('pending','deferred')
+                AND coalesce(json_extract(j.data,'$.cache_bypass_once'),0)=0
+                ORDER BY j.id LIMIT ?""",(run_id,limit))
+            return [json.loads(row[0]) for row in rows]
+
     def prune_run_index(self, current_run):
         # These are disposable scheduler memberships; historical runs/jobs stay.
         with self.connection() as db:
             db.execute("DELETE FROM run_jobs WHERE run_id!=?", (current_run,))
+
+    def run_contains(self, run_id, job_id):
+        with self.connection() as db:
+            return db.execute("SELECT 1 FROM run_jobs WHERE run_id=? AND job_id=?",(run_id,job_id)).fetchone() is not None
+
+    def iter_run_jobs(self, run_id, *, root=False, batch_size=64):
+        last=""
+        while True:
+            with self.connection() as db:
+                rows=db.execute("SELECT j.id,j.data FROM jobs j JOIN run_jobs m ON j.id=m.job_id WHERE m.run_id=? AND j.id>? AND (?=0 OR m.is_root=1) ORDER BY j.id LIMIT ?",(run_id,last,int(root),batch_size)).fetchall()
+            if not rows:return
+            for key,data in rows:
+                last=key
+                yield json.loads(data)
+
+    def run_root_count(self, run_id):
+        with self.connection() as db:
+            return db.execute("SELECT count(*) FROM run_jobs WHERE run_id=? AND is_root=1",(run_id,)).fetchone()[0]
 
     def checkpoint(self):
         # PASSIVE does not wait for browser readers or hold a long writer lock.
@@ -184,6 +231,10 @@ class Store:
                 destination.execute("PRAGMA journal_mode=DELETE")
                 if destination.execute("PRAGMA quick_check").fetchone()[0] != "ok": raise ValueError("Backup integrity check failed")
             os.link(temporary,target)
+            with target.open("rb") as stream: os.fsync(stream.fileno())
+            descriptor=os.open(target.parent,os.O_RDONLY)
+            try:os.fsync(descriptor)
+            finally:os.close(descriptor)
         finally:
             os.unlink(temporary)
         return {"path":str(target),"bytes":target.stat().st_size,"consistency":"sqlite_online_backup","integrity":"quick_check_passed"}
@@ -223,8 +274,16 @@ class Store:
             with self.connection() as conn:
                 self.put(table, key, value, conn)
         else:
+            if table=="incidents" and self.count("incidents",db=db)>=10000 and self.get("incidents",key,db) is None:
+                raise RuntimeError("Incident capacity reached; last durable research/accounting state retained")
+            if table=="audit" and self.count("audit",db=db)>=100000 and self.get("audit",key,db) is None:
+                raise RuntimeError("Audit capacity reached; response receipts and committed evidence retained; archive or review before resume")
+            encoded=canonical(value)
+            ceiling=128*1024*1024 if table=="versions" else 32*1024*1024
+            if len(encoded.encode("utf-8"))>ceiling:
+                raise RuntimeError("Persistent record size limit reached; committed records retained")
             db.execute(f"INSERT INTO {table}(id,data) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data",
-                       (key, canonical(value)))
+                       (key, encoded))
 
     def get(self, table, key, db=None):
         if table not in TABLES:

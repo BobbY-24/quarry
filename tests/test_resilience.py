@@ -134,6 +134,10 @@ class ResilienceTests(unittest.TestCase):
         self.assertGreaterEqual(glm_times[1] - glm_times[0], 30)
 
     def test_permanent_credential_failure_is_not_retried(self):
+        profile=deepcopy(self.project.profile)
+        profile["providers"]["independent"]=deepcopy(next(iter(profile["providers"].values())))
+        profile["models"]["deepseek"]["provider"]="independent"
+        self.project.configure(self.recipe,profile)
         for n in range(4): self.source(n)
         provider = Flaky(self.clock, fail=100, error=ProviderError("http_401"))
         result = self.run_engine(provider)
@@ -278,10 +282,11 @@ class ResilienceTests(unittest.TestCase):
 
     def test_transport_timeout_and_retry_after_are_safe_and_no_sdk_retry_occurs(self):
         from termfinder.config import load_profile
+        from termfinder.process_transport import TransportFailure
         profile=load_profile("glm-deepseek")
         credential=profile["providers"][profile["models"]["glm"]["provider"]]["credential_env"]
         request={"expert":{"model":"glm"},"prompt":"synthetic source only","timeout_seconds":1,"max_output_tokens":10}
-        with patch.dict("os.environ",{credential:"synthetic-test-placeholder"},clear=True), patch("termfinder.providers.subprocess.run",side_effect=subprocess.TimeoutExpired("worker",1)) as call:
+        with patch.dict("os.environ",{credential:"synthetic-test-placeholder"},clear=True), patch("termfinder.providers.bounded_exchange",side_effect=TransportFailure("request_wall_timeout_outcome_unknown",started=True,retryable=True)) as call:
             with self.assertRaises(ProviderError) as raised: HTTPProvider(profile).complete(request)
             self.assertTrue(raised.exception.uncertain and raised.exception.retryable)
             self.assertEqual(call.call_count,1)

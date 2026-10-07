@@ -23,7 +23,7 @@ Quarry to this agent in my research workspace. Preserve existing settings.
 Start with the offline connection and confirm a list_studies tool call.
 ```
 
-Python 3.11–3.13 · macOS/Linux · GitHub access required for this private repo.
+Python 3.11–3.13 · macOS/Linux · [Patched SQLite required](docs/COMPATIBILITY.md).
 
 ## Installation on macOS or Linux
 
@@ -33,8 +33,8 @@ Python 3.11–3.13 · macOS/Linux · GitHub access required for this private rep
 ```sh
 gh repo clone BobbY-24/quarry
 cd quarry
-python3.13 -m venv .venv-6.6
-. .venv-6.6/bin/activate
+python3.13 -m venv .venv
+. .venv/bin/activate
 python -m pip install -r requirements-build.txt
 python -m pip install --no-build-isolation .
 mkdir -p research-workspace
@@ -112,4 +112,4 @@ measure recall against complete held-out sources. [Research protocol →](docs/P
 [Notebook](examples/simple_student_workflow.ipynb) · [CLI/Python](docs/ENGINE_GUIDE.md) · [More diagrams](docs/QUARRY_DIAGRAMS.md) · [Evaluation](docs/EVALUATION.md) · [Limitations](docs/PILOT.md)
 
 Workflow inspired by [Paper2Agent](https://github.com/jmiao24/Paper2Agent).
-Quarry V6.6 · [MIT license](LICENSE).
+Quarry V6.7 · [Recovery and reliability](docs/RECOVERY.md) · [MIT license](LICENSE).

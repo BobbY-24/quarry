@@ -1,0 +1,191 @@
+"""Reviewed, fail-closed CI isolation for application/build/test execution.
+
+Dependency wheels are acquired separately. Run this orchestrator with env -i
+and Python -I -S. Only explicitly named runtimes, repository and private temp
+are available to the executed code. No credentials or network are inherited.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import platform
+import resource
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+
+PROBE = r'''
+import json, os, socket, sys
+result = {}
+isolated_namespace = False
+if sys.platform.startswith('linux'):
+    isolated_namespace = os.readlink('/proc/self/ns/net') != sys.argv[2]
+    result['host_network_namespace_isolated'] = isolated_namespace
+try:
+    with open(sys.argv[1], 'rb') as stream: stream.read(1)
+except OSError:
+    result['unrelated_file_read_denied'] = True
+else:
+    result['unrelated_file_read_denied'] = False
+try:
+    client = socket.socket(); client.settimeout(.2); client.connect(('127.0.0.1', 9))
+except OSError as error:
+    # bubblewrap isolates host/external networking; its private loopback may
+    # return connection-refused instead of a macOS permission error.
+    result['network_denied'] = error.errno in (1, 13) or isolated_namespace
+else:
+    result['network_denied'] = False
+finally:
+    if 'client' in locals(): client.close()
+print(json.dumps(result, sort_keys=True))
+sys.exit(0 if all(result.values()) else 3)
+'''
+
+
+def source_hashes(project):
+    hashes = {}
+    for name in ("pyproject.toml", "requirements.txt", "requirements-build.txt", "README.md", "LICENSE"):
+        path=project/name
+        if path.is_file() and not path.is_symlink():
+            hashes[name]=hashlib.sha256(path.read_bytes()).hexdigest()
+    for name in ("src", "tests", "tools", "examples", ".github"):
+        for path in sorted((project / name).rglob("*")):
+            if (path.is_file() and not path.is_symlink() and "__pycache__" not in path.parts
+                    and not any(part.endswith(".egg-info") for part in path.parts)):
+                hashes[path.relative_to(project).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashes
+
+
+def bounded_run(command, *, environment, cwd, timeout, cpu_seconds):
+    def limits():
+        resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
+        resource.setrlimit(resource.RLIMIT_NOFILE, (256, 256))
+        resource.setrlimit(resource.RLIMIT_FSIZE, (1_073_741_824, 1_073_741_824))
+        if sys.platform.startswith("linux"):
+            resource.setrlimit(resource.RLIMIT_AS, (4_294_967_296, 4_294_967_296))
+    with tempfile.TemporaryFile(dir=environment["TMPDIR"]) as log:
+        process = subprocess.Popen(command, env=environment, cwd=cwd, stdin=subprocess.DEVNULL,
+                                   stdout=log, stderr=subprocess.STDOUT,
+                                   start_new_session=True, preexec_fn=limits)
+        try:
+            process.wait(timeout=timeout)
+            code = process.returncode
+        except subprocess.TimeoutExpired:
+            # Terminate the entire isolated process family, not only its launcher.
+            os.killpg(process.pid, signal.SIGTERM)
+            try: process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait(timeout=2)
+            code = 124
+        log.seek(0)
+        output = log.read(8_388_609)
+        if len(output) > 8_388_608:
+            code, output = 125, output[:8_388_608] + b"\nCI output limit reached.\n"
+        return code, output.decode("utf-8", errors="replace")
+
+
+def main(argv=None):
+    project = Path(__file__).resolve().parents[1]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--python", type=Path, required=True)
+    parser.add_argument("--runtime-root", type=Path, required=True)
+    parser.add_argument("--base-runtime-root", type=Path, required=True)
+    parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--source", action="store_true")
+    parser.add_argument("--timeout", type=int, default=600)
+    parser.add_argument("--cpu-seconds", type=int, default=300)
+    parser.add_argument("command", nargs=argparse.REMAINDER)
+    args = parser.parse_args(argv)
+    if not 1 <= args.timeout <= 1800 or not 1 <= args.cpu_seconds <= 900:
+        parser.error("CI wall/CPU bounds must remain finite")
+    interpreter = args.python.expanduser().absolute()
+    roots = {args.runtime_root.expanduser().resolve(), args.base_runtime_root.expanduser().resolve()}
+    if not interpreter.is_file() or any(not root.is_dir() or root in {Path("/"), Path.home(), Path.home().parent} for root in roots):
+        parser.error("Explicit reviewed interpreter and narrow runtime directories are required")
+    if not any(interpreter.resolve().is_relative_to(root) for root in roots):
+        parser.error("Interpreter must belong to an explicit reviewed runtime")
+    destination = args.report.resolve()
+    if not destination.is_relative_to(project / "verification"):
+        parser.error("CI receipts must stay inside repository verification/")
+    command = args.command[1:] if args.command[:1] == ["--"] else args.command
+    if not command:
+        parser.error("Provide explicit reviewed Python arguments after --")
+    started = time.monotonic()
+    before_hashes = source_hashes(project)
+    with tempfile.TemporaryDirectory(prefix="quarry-ci-", dir="/private/tmp" if sys.platform == "darwin" else "/tmp") as temporary, \
+            tempfile.NamedTemporaryFile(prefix="quarry-unrelated-probe-", dir="/private/tmp" if sys.platform == "darwin" else "/tmp") as marker:
+        private = Path(temporary).resolve()
+        marker.write(b"public isolation probe marker; no private data\n"); marker.flush()
+        if sys.platform == "darwin":
+            if not Path("/usr/bin/sandbox-exec").is_file():
+                parser.error("macOS Seatbelt is required; no unsandboxed fallback")
+            prefix = ["/usr/bin/sandbox-exec", "-D", f"PROJECT_ROOT={project}",
+                      "-D", f"RUNTIME_ROOT={args.runtime_root.resolve()}",
+                      "-D", f"BASE_RUNTIME_ROOT={args.base_runtime_root.resolve()}",
+                      "-D", f"HOME_ROOT={Path.home()}", "-D", f"TEMP_ROOT={private}",
+                      "-f", str(project / "tools" / "offline.sb"), str(interpreter)]
+            sandbox = "macOS Seatbelt"
+        elif sys.platform.startswith("linux"):
+            bwrap = shutil.which("bwrap", path="/usr/bin:/bin")
+            if not bwrap:
+                parser.error("Linux bubblewrap is required; no unsandboxed fallback")
+            prefix = [bwrap, "--unshare-all", "--die-with-parent", "--new-session", "--cap-drop", "ALL",
+                      "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp"]
+            for system in ("/usr/bin", "/usr/lib", "/usr/lib64", "/usr/share/zoneinfo", "/bin", "/lib", "/lib64"):
+                if Path(system).exists(): prefix.extend(["--ro-bind", system, system])
+            for system in ("/etc/ld.so.cache", "/etc/localtime"):
+                if Path(system).exists(): prefix.extend(["--ro-bind", system, system])
+            for root in sorted(roots): prefix.extend(["--ro-bind", str(root), str(root)])
+            prefix.extend(["--bind", str(project), str(project), "--bind", str(private), str(private),
+                           "--chdir", str(project), str(interpreter)])
+            sandbox = "Linux bubblewrap"
+        else:
+            parser.error("Supported offline CI platforms are Linux and macOS")
+        environment = {"PATH": str(interpreter.parent) + ":/usr/bin:/bin", "TMPDIR": str(private),
+                       "PYTHONDONTWRITEBYTECODE": "1", "PYTHONNOUSERSITE": "1",
+                       "OMP_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "2", "ARROW_NUM_THREADS": "2"}
+        if args.source: environment["PYTHONPATH"] = str(project / "src")
+        host_namespace = os.readlink("/proc/self/ns/net") if sys.platform.startswith("linux") else "unavailable_on_macos"
+        code, output = bounded_run(prefix + ["-c", PROBE, marker.name, host_namespace], environment=environment,
+                                   cwd=project, timeout=20, cpu_seconds=args.cpu_seconds)
+        try: probe = json.loads(output)
+        except ValueError: probe = {"unrelated_file_read_denied": False, "network_denied": False}
+        if code or not all(probe.values()):
+            failure = {"schema_version": 1, "isolation_probe_failed": True, "probe": probe,
+                       "application_executed": False, "exit_code": code, "sandbox": sandbox,
+                       "reviewed_files_sha256": before_hashes}
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(json.dumps(failure, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+            print(json.dumps({key: value for key, value in failure.items() if key != "reviewed_files_sha256"}))
+            return 3
+        code, output = bounded_run(prefix + command, environment=environment, cwd=project,
+                                   timeout=args.timeout, cpu_seconds=args.cpu_seconds)
+        print(output, end="", flush=True)
+        hashes = source_hashes(project)
+        changed = sorted(key for key in set(before_hashes) | set(hashes) if before_hashes.get(key) != hashes.get(key))
+        if changed and code == 0: code = 126
+        report = {"schema_version": 1, "sandbox": sandbox, "probe": probe,
+                  "credential_environment": "empty", "network": "host_network_denied" if sys.platform.startswith("linux") else "denied",
+                  "python_version": platform.python_version(),
+                  "platform": platform.platform(), "python_arguments": command, "source_tree": args.source,
+                  "wall_timeout_seconds": args.timeout, "cpu_seconds_per_process": args.cpu_seconds,
+                  "file_bytes_per_file_limit": 1_073_741_824, "open_files_limit": 256,
+                  "address_space_bytes_per_process": 4_294_967_296 if sys.platform.startswith("linux") else None,
+                  "address_space_reason": None if sys.platform.startswith("linux") else "Seatbelt has no reliable per-process AS bound",
+                  "exit_code": code, "elapsed_seconds": round(time.monotonic() - started, 3),
+                  "reviewed_files_sha256": before_hashes, "files_changed_during_execution": changed,
+                  "output_sha256": hashlib.sha256(output.encode()).hexdigest()}
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return code
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

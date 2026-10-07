@@ -90,13 +90,14 @@ class ComputeTests(unittest.TestCase):
 
     def test_worker_receives_only_selected_credential_and_no_credentials_for_local(self):
         profile = build_compute_profile(**dict(self.settings, backend="institutional", base_url="https://service.example/v1", credential_env="TEST_API_KEY"))
-        answer = subprocess.CompletedProcess([], 0, stdout=json.dumps({"response": {"text": "{}"}}).encode())
-        with patch.dict(os.environ, {"TEST_API_KEY": "synthetic-selected", "UNRELATED_TOKEN": "synthetic-unrelated"}, clear=True), patch("termfinder.providers.subprocess.run", return_value=answer) as run:
+        from termfinder.process_transport import TransportResult
+        answer = TransportResult(json.dumps({"response": {"text": "{}"}}).encode(), 0)
+        with patch.dict(os.environ, {"TEST_API_KEY": "synthetic-selected", "UNRELATED_TOKEN": "synthetic-unrelated"}, clear=True), patch("termfinder.providers.bounded_exchange", return_value=answer) as run:
             HTTPProvider(profile).complete(self.request)
             self.assertEqual(run.call_args.kwargs["env"]["TEST_API_KEY"], "synthetic-selected")
             self.assertNotIn("UNRELATED_TOKEN", run.call_args.kwargs["env"])
-            self.assertNotIn("synthetic-selected", json.dumps(run.call_args.args))
-            self.assertNotIn("synthetic-selected", run.call_args.kwargs["input"].decode())
+            self.assertNotIn("synthetic-selected", json.dumps(run.call_args.args[0]))
+            self.assertNotIn("synthetic-selected", run.call_args.args[1].decode())
             HTTPProvider(self.profile).complete(self.request)
             self.assertNotIn("TEST_API_KEY", run.call_args.kwargs["env"])
 

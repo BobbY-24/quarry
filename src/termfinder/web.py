@@ -96,6 +96,10 @@ def _agent_setup_state(project):
     return setup
 
 
+class BrowserActionNotFound(LookupError):
+    pass
+
+
 class ResearchServer(ThreadingHTTPServer):
     daemon_threads = True
 
@@ -146,6 +150,10 @@ class ResearchServer(ThreadingHTTPServer):
                 # Return a concrete stale/unapproved-plan error before claiming
                 # dispatch. The worker repeats admission under the corpus lock.
                 check_review(self.project, review_id, allow_paid=self.allow_paid)
+            # Publish the new execution only after clearing an older stop.
+            # The background worker must preserve later cancellation requests.
+            self.project.store.setting("cancel_requested", False)
+            self.project.store.setting("controller_failure_id", None)
             self.worker_error = None
             self.worker_result = None
 
@@ -154,19 +162,23 @@ class ResearchServer(ThreadingHTTPServer):
                     if review_id is not None:
                         from .workflow import run_review
                         if self.allow_paid:
-                            self.worker_result = run_review(self.project, review_id, allow_paid=True, max_jobs=max_jobs)
+                            self.worker_result = run_review(self.project, review_id, allow_paid=True, max_jobs=max_jobs, _clear_cancel=False)
                         else:
                             from .providers import FakeProvider
-                            self.worker_result = run_review(self.project, review_id, provider=FakeProvider(), max_jobs=max_jobs)
+                            self.worker_result = run_review(self.project, review_id, provider=FakeProvider(), max_jobs=max_jobs, _clear_cancel=False)
                     elif self.allow_paid:
-                        self.worker_result = self.project.resume(allow_paid=True, max_jobs=max_jobs)
+                        self.worker_result = self.project.resume(allow_paid=True, max_jobs=max_jobs, _clear_cancel=False)
                     else:
                         from .providers import FakeProvider
-                        self.worker_result = self.project.resume(provider=FakeProvider(), max_jobs=max_jobs)
+                        self.worker_result = self.project.resume(provider=FakeProvider(), max_jobs=max_jobs, _clear_cancel=False)
                 except Exception as exc:
                     # API/provider diagnostics may contain returned untrusted text;
                     # logs never dump exception bodies, credentials, or requests.
                     self.worker_error = {"type": type(exc).__name__, "message": "Collection stopped with an error; inspect persistent jobs and audit records."}
+                    try:
+                        self.project.record_controller_failure(review_id=review_id)
+                    except Exception:
+                        pass  # Preserve the in-memory failure when storage is unavailable.
 
             self.worker = threading.Thread(target=collect, name="termfinder-collection", daemon=True)
             self.worker.start()
@@ -225,7 +237,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path in {"/app.js", "/style.css"}:
             name = path[1:]
             self._send(200, (STATIC / name).read_bytes(), "text/javascript; charset=utf-8" if name.endswith(".js") else "text/css; charset=utf-8")
-        elif path in {"/api/state", "/api/starters", "/api/agent-setup", "/api/source", "/api/review", "/api/download"}:
+        elif path in {"/api/state", "/api/starters", "/api/agent-setup", "/api/source", "/api/review", "/api/download", "/api/doctor", "/api/operation"}:
             if not self._authenticated():
                 return
             try:
@@ -241,6 +253,11 @@ class Handler(BaseHTTPRequestHandler):
                     result = _agent_setup_state(self.server.project)
                 elif path == "/api/review":
                     result = _review_state(self.server.project, check=True)
+                elif path == "/api/doctor":
+                    result = self.server.project.doctor()
+                elif path == "/api/operation":
+                    from .operations import OperationManager
+                    result = OperationManager(self.server.project).receipt(query.get("id", [""])[0])
                 elif path == "/api/source":
                     source_id=query.get("id",[""])[0]
                     if len(source_id)>128: raise ValueError("Invalid source ID")
@@ -258,6 +275,101 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self._send(404, {"error": "Not found"})
 
+    def _apply_post(self, path, body):
+        project = self.server.project
+        if path in {"/api/agent-setup/prepare", "/api/agent-setup/apply", "/api/agent-setup/ingest", "/api/agent-setup/freeze", "/api/review", "/api/review/approve", "/api/release"} and self.server.worker and self.server.worker.is_alive():
+            raise ValueError("Wait for collection to stop before changing or ingesting its study plan")
+        if path == "/api/review":
+            from .workflow import prepare_review
+            bundle = _decode_json(body["bundle_text"]) if "bundle_text" in body else body.get("bundle")
+            if bundle is not None and not isinstance(bundle, dict):
+                raise ValueError("The agent plan must be a JSON object")
+            fetch_remote = body.get("fetch_remote", False)
+            if type(fetch_remote) is not bool:
+                raise ValueError("Website fetching requires an explicit boolean")
+            result = prepare_review(project, bundle=bundle, fetch_remote=fetch_remote)
+        elif path == "/api/review/approve":
+            from .workflow import approve_review
+            result = approve_review(project, body["review_id"])
+        elif path == "/api/review/run":
+            review_id = body["review_id"]
+            if not isinstance(review_id, str) or not review_id or len(review_id) > 128:
+                raise ValueError("Use the saved review ID")
+            result = self.server.start_collection(body.get("max_jobs"), review_id=review_id)
+        elif path == "/api/release":
+            from .workflow import release_dataset
+            result = release_dataset(project, body.get("name", "research-v1"), formats=body.get("formats", ["csv", "jsonl", "parquet", "annotation"]), version_id=body.get("version_id"))
+        elif path == "/api/agent-setup/prepare":
+            result = project.prepare_agent_setup(body["brief"])
+        elif path in {"/api/agent-setup/validate", "/api/agent-setup/apply"}:
+            bundle = _decode_json(body["bundle_text"]) if "bundle_text" in body else body["bundle"]
+            if not isinstance(bundle, dict):
+                raise ValueError("The agent plan must be a JSON object")
+            result = project.validate_agent_bundle(bundle) if path.endswith("/validate") else project.apply_agent_bundle(bundle)
+        elif path == "/api/agent-setup/ingest":
+            result = project.ingest_agent_sources()
+        elif path == "/api/agent-setup/freeze":
+            result = project.freeze_agent_corpus(name=body.get("name", "corpus-v1"), seed=body.get("seed", "v6-agent-study-v1"))
+        elif path == "/api/configure":
+            if self.server.worker and self.server.worker.is_alive():
+                raise ValueError("Wait for collection to stop before changing its recipe")
+            profile = body.get("profile", "fake")
+            if profile not in {"fake", "glm-deepseek", "gemini", "configured"}:
+                raise ValueError("Select a packaged or researcher-configured profile; compute setup uses the agent or CLI")
+            recipe = _decode_json(body["recipe_text"]) if "recipe_text" in body else body["recipe"]
+            if "mode" in body:
+                recipe["mode"] = body["mode"]
+            result = project.configure(recipe, None if profile == "configured" else profile)
+        elif path == "/api/ingest":
+            metadata = _decode_json(body["metadata_text"]) if "metadata_text" in body else body.get("metadata")
+            result = {"source_ids": project.ingest(paths=body.get("paths", []), urls=body.get("urls", []), metadata=metadata)}
+        elif path == "/api/estimate":
+            assumptions = {key: body[key] for key in ("average_chars", "cache_hit_rate") if body.get(key) is not None}
+            result = project.estimate(links=body.get("links"), **assumptions)
+        elif path == "/api/collect":
+            result = self.server.start_collection(body.get("max_jobs"))
+        elif path == "/api/cancel":
+            project.cancel()
+            result = project.status()
+        elif path == "/api/large-run":
+            result = project.configure_large_run()
+        elif path == "/api/reset-model":
+            result = project.reset_model(body["model_alias"])
+        elif path == "/api/retry-job":
+            project.retry_failed(body["job_id"])
+            result = {"job_id": body["job_id"], "status": "pending"}
+        elif path == "/api/resolve-uncertain":
+            retry = body.get("retry", False)
+            acknowledge = body.get("acknowledge_possible_duplicate_billing", False)
+            if type(retry) is not bool or type(acknowledge) is not bool:
+                raise ValueError("Retry and duplicate billing acknowledgement must be explicit booleans")
+            project.resolve_uncertain(body["job_id"], retry=retry, acknowledge_possible_duplicate_billing=acknowledge)
+            result = {"job_id": body["job_id"], "status": "pending" if retry else "failed", "unknown_reserves_retained": True}
+        elif path == "/api/annotate":
+            result = {"annotation_id": project.annotate(body["term_id"], body["status"], body.get("note", ""), body.get("attributes"), body.get("actor", "researcher"))}
+        elif path == "/api/undo-annotation":
+            project.undo_annotation(body["annotation_id"])
+            result = {"undone": body["annotation_id"]}
+        elif path == "/api/relate":
+            result = {"relation_id": project.relate(body["term_a"], body["term_b"], body["kind"], body.get("actor", "researcher"))}
+        elif path == "/api/undo-relation":
+            project.undo_relation(body["relation_id"])
+            result = {"undone": body["relation_id"]}
+        elif path == "/api/snapshot":
+            result = {"version_id": project.snapshot(body["name"])}
+        elif path == "/api/publication-audit":
+            result = project.publication_audit(body["version"])
+        elif path == "/api/export":
+            version = body["version"]
+            if not isinstance(version, str) or not version or any(ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_." for ch in version) or version in {".", ".."}:
+                raise ValueError("Use a saved dataset version ID")
+            project_path = Path(getattr(project, "path", "."))
+            out = project_path / "exports" / version
+            result = project.export(version, out, formats=body.get("formats", ["csv", "jsonl", "parquet", "annotation"]))
+        else:
+            raise BrowserActionNotFound("Unknown browser action")
+        return result
+
     def do_POST(self):
         if not self._authenticated(mutation=True):
             return
@@ -271,100 +383,20 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(body, dict):
                 raise ValueError("Request body must be an object")
             path = urlsplit(self.path).path
-            project = self.server.project
-            if path in {"/api/agent-setup/prepare", "/api/agent-setup/apply", "/api/agent-setup/ingest", "/api/agent-setup/freeze", "/api/review", "/api/review/approve", "/api/release"} and self.server.worker and self.server.worker.is_alive():
-                raise ValueError("Wait for collection to stop before changing or ingesting its study plan")
-            if path == "/api/review":
-                from .workflow import prepare_review
-                bundle = _decode_json(body["bundle_text"]) if "bundle_text" in body else body.get("bundle")
-                if bundle is not None and not isinstance(bundle, dict):
-                    raise ValueError("The agent plan must be a JSON object")
-                fetch_remote = body.get("fetch_remote", False)
-                if type(fetch_remote) is not bool:
-                    raise ValueError("Website fetching requires an explicit boolean")
-                result = prepare_review(project, bundle=bundle, fetch_remote=fetch_remote)
-            elif path == "/api/review/approve":
-                from .workflow import approve_review
-                result = approve_review(project, body["review_id"])
-            elif path == "/api/review/run":
-                review_id = body["review_id"]
-                if not isinstance(review_id, str) or not review_id or len(review_id) > 128:
-                    raise ValueError("Use the saved review ID")
-                result = self.server.start_collection(body.get("max_jobs"), review_id=review_id)
-            elif path == "/api/release":
-                from .workflow import release_dataset
-                result = release_dataset(project, body.get("name", "research-v1"), formats=body.get("formats", ["csv", "jsonl", "parquet", "annotation"]), version_id=body.get("version_id"))
-            elif path == "/api/agent-setup/prepare":
-                result = project.prepare_agent_setup(body["brief"])
-            elif path in {"/api/agent-setup/validate", "/api/agent-setup/apply"}:
-                bundle = _decode_json(body["bundle_text"]) if "bundle_text" in body else body["bundle"]
-                if not isinstance(bundle, dict):
-                    raise ValueError("The agent plan must be a JSON object")
-                result = project.validate_agent_bundle(bundle) if path.endswith("/validate") else project.apply_agent_bundle(bundle)
-            elif path == "/api/agent-setup/ingest":
-                result = project.ingest_agent_sources()
-            elif path == "/api/agent-setup/freeze":
-                result = project.freeze_agent_corpus(name=body.get("name", "corpus-v1"), seed=body.get("seed", "v6-agent-study-v1"))
-            elif path == "/api/configure":
-                if self.server.worker and self.server.worker.is_alive():
-                    raise ValueError("Wait for collection to stop before changing its recipe")
-                profile = body.get("profile", "fake")
-                if profile not in {"fake", "glm-deepseek", "gemini", "configured"}:
-                    raise ValueError("Select a packaged or researcher-configured profile; compute setup uses the agent or CLI")
-                recipe = _decode_json(body["recipe_text"]) if "recipe_text" in body else body["recipe"]
-                if "mode" in body:
-                    recipe["mode"] = body["mode"]
-                result = project.configure(recipe, None if profile == "configured" else profile)
-            elif path == "/api/ingest":
-                metadata = _decode_json(body["metadata_text"]) if "metadata_text" in body else body.get("metadata")
-                result = {"source_ids": project.ingest(paths=body.get("paths", []), urls=body.get("urls", []), metadata=metadata)}
-            elif path == "/api/estimate":
-                assumptions = {key: body[key] for key in ("average_chars", "cache_hit_rate") if body.get(key) is not None}
-                result = project.estimate(links=body.get("links"), **assumptions)
-            elif path == "/api/collect":
-                result = self.server.start_collection(body.get("max_jobs"))
-            elif path == "/api/cancel":
-                project.cancel()
-                result = project.status()
-            elif path == "/api/large-run":
-                result = project.configure_large_run()
-            elif path == "/api/reset-model":
-                result = project.reset_model(body["model_alias"])
-            elif path == "/api/retry-job":
-                project.retry_failed(body["job_id"])
-                result = {"job_id": body["job_id"], "status": "pending"}
-            elif path == "/api/resolve-uncertain":
-                retry = body.get("retry", False)
-                acknowledge = body.get("acknowledge_possible_duplicate_billing", False)
-                if type(retry) is not bool or type(acknowledge) is not bool:
-                    raise ValueError("Retry and duplicate billing acknowledgement must be explicit booleans")
-                project.resolve_uncertain(body["job_id"], retry=retry, acknowledge_possible_duplicate_billing=acknowledge)
-                result = {"job_id": body["job_id"], "status": "pending" if retry else "failed", "unknown_reserves_retained": True}
-            elif path == "/api/annotate":
-                result = {"annotation_id": project.annotate(body["term_id"], body["status"], body.get("note", ""), body.get("attributes"), body.get("actor", "researcher"))}
-            elif path == "/api/undo-annotation":
-                project.undo_annotation(body["annotation_id"])
-                result = {"undone": body["annotation_id"]}
-            elif path == "/api/relate":
-                result = {"relation_id": project.relate(body["term_a"], body["term_b"], body["kind"], body.get("actor", "researcher"))}
-            elif path == "/api/undo-relation":
-                project.undo_relation(body["relation_id"])
-                result = {"undone": body["relation_id"]}
-            elif path == "/api/snapshot":
-                result = {"version_id": project.snapshot(body["name"])}
-            elif path == "/api/publication-audit":
-                result = project.publication_audit(body["version"])
-            elif path == "/api/export":
-                version = body["version"]
-                if not isinstance(version, str) or not version or any(ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_." for ch in version) or version in {".", ".."}:
-                    raise ValueError("Use a saved dataset version ID")
-                project_path = Path(getattr(project, "path", "."))
-                out = project_path / "exports" / version
-                result = project.export(version, out, formats=body.get("formats", ["csv", "jsonl", "parquet", "annotation"]))
+            operation_id = body.pop("operation_id", None)
+            if operation_id is not None:
+                from .operations import OperationManager
+                atomic = path in {"/api/review/approve", "/api/agent-setup/prepare", "/api/cancel",
+                    "/api/reset-model", "/api/retry-job", "/api/resolve-uncertain", "/api/annotate",
+                    "/api/undo-annotation", "/api/relate", "/api/undo-relation"}
+                result = OperationManager(self.server.project).execute(operation_id, "browser:" + path.removeprefix("/api/").replace("/", ":"),
+                    {"body": body, "allow_paid": self.server.allow_paid},
+                    lambda: self._apply_post(path, body), atomic=atomic)
             else:
-                self._send(404, {"error": "Not found"})
-                return
+                result = self._apply_post(path, body)
             self._send(200, result if isinstance(result, dict) else {"result": result})
+        except BrowserActionNotFound:
+            self._send(404, {"error": "Not found"})
         except json.JSONDecodeError as exc:
             self._send(400, {"error": f"The returned plan is not valid JSON (line {exc.lineno}, column {exc.colno}). Ask your agent for one complete JSON object without code fences."})
         except (ValueError, OSError, KeyError, TypeError, RuntimeError) as exc:
