@@ -28,6 +28,9 @@ credentials, network inference or scheduler submissions.
 | Disabled model blocks already saved raw evidence; reproduced | A,I | Separate bounded cache-replay queue bypasses inference health/quota gates | `test_reliability_engine` | Cache corruption stops replay; no invented evidence |
 | Token gate ignores registered counts / multilingual fallback; reproduced | E | Use recorded input token count or conservative UTF-8/template reserve | `test_reliability_engine` | Unusual tokenizer contracts require reviewed counting callback |
 | Health write fails after admission but before submission; reproduced | C,E | Settle known unused admission and release reserved capacity | `test_admission_failure` | Failed local receipt write leaves last durable reservation conservative |
+| Terminal local cost commits but secondary quota settlement is lost; reproduced | C–E,I | Recover matching study/job/attempt/lease proof; acknowledge reconciliation before admission | `test_quota_receipt_recovery` | Unknown execution or usage never becomes known merely because a lease is old |
+| Controller fails before Engine construction; restart loses in-memory error | B,H | Persist a safe controller incident and partial status; retain incident history after trusted restart | `test_controller_failure_recovery` | Unavailable local storage can prevent a new incident from being written |
+| Global cache sweep runs for every fresh response; measured 14 sweeps for 6 calls | A,E | One bounded startup recovery sweep; immediate processing of fresh receipts | `test_reliability_engine.test_replay_sweep_is_not_repeated_for_every_new_provider_response`, installed load | Timing is a synthetic engineering measurement, not real inference throughput |
 
 The full suite is a regression gate. Counts, model agreement and successful
 request completion do not measure research recall. The deterministic fault tape
