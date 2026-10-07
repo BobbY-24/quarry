@@ -117,6 +117,13 @@ class ReliabilityEngineTests(unittest.TestCase):
         self.assertEqual(self.project.store.get("jobs",job["job_id"])["status"],"done")
         self.assertTrue(any(provenance["job_id"]==job["job_id"] for occurrence in self.project.store.all("occurrences") for provenance in occurrence["provenance"]))
 
+    def test_replay_sweep_is_not_repeated_for_every_new_provider_response(self):
+        provider=FakeProvider([])
+        with patch.object(self.project.store,"run_cached_jobs",wraps=self.project.store.run_cached_jobs) as replay:
+            self.project.collect(provider)
+        self.assertEqual(len(provider.calls),6)
+        self.assertLessEqual(replay.call_count,2,"Steady dispatch must not rescan the entire response cache")
+
     def test_shared_quota_reserves_registered_and_utf8_fallback_input_tokens(self):
         from termfinder.quotas import QuotaLimits
         self.project.configure_quota(Path(self.tmp.name)/"token-quota.sqlite3","synthetic-token-account",QuotaLimits())
