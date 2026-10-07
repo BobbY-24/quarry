@@ -21,6 +21,9 @@ The [V6.7 measurement report](reliability/results-v6.7.md) and its
 artifact. They remain prior-release evidence, not rolling verification of this
 checkout. Fresh reproduction writes new receipts under ignored `verification/`.
 
+The [6.7.1 release receipt](reliability/evidence/v6.7.1-offline.json) records
+independent source and installed-wheel verification after the reorganization.
+
 Build outputs, environments, collected datasets, and historical workbench
 checkouts do not belong in the source repository. Studies live in a research
 workspace selected by the researcher. See [contribution instructions](../CONTRIBUTING.md).

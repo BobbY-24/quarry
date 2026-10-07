@@ -144,6 +144,12 @@ Do not overwrite the [prior V6.7 report](../reliability/results-v6.7.md) or its
 Their original source hashes and wheel identity refer to **6.7.0**, before this
 repository reorganization; they do not attest to a newly built artifact.
 
+The [6.7.1 receipt](../reliability/evidence/v6.7.1-offline.json) identifies the
+reorganized release's source revision, wheel and dependency hashes, independent
+source/installed checks, notebook and offline workflow outcomes. Full local
+invocation files remain in the protected evidence archive rather than the
+published source checkout. Reproduce them with the commands above.
+
 These synthetic checks establish software behavior within their tested envelope.
 They do not establish real provider quality, invoices, GT performance, student
 usability, or research recall. Those require the [authorized pilot](../research/pilot.md)
