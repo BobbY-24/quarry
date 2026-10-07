@@ -7,7 +7,7 @@ collect terms and contextual senses, review the full sources, and compare tracea
 
 ![Prepare a study, freeze the contract, run bounded arms, review complete sources, lock and score.](assets/v7-study-workflow.svg)
 
-[Study methods](docs/V7_METHODS.md) · [Researcher workflow](docs/V7_RESEARCHER_WORKFLOW.md) · [Verification and limits](docs/V7_VERIFIED.md)
+[Study methods](docs/V7_METHODS.md) · [Evaluation plan](docs/V7_EVALUATION_PLAN.md) · [Researcher workflow](docs/V7_RESEARCHER_WORKFLOW.md) · [Verification and limits](docs/V7_VERIFIED.md)
 
 ## Start with your agent
 
