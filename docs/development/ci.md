@@ -87,6 +87,17 @@ fixed `.ci/sqlite` artifact with a matching build receipt; the clean launcher
 sets its native-library path after entering isolation. This is a hosted CI
 prerequisite, not a substitute for a researcher's reviewed patched Python runtime.
 
+The official macOS Python packages embed an older SQLite inside `_sqlite3`.
+For these matrix jobs, `tools/ci_sqlite_extension.py` compiles the unmodified
+stock CPython module for the exact reviewed Python release against the pinned
+library. The native component directory contains only the ABI-named module and
+its manifest. Its compiler, source/archive, header and output hashes are recorded;
+the launcher checks release, ABI and artifact hashes before adding that directory
+to the runtime path. Installed collector checks still load the installed wheel.
+There is no Python shim or `sys.modules` substitution. Built-in modules and
+unreviewed Python versions fail closed. Update the macOS matrix pins and source
+pins together when reviewing a new runtime release.
+
 On Ubuntu 24.04, bubblewrap can create a namespace yet fail to configure its
 private loopback because setup capabilities are mediated. The workflow prepares
 the distribution's reviewed `bwrap-userns-restrict` AppArmor policy, verifies

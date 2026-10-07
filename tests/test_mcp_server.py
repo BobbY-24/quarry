@@ -13,6 +13,7 @@ import time
 import unittest
 from unittest.mock import patch
 
+from ci_support import child_environment
 from termfinder import Project, FakeProvider, Response
 from termfinder import mcp_server
 from termfinder.mcp_server import MCPServer, decode_json, write_skill
@@ -578,13 +579,7 @@ class MCPTests(unittest.TestCase):
 
 class MCPSubprocessTests(unittest.TestCase):
     def environment(self, base):
-        environment = {"PATH": "/usr/bin:/bin", "PYTHONPATH": str(ROOT / "src"), "TMPDIR": str(base)}
-        # Only CI's reviewed native-runtime path survives; no provider keys or
-        # unrelated variables are inherited by these actual stdio processes.
-        for name in ("DYLD_LIBRARY_PATH", "LD_LIBRARY_PATH"):
-            if name in os.environ:
-                environment[name] = os.environ[name]
-        return environment
+        return child_environment(pythonpath=ROOT / "src", tmpdir=base)
 
     def test_actual_stdio_subprocess_negotiates_lists_tools_and_prepares_without_credentials(self):
         with tempfile.TemporaryDirectory() as folder:

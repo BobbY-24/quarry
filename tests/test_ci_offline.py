@@ -106,3 +106,50 @@ class SyntheticIdentityTests(unittest.TestCase):
             self.assertEqual(fields[5], "/home/quarry-ci")
             self.assertEqual(len(passwd.read_text().splitlines()), 1)
             self.assertEqual(group.read_text().strip(), f"quarry-ci:x:{os.getgid()}:")
+
+
+class NativeOverlayArtifactTests(unittest.TestCase):
+    def test_native_loader_rejects_wrong_abi_changed_binary_and_python_shim(self):
+        project = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = Path(temporary)
+            (fixture / "tools").mkdir()
+            for name in ("ci_sqlite.py", "ci_sqlite_extension.py"):
+                (fixture / "tools" / name).write_bytes((project / "tools" / name).read_bytes())
+            root = fixture / ".ci/sqlite"
+            overlay = root / "python"
+            overlay.mkdir(parents=True)
+            filename = "_sqlite3.cpython-312-darwin.so"
+            native = overlay / filename
+            payload = b"synthetic native fixture, never loaded"
+            native.write_bytes(payload)
+            library = {"sqlite_version": "3.51.3", "sqlite_source_id": "reviewed-fixture-source-id",
+                       "archive_sha256": "a" * 64, "library_sha256": "b" * 64}
+            manifest = {"schema_version": 1, "runtime_component": "stock_cpython_sqlite_native_extension",
+                        "python_version": "3.12.10", "implementation": "cpython", "platform": "Darwin",
+                        "machine": platform.machine(), "soabi": "cpython-312-darwin",
+                        "module_filename": filename, "extension_suffix": ".cpython-312-darwin.so",
+                        "source_checkpoint": "CPython v3.12.10",
+                        "source_archive_sha256": "07ab697474595e06f06647417d3c7fa97ded07afc1a7e4454c5639919b46eaea",
+                        "sqlite_version": library["sqlite_version"], "sqlite_source_id": library["sqlite_source_id"],
+                        "sqlite_archive_sha256": library["archive_sha256"], "sqlite_library_sha256": library["library_sha256"],
+                        "native_module_sha256": hashlib.sha256(payload).hexdigest()}
+            (overlay / "manifest.json").write_text(json.dumps(manifest))
+            configuration = {"EXT_SUFFIX": ".cpython-312-darwin.so", "SOABI": "cpython-312-darwin"}
+            with patch.object(ci.platform, "python_version", return_value="3.12.10"), \
+                    patch.object(ci.platform, "system", return_value="Darwin"), \
+                    patch.object(ci.sys, "builtin_module_names", ()), \
+                    patch.object(ci.sysconfig, "get_config_var", side_effect=lambda name: configuration.get(name, 0)):
+                self.assertEqual(ci.sqlite_native_overlay(fixture, root, library)["native_module_sha256"], manifest["native_module_sha256"])
+                native.write_bytes(b"tampered")
+                with self.assertRaisesRegex(ValueError, "build receipt"):
+                    ci.sqlite_native_overlay(fixture, root, library)
+                native.write_bytes(payload)
+                (overlay / "sitecustomize.py").write_text("unreviewed fixture shim")
+                with self.assertRaises(ValueError):
+                    ci.sqlite_native_overlay(fixture, root, library)
+                (overlay / "sitecustomize.py").unlink()
+                manifest["python_version"] = "3.13.15"
+                (overlay / "manifest.json").write_text(json.dumps(manifest))
+                with self.assertRaisesRegex(ValueError, "ABI"):
+                    ci.sqlite_native_overlay(fixture, root, library)

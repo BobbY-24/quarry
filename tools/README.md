@@ -9,6 +9,7 @@ installed collector. Review them and use the finite OS isolation procedure in
 | `check_repository.py` | Local Markdown/notebook links, with no network or example execution |
 | `ci_offline.py` | macOS/Linux isolation, resource bounds and source-drift receipts |
 | `ci_sqlite.py` | Pinned source acquisition, isolated native build and actual SQLite runtime health |
+| `ci_sqlite_extension.py` | Stock CPython native SQLite module for reviewed macOS CI ABIs |
 | `ci_linux_isolation.py` | Reviewed hosted Ubuntu sandbox prerequisite and safe audit categories |
 | `ci_smoke.py` | Fresh installed wheel, CLI/API/MCP, artifact and frozen-export checks |
 | `smoke_installed.py` | Installed CLI workflow and all code cells in the researcher notebook |

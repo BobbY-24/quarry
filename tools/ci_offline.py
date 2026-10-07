@@ -19,6 +19,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import sysconfig
 import tempfile
 import time
 
@@ -98,8 +99,47 @@ def sqlite_runtime(project, root):
         raise ValueError("SQLite library alias does not identify the reviewed artifact")
     if {path.name for path in (root / "lib").iterdir()} != {filename, alias}:
         raise ValueError("SQLite loader directory contains an unreviewed artifact")
-    return root / "lib", {key: manifest[key] for key in
-                           ("sqlite_version", "sqlite_source_id", "archive_sha256", "library_sha256")}
+    identity = {key: manifest[key] for key in
+                ("sqlite_version", "sqlite_source_id", "archive_sha256", "library_sha256")}
+    if (root / "python").exists():
+        identity["native_extension"] = sqlite_native_overlay(project, root, identity)
+    return root / "lib", identity
+
+
+def sqlite_native_overlay(project, root, library_identity):
+    spec = importlib.util.spec_from_file_location("quarry_ci_native_sqlite", project / "tools/ci_sqlite_extension.py")
+    builder = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(builder)
+    overlay = builder.SQLITE.controlled_path(root / "python", project / ".ci")
+    manifest_path = builder.SQLITE.controlled_path(overlay / "manifest.json", project / ".ci")
+    if manifest_path.stat().st_size > 262144:
+        raise ValueError("Native SQLite manifest exceeds its bound")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    version = platform.python_version()
+    suffix, soabi = sysconfig.get_config_var("EXT_SUFFIX"), sysconfig.get_config_var("SOABI")
+    filename = builder.validate_abi(version, sys.implementation.name, suffix, soabi,
+                                    builtin="_sqlite3" in sys.builtin_module_names,
+                                    debug=bool(sysconfig.get_config_var("Py_DEBUG")),
+                                    gil_disabled=bool(sysconfig.get_config_var("Py_GIL_DISABLED")))
+    if (manifest.get("schema_version") != 1
+            or manifest.get("runtime_component") != "stock_cpython_sqlite_native_extension"
+            or manifest.get("python_version") != version or manifest.get("implementation") != "cpython"
+            or manifest.get("module_filename") != filename or manifest.get("extension_suffix") != suffix
+            or manifest.get("soabi") != soabi or manifest.get("platform") != platform.system()
+            or manifest.get("machine") != platform.machine()
+            or manifest.get("source_checkpoint") != "CPython v" + version
+            or manifest.get("source_archive_sha256") != builder.CPYTHON_SOURCES[version]
+            or manifest.get("sqlite_library_sha256") != library_identity["library_sha256"]
+            or manifest.get("sqlite_archive_sha256") != library_identity["archive_sha256"]
+            or manifest.get("sqlite_version") != library_identity["sqlite_version"]
+            or manifest.get("sqlite_source_id") != library_identity["sqlite_source_id"]):
+        raise ValueError("Native SQLite manifest differs from the reviewed Python/library ABI")
+    native = builder.SQLITE.controlled_path(overlay / filename, project / ".ci")
+    if not 1 <= native.stat().st_size <= 8_000_000 or builder.SQLITE.sha256(native) != manifest.get("native_module_sha256"):
+        raise ValueError("Native SQLite module differs from its build receipt")
+    builder.overlay_layout(overlay, filename)
+    return {key: manifest[key] for key in ("python_version", "source_checkpoint", "source_archive_sha256",
+                                          "soabi", "module_filename", "native_module_sha256")}
 
 
 def source_hashes(project):
@@ -271,6 +311,10 @@ def main(argv=None):
                        "PYTHONDONTWRITEBYTECODE": "1", "PYTHONNOUSERSITE": "1",
                        "OMP_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "2", "ARROW_NUM_THREADS": "2"}
         if args.source: environment["PYTHONPATH"] = str(project / "src")
+        if sqlite_identity and sqlite_identity.get("native_extension"):
+            overlay = str(project / ".ci/sqlite/python")
+            environment["QUARRY_CI_SQLITE_EXTENSION_ROOT"] = overlay
+            environment["PYTHONPATH"] = overlay + (os.pathsep + environment["PYTHONPATH"] if args.source else "")
         host_namespace = os.readlink("/proc/self/ns/net") if sys.platform.startswith("linux") else "unavailable_on_macos"
         code, output = bounded_run(prefix + ["-c", PROBE, marker.name, host_namespace], environment=environment,
                                    cwd=project, timeout=20, cpu_seconds=args.cpu_seconds)
