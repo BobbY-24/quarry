@@ -7,6 +7,11 @@ shared detection contract applies. Full tables, conversation datasets and automa
 benchmark construction are deferred. Nothing here asserts that NLPx investigators
 requested these features or that publication acceptance is assured.
 
+The [evaluation plan informed by Thresh](V7_EVALUATION_PLAN.md) sequences these
+questions into representative workflow demonstrations, independent reproduction,
+formative researcher tasks and a focused H1 case study followed by H2. It is a
+proposed design, not a frozen or authorized real experiment.
+
 ## Claim / hypothesis / evidence matrix
 
 | Hypothesis or claim | Primary contrast and outcome | Falsification / rival explanation | Required evidence and present status |
