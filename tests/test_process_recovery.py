@@ -8,6 +8,10 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
+
+import ci_support
+from ci_support import child_environment
 
 from termfinder import Project, FakeProvider, Response
 import termfinder
@@ -53,6 +57,41 @@ engine.run(max_jobs=1)
 '''
 
 
+class ChildRuntimeEnvironmentTests(unittest.TestCase):
+    def test_reviewed_native_runtime_survives_while_credential_canaries_are_excluded(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            native = root / ".ci/sqlite/python"
+            library = root / ".ci/sqlite/lib"
+            native.mkdir(parents=True)
+            library.mkdir()
+            source = root / "src"
+            selected = {"LD_LIBRARY_PATH": str(library), "DYLD_LIBRARY_PATH": str(library),
+                "QUARRY_CI_SQLITE_EXTENSION_ROOT": str(native), "SERVICE_API_KEY": "private-fixture-canary",
+                "GITHUB_TOKEN": "private-fixture-canary", "PYTHONPATH": "/unreviewed-parent-path",
+                "PATH": "/unreviewed-parent-bin", "HOME": "/unreviewed-parent-home"}
+            with patch.object(ci_support, "REPO_ROOT", root), patch.dict(os.environ, selected, clear=True):
+                result = child_environment(pythonpath=source, tmpdir=root)
+            self.assertEqual(result, {"PATH": "/usr/bin:/bin", "PYTHONNOUSERSITE": "1",
+                "PYTHONDONTWRITEBYTECODE": "1", "LD_LIBRARY_PATH": str(library),
+                "DYLD_LIBRARY_PATH": str(library), "QUARRY_CI_SQLITE_EXTENSION_ROOT": str(native),
+                "PYTHONPATH": str(native) + os.pathsep + str(source), "TMPDIR": str(root)})
+            self.assertNotIn("private-fixture-canary", json.dumps(result))
+
+    def test_unreviewed_native_paths_are_refused_without_echoing_values(self):
+        for name in ("LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH", "QUARRY_CI_SQLITE_EXTENSION_ROOT"):
+            with self.subTest(name=name), patch.dict(os.environ, {name: "/private-fixture-canary"}, clear=True):
+                with self.assertRaises(ValueError) as error:
+                    child_environment()
+                self.assertNotIn("private-fixture-canary", str(error.exception))
+
+    def test_without_selected_runtime_only_explicit_fixture_paths_survive(self):
+        with patch.dict(os.environ, {"SERVICE_API_KEY": "private-fixture-canary", "PYTHONPATH": "/unreviewed"}, clear=True):
+            result = child_environment(pythonpath="/explicit-source")
+        self.assertEqual(result, {"PATH": "/usr/bin:/bin", "PYTHONNOUSERSITE": "1",
+                                 "PYTHONDONTWRITEBYTECODE": "1", "PYTHONPATH": "/explicit-source"})
+
+
 class ProcessRecoveryTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -70,8 +109,7 @@ class ProcessRecoveryTests(unittest.TestCase):
     def crash(self, phase):
         log, ready = self.root / "calls.txt", self.root / "ready.txt"
         owner = subprocess.Popen([sys.executable, "-c", OWNER, str(self.project.path), phase, str(log), str(ready)],
-            env={"PATH": "/usr/bin:/bin", "PYTHONPATH": str(Path(termfinder.__file__).resolve().parent.parent),
-                 "PYTHONNOUSERSITE": "1", "PYTHONDONTWRITEBYTECODE": "1"},
+            env=child_environment(pythonpath=Path(termfinder.__file__).resolve().parent.parent),
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         try:
             deadline = time.monotonic() + 5

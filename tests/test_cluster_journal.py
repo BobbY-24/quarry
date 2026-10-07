@@ -11,6 +11,7 @@ import unittest
 from unittest.mock import patch
 
 import test_cluster as fixtures
+from ci_support import child_environment
 from termfinder.cluster import ClusterController, read_json, write_json
 from termfinder.cluster_worker import run_bundle
 from termfinder.dispatch_journal import DispatchJournal, JournalError
@@ -38,8 +39,7 @@ class ClusterJournalTests(unittest.TestCase):
     def test_actual_process_loss_after_intent_restores_attempt_before_any_resume_call(self):
         f = self.fixture
         review, first = f.submitted()
-        environment = {"PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1", "PYTHONNOUSERSITE": "1",
-            "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")}
+        environment = child_environment(pythonpath=Path(__file__).resolve().parents[1] / "src")
         child = subprocess.run([sys.executable, "-c", CRASH_CHILD, review["bundle"], first["job_id"], str(f.scratch)],
             env=environment, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             timeout=15)

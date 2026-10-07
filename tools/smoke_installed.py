@@ -23,6 +23,10 @@ def main(report_path=None):
         base=Path(temporary)
         environment={k:os.environ[k] for k in ("PATH","TMPDIR","PYTHONNOUSERSITE","PYTHONDONTWRITEBYTECODE",
                                               "DYLD_LIBRARY_PATH","LD_LIBRARY_PATH") if k in os.environ}
+        native_overlay = os.environ.get("QUARRY_CI_SQLITE_EXTENSION_ROOT")
+        if native_overlay:
+            assert Path(native_overlay).resolve() == root / ".ci/sqlite/python"
+            environment["PYTHONPATH"] = native_overlay  # Native runtime only; never collector source.
         def cli(*args):
             result=subprocess.run([str(entry),*map(str,args)],cwd=base,env=environment,capture_output=True,text=True,timeout=60)
             if result.returncode:
