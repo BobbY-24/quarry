@@ -49,6 +49,31 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(before, self.inventory())
         self.assertFalse((self.workspace / ".v6-connect.lock").exists())
 
+    @unittest.skipUnless(harness.sys.platform == "darwin", "Darwin SDK flag compatibility")
+    def test_darwin_missing_sdk_search_flags_keeps_project_setup_usable(self):
+        # Some supported CPython builds omit these SDK symbols even though the
+        # Darwin kernel implements search-only opens. Exercise the real opens;
+        # the offline CI sandbox still denies ancestor directory inventories.
+        with patch.dict(vars(harness.os)):
+            for name in ("O_SEARCH", "O_EXEC", "O_PATH"):
+                vars(harness.os).pop(name, None)
+            try:
+                result = connect_harness("codex", self.workspace)
+            except HarnessError as error:
+                self.fail(f"Search-only project setup must work without exported SDK flags: {error}")
+            self.assertTrue(result["changed"])
+            self.assertEqual(
+                tomllib.loads(Path(result["config_path"]).read_text())["mcp_servers"]["v6"],
+                {"command": "/verified/venv/bin/python",
+                 "args": ["-m", "termfinder.mcp_server", "--workspace", str(self.workspace / "v6-studies")]},
+            )
+            self.assertFalse(connect_harness("codex", self.workspace)["changed"])
+
+            linked = self.base / "linked-workspace"
+            linked.symlink_to(self.workspace, target_is_directory=True)
+            with self.assertRaises(HarnessError):
+                connect_harness("codex", linked)
+
     def test_codex_preserves_unrelated_bytes_and_settings(self):
         config = self.workspace / ".codex/config.toml"
         config.parent.mkdir()

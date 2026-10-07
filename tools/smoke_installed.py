@@ -21,7 +21,8 @@ def main(report_path=None):
     checks=[]
     with tempfile.TemporaryDirectory(prefix="v6-installed-") as temporary:
         base=Path(temporary)
-        environment={k:os.environ[k] for k in ("PATH","TMPDIR","PYTHONNOUSERSITE","PYTHONDONTWRITEBYTECODE") if k in os.environ}
+        environment={k:os.environ[k] for k in ("PATH","TMPDIR","PYTHONNOUSERSITE","PYTHONDONTWRITEBYTECODE",
+                                              "DYLD_LIBRARY_PATH","LD_LIBRARY_PATH") if k in os.environ}
         def cli(*args):
             result=subprocess.run([str(entry),*map(str,args)],cwd=base,env=environment,capture_output=True,text=True,timeout=60)
             if result.returncode:

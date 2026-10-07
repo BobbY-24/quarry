@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nlpx-termfinder"
-version = "6.7.1"
+version = "6.7.2"
 description = "Quarry: recipe-driven, evidence-backed research collection"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
