@@ -30,9 +30,13 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Linux isolation prerequisite
         if: runner.os == 'Linux'
+        shell: bash
         run: |
+          set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y bubblewrap
+          sudo apt-get install --no-install-recommends -y bubblewrap apparmor-profiles
+          env -i PATH=/usr/bin:/bin "$(command -v python)" -I -S tools/ci_linux_isolation.py \
+            provision --hosted-runner --report verification/ci/linux-isolation-prerequisite.json
       - name: Acquire pinned binary dependencies separately
         shell: bash
         run: |
@@ -42,6 +46,7 @@ jobs:
           echo "QUARRY_CI_PYTHON=$TASK_PYTHON" >> "$GITHUB_ENV"
           echo "QUARRY_CI_BASE_ROOT=$TASK_BASE_ROOT" >> "$GITHUB_ENV"
           mkdir -p .ci/wheels verification/ci
+          env -i PATH=/usr/bin:/bin "$TASK_PYTHON" -I -S tools/ci_sqlite.py acquire
           env -i PATH=/usr/bin:/bin "$TASK_PYTHON" -I -m pip --isolated download \
             --disable-pip-version-check --no-cache-dir --only-binary=:all: --no-deps \
             --index-url https://pypi.org/simple --dest .ci/wheels \
@@ -59,19 +64,33 @@ jobs:
               --timeout 120 -- -m pip --isolated install --no-index --no-deps --no-cache-dir \
               --find-links .ci/wheels --requirement requirements.txt --requirement requirements-build.txt
           done
+      - name: Build and verify pinned SQLite offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
+            --python "$PWD/.ci/build-runtime/bin/python" --runtime-root "$PWD/.ci/build-runtime" \
+            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --report verification/ci/sqlite-build-isolation.json \
+            --timeout 180 -- tools/ci_sqlite.py build
+          env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
+            --python "$PWD/.ci/build-runtime/bin/python" --runtime-root "$PWD/.ci/build-runtime" \
+            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --sqlite-runtime-root "$PWD/.ci/sqlite" \
+            --report verification/ci/sqlite-health-isolation.json --timeout 60 -- tools/ci_sqlite.py check
       - name: Local documentation links
         shell: bash
         run: |
           env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
             --python "$PWD/.ci/build-runtime/bin/python" --runtime-root "$PWD/.ci/build-runtime" \
-            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --report verification/ci/links-isolation.json \
+            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --sqlite-runtime-root "$PWD/.ci/sqlite" \
+            --report verification/ci/links-isolation.json \
             --timeout 60 -- tools/check_repository.py
       - name: Offline source tests and fault regressions
         shell: bash
         run: |
           env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
             --python "$PWD/.ci/build-runtime/bin/python" --runtime-root "$PWD/.ci/build-runtime" \
-            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --source --report verification/ci/unit.json \
+            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --sqlite-runtime-root "$PWD/.ci/sqlite" \
+            --source --report verification/ci/unit.json \
             --timeout 600 -- -m unittest discover -s tests -q
       - name: Offline wheel build and fresh install
         shell: bash
@@ -79,15 +98,18 @@ jobs:
           set -euo pipefail
           env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
             --python "$PWD/.ci/build-runtime/bin/python" --runtime-root "$PWD/.ci/build-runtime" \
-            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --report verification/ci/build.json \
+            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --sqlite-runtime-root "$PWD/.ci/sqlite" \
+            --report verification/ci/build.json \
             --timeout 120 -- -m pip --isolated wheel --no-index --no-deps --no-build-isolation --wheel-dir .ci/dist .
           env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
             --python "$PWD/.ci/install-runtime/bin/python" --runtime-root "$PWD/.ci/install-runtime" \
-            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --report verification/ci/install.json \
+            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --sqlite-runtime-root "$PWD/.ci/sqlite" \
+            --report verification/ci/install.json \
             --timeout 120 -- -m pip --isolated install --no-index --no-deps --find-links .ci/dist nlpx-termfinder
           env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
             --python "$PWD/.ci/install-runtime/bin/python" --runtime-root "$PWD/.ci/install-runtime" \
-            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --report verification/ci/smoke-isolation.json \
+            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --sqlite-runtime-root "$PWD/.ci/sqlite" \
+            --report verification/ci/smoke-isolation.json \
             --timeout 180 -- tools/ci_smoke.py --report verification/ci/installed-smoke.json \
             --wheelhouse .ci/wheels --dist .ci/dist
       - name: Larger bounded offline reliability rehearsal
@@ -96,7 +118,8 @@ jobs:
         run: |
           env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
             --python "$PWD/.ci/install-runtime/bin/python" --runtime-root "$PWD/.ci/install-runtime" \
-            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --report verification/ci/load-isolation.json \
+            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --sqlite-runtime-root "$PWD/.ci/sqlite" \
+            --report verification/ci/load-isolation.json \
             --timeout 900 --cpu-seconds 900 -- tools/reliability_load.py \
             --sources 1000 --report verification/ci/load.json
       - name: Preserve receipts and built wheel
@@ -107,5 +130,6 @@ jobs:
           path: |
             verification/ci/*.json
             .ci/dist/*.whl
+            .ci/sqlite/manifest.json
           retention-days: 14
           if-no-files-found: warn

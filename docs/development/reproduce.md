@@ -17,6 +17,12 @@ binary wheels for the target platform from the configured package index; inspect
 them before executing their code. Linux also needs a reviewed bubblewrap install.
 Choose a supported interpreter containing the required SQLite fix.
 
+Hosted CI additionally builds a pinned SQLite library and prepares Ubuntu's
+per-application sandbox policy; see the [CI contract](ci.md). Its
+`--sqlite-runtime-root "$PWD/.ci/sqlite"` option is appropriate only after that
+reviewed build. A statically linked Python cannot be upgraded by a dynamic
+library path. Ordinary local reproduction below uses an already patched runtime.
+
 ```sh
 QUARRY_PYTHON="$(command -v python3.13)"
 QUARRY_BASE_ROOT="$("$QUARRY_PYTHON" -I -S -c 'import sys; print(sys.prefix)')"

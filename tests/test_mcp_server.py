@@ -2,6 +2,7 @@
 from copy import deepcopy
 import io
 import json
+import os
 from pathlib import Path
 import select
 import subprocess
@@ -576,12 +577,21 @@ class MCPTests(unittest.TestCase):
 
 
 class MCPSubprocessTests(unittest.TestCase):
+    def environment(self, base):
+        environment = {"PATH": "/usr/bin:/bin", "PYTHONPATH": str(ROOT / "src"), "TMPDIR": str(base)}
+        # Only CI's reviewed native-runtime path survives; no provider keys or
+        # unrelated variables are inherited by these actual stdio processes.
+        for name in ("DYLD_LIBRARY_PATH", "LD_LIBRARY_PATH"):
+            if name in os.environ:
+                environment[name] = os.environ[name]
+        return environment
+
     def test_actual_stdio_subprocess_negotiates_lists_tools_and_prepares_without_credentials(self):
         with tempfile.TemporaryDirectory() as folder:
             base = Path(folder)
             child = subprocess.Popen([sys.executable, "-m", "termfinder.mcp_server", "--project", str(base / "project")],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                env={"PATH": "/usr/bin:/bin", "PYTHONPATH": str(ROOT / "src"), "TMPDIR": str(base)}, cwd=base)
+                env=self.environment(base), cwd=base)
             try:
                 def request(payload):
                     child.stdin.write((json.dumps(payload) + "\n").encode())
@@ -620,7 +630,7 @@ class MCPSubprocessTests(unittest.TestCase):
             base = Path(folder)
             child = subprocess.Popen([sys.executable, "-m", "termfinder.mcp_server", "--workspace", str(base)],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                env={"PATH": "/usr/bin:/bin", "PYTHONPATH": str(ROOT / "src"), "TMPDIR": str(base)}, cwd=base)
+                env=self.environment(base), cwd=base)
             try:
                 def request(payload):
                     child.stdin.write((json.dumps(payload) + "\n").encode())

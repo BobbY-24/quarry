@@ -1,5 +1,14 @@
 # Release notes
 
+## 6.7.2
+
+- Keep harness setup usable on macOS Python builds that omit the search-only
+  directory flag, with the same ancestor and symlink protections.
+- Provision and verify pinned SQLite for hosted offline CI; retain the project
+  store's patched-runtime requirement.
+- Prepare Linux sandbox prerequisites without global policy changes, expose
+  bounded startup diagnostics, and verify that application capabilities are zero.
+
 ## 6.7.1
 
 - Organize researcher guides, reference, research protocols, reliability and

@@ -3,8 +3,8 @@
 The workflow in `.github/workflows/offline-reliability.yml` prepares Linux/macOS
 and Python 3.11/3.12/3.13 checks. It uses `contents: read`, no repository secrets,
 no paid providers, no Slurm, no deployment and no privileged pull-request event.
-Checkout does not persist credentials. Dependency acquisition is a separate
-networked step; application tests, wheel build, installation and smoke checks
+Checkout does not persist credentials. Dependency and pinned SQLite source acquisition are separate
+networked steps; application tests, wheel build, installation and smoke checks
 execute with an empty credential environment. macOS denies all networking;
 Linux uses a separate network namespace with no host/external connectivity
 (private loopback is permitted).
@@ -12,7 +12,10 @@ Linux uses a separate network namespace with no host/external connectivity
 `tools/ci_offline.py` requires macOS Seatbelt or Linux bubblewrap. It probes
 network and unrelated-file denial before executing code and fails closed if
 isolation is unavailable. Linux also verifies the namespace differs from its
-parent. Each invocation has wall, CPU, file-size and open-file
+parent, all five application capability sets are zero, and `NoNewPrivs=1`.
+It mounts a synthetic one-account identity database and empty sandbox home;
+the host account database and home directories remain unavailable.
+Each invocation has wall, CPU, file-size and open-file
 bounds. Linux adds a per-process address-space bound. Wall timeout terminates
 the process group; escaped/daemonized processes are outside the supported
 adapter contract. Logs are capped at 8 MiB; reaching that cap fails the check.
@@ -24,6 +27,7 @@ env -i PATH=/usr/bin:/bin /path/to/python -I -S tools/ci_offline.py \
   --python "$PWD/.ci/build-runtime/bin/python" \
   --runtime-root "$PWD/.ci/build-runtime" \
   --base-runtime-root /path/to/reviewed/base-python \
+  --sqlite-runtime-root "$PWD/.ci/sqlite" \
   --source --report verification/ci/unit.json --timeout 600 \
   -- -m unittest discover -s tests -q
 ```
@@ -73,12 +77,35 @@ with an older unpatched SQLite stops before project writes or inference; its
 job needs a reviewed patched runtime. Do not disable the gate to obtain green
 CI. Same-host quota registries use DELETE journaling rather than live WAL.
 
+The workflow downloads the official SQLite **3.51.3** amalgamation separately,
+verifies its archive SHA256 and official C-source SHA3-256, and builds the native
+library inside offline isolation. `tools/ci_sqlite.py check` requires the selected
+Python to actually load the exact release/source ID, serialized thread safety,
+Unicode JSON, working two-connection WAL and database integrity. No downloaded
+installer or configure script runs. `--sqlite-runtime-root` accepts only the
+fixed `.ci/sqlite` artifact with a matching build receipt; the clean launcher
+sets its native-library path after entering isolation. This is a hosted CI
+prerequisite, not a substitute for a researcher's reviewed patched Python runtime.
+
+On Ubuntu 24.04, bubblewrap can create a namespace yet fail to configure its
+private loopback because setup capabilities are mediated. The workflow prepares
+the distribution's reviewed `bwrap-userns-restrict` AppArmor policy, verifies
+its pinned hash, and adds it without replacing another policy. The policy permits
+bubblewrap setup and stacks a child policy that denies capabilities. Global
+AppArmor/sysctl settings remain enabled. The subsequent launcher probe verifies
+the actual application boundary. The prerequisite receipt records fixed audit
+categories and policy identity without raw kernel logs. See
+[Ubuntu guidance](https://discourse.ubuntu.com/t/understanding-apparmor-user-namespace-restriction/58007)
+and the [ABI 4.0 policy](https://gitlab.com/apparmor/apparmor/-/raw/v4.0.1/profiles/apparmor/profiles/extras/bwrap-userns-restrict).
+
 Hosted runner labels and `setup-python` versions do not guarantee either a
 patched SQLite library or working namespace isolation. Verify both prerequisites
 on the selected runner image. A non-JSON Linux probe failure means the sandbox
-or interpreter did not start successfully; its conservative false flags are not
+or interpreter did not start successfully; missing probe assertions are not
 evidence that application code escaped isolation. Application execution remains
 blocked. Fix the reviewed runtime or runner prerequisite rather than disabling
 the SQLite gate, running application tests unsandboxed, or granting broad
 filesystem access. Python builds without search-only directory flags also need
-compatibility review under the narrow macOS filesystem policy.
+compatibility review under the narrow macOS filesystem policy. The Darwin
+harness fallback uses the system's search-only directory ABI and retains
+symlink rejection; it does not request ancestor directory inventories.

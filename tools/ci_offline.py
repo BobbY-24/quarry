@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -28,6 +29,14 @@ isolated_namespace = False
 if sys.platform.startswith('linux'):
     isolated_namespace = os.readlink('/proc/self/ns/net') != sys.argv[2]
     result['host_network_namespace_isolated'] = isolated_namespace
+    with open('/proc/self/status', encoding='utf-8') as stream:
+        status = dict(line.rstrip().split(':', 1) for line in stream if ':' in line)
+    result['application_capabilities_dropped'] = all(
+        int(status.get(key, '1').strip(), 16) == 0
+        for key in ('CapInh', 'CapPrm', 'CapEff', 'CapBnd', 'CapAmb'))
+    result['no_new_privileges'] = status.get('NoNewPrivs', '').strip() == '1'
+    import pwd
+    result['synthetic_account_home'] = pwd.getpwuid(os.getuid()).pw_dir == '/home/quarry-ci'
 try:
     with open(sys.argv[1], 'rb') as stream: stream.read(1)
 except OSError:
@@ -48,6 +57,50 @@ print(json.dumps(result, sort_keys=True))
 sys.exit(0 if all(result.values()) else 3)
 '''
 
+# SIP removes DYLD variables while starting Apple's protected sandbox launcher.
+# Set only this reviewed artifact path after entering Seatbelt, then exec the
+# selected ordinary Python. The original explicit empty environment is retained.
+SQLITE_EXEC = r'''
+import os, sys
+environment = dict(os.environ)
+environment['DYLD_LIBRARY_PATH' if sys.platform == 'darwin' else 'LD_LIBRARY_PATH'] = sys.argv[1]
+os.execve(sys.argv[2], [sys.argv[2], *sys.argv[3:]], environment)
+'''
+
+
+def sqlite_runtime(project, root):
+    expected = project / ".ci" / "sqlite"
+    if root.absolute() != expected or root.resolve() != expected.resolve():
+        raise ValueError("SQLite CI runtime must be the fixed project/.ci/sqlite artifact")
+    spec = importlib.util.spec_from_file_location("quarry_ci_sqlite", project / "tools" / "ci_sqlite.py")
+    sqlite_tool = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sqlite_tool)
+    manifest_path = sqlite_tool.controlled_path(root / "manifest.json", project / ".ci")
+    if manifest_path.stat().st_size > 16384:
+        raise ValueError("SQLite manifest exceeds its bound")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    filename = "libsqlite3.0.dylib" if sys.platform == "darwin" else "libsqlite3.so.0"
+    alias = "libsqlite3.dylib" if sys.platform == "darwin" else "libsqlite3.so"
+    if (manifest.get("schema_version") != 1 or manifest.get("sqlite_version") != sqlite_tool.VERSION
+            or manifest.get("sqlite_source_id") != sqlite_tool.SOURCE_ID
+            or manifest.get("archive_sha256") != sqlite_tool.ARCHIVE_SHA256
+            or manifest.get("sqlite3_c_sha3_256") != sqlite_tool.C_SHA3_256
+            or manifest.get("library_filename") != filename
+            or manifest.get("platform") != platform.system()
+            or manifest.get("machine") != platform.machine()
+            or manifest.get("aliases") != {alias: filename}):
+        raise ValueError("SQLite manifest does not identify the reviewed platform/release")
+    library = sqlite_tool.controlled_path(root / "lib" / filename, project / ".ci")
+    if not 1 <= library.stat().st_size <= 32_000_000 or sqlite_tool.sha256(library) != manifest.get("library_sha256"):
+        raise ValueError("SQLite native library does not match its build receipt")
+    alias_path = root / "lib" / alias
+    if not alias_path.is_symlink() or os.readlink(alias_path) != filename:
+        raise ValueError("SQLite library alias does not identify the reviewed artifact")
+    if {path.name for path in (root / "lib").iterdir()} != {filename, alias}:
+        raise ValueError("SQLite loader directory contains an unreviewed artifact")
+    return root / "lib", {key: manifest[key] for key in
+                           ("sqlite_version", "sqlite_source_id", "archive_sha256", "library_sha256")}
+
 
 def source_hashes(project):
     hashes = {}
@@ -61,6 +114,16 @@ def source_hashes(project):
                     and not any(part.endswith(".egg-info") for part in path.parts)):
                 hashes[path.relative_to(project).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
     return hashes
+
+
+def synthetic_identity(private):
+    # No host account database or home directory is exposed. Clean subprocesses
+    # can still resolve their uid even when their environment deliberately omits
+    # HOME. These files contain only the sandbox's current numeric identity.
+    passwd, group = private / "passwd", private / "group"
+    passwd.write_text(f"quarry-ci:x:{os.getuid()}:{os.getgid()}:Quarry CI:/home/quarry-ci:/bin/false\n", encoding="utf-8")
+    group.write_text(f"quarry-ci:x:{os.getgid()}:\n", encoding="utf-8")
+    return passwd, group
 
 
 def bounded_run(command, *, environment, cwd, timeout, cpu_seconds):
@@ -96,7 +159,8 @@ def isolation_result(code, output, *, linux):
     """Expose fixed startup categories, never arbitrary launcher output or paths."""
     required = {"unrelated_file_read_denied", "network_denied"}
     if linux:
-        required.add("host_network_namespace_isolated")
+        required.update({"host_network_namespace_isolated", "application_capabilities_dropped",
+                         "no_new_privileges", "synthetic_account_home"})
     try:
         probe = json.loads(output)
     except ValueError:
@@ -108,6 +172,8 @@ def isolation_result(code, output, *, linux):
     lower = output.lower()
     if code == 124:
         category = "startup_timeout"
+    elif "bwrap:" in lower and "loopback:" in lower:
+        category = "private_loopback_setup_failed"
     elif "bwrap:" in lower and any(text in lower for text in ("namespace", "unshare")):
         category = "namespace_setup_failed"
     elif "bwrap:" in lower and any(text in lower for text in ("mount", "bind", "mkdir")):
@@ -138,6 +204,7 @@ def main(argv=None):
     parser.add_argument("--python", type=Path, required=True)
     parser.add_argument("--runtime-root", type=Path, required=True)
     parser.add_argument("--base-runtime-root", type=Path, required=True)
+    parser.add_argument("--sqlite-runtime-root", type=Path)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--source", action="store_true")
     parser.add_argument("--timeout", type=int, default=600)
@@ -152,6 +219,12 @@ def main(argv=None):
         parser.error("Explicit reviewed interpreter and narrow runtime directories are required")
     if not any(interpreter.resolve().is_relative_to(root) for root in roots):
         parser.error("Interpreter must belong to an explicit reviewed runtime")
+    sqlite_library, sqlite_identity = None, None
+    if args.sqlite_runtime_root:
+        try:
+            sqlite_library, sqlite_identity = sqlite_runtime(project, args.sqlite_runtime_root)
+        except (ValueError, OSError, KeyError):
+            parser.error("SQLite CI runtime must match its reviewed build receipt")
     destination = args.report.resolve()
     if not destination.is_relative_to(project / "verification"):
         parser.error("CI receipts must stay inside repository verification/")
@@ -179,16 +252,21 @@ def main(argv=None):
                 parser.error("Linux bubblewrap is required; no unsandboxed fallback")
             prefix = [bwrap, "--unshare-all", "--die-with-parent", "--new-session", "--cap-drop", "ALL",
                       "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp"]
-            for system in ("/usr/bin", "/usr/lib", "/usr/lib64", "/usr/share/zoneinfo", "/bin", "/lib", "/lib64"):
+            for system in ("/usr/bin", "/usr/lib", "/usr/lib64", "/usr/include", "/usr/share/zoneinfo", "/bin", "/lib", "/lib64"):
                 if Path(system).exists(): prefix.extend(["--ro-bind", system, system])
             for system in ("/etc/ld.so.cache", "/etc/localtime"):
                 if Path(system).exists(): prefix.extend(["--ro-bind", system, system])
             for root in sorted(roots): prefix.extend(["--ro-bind", str(root), str(root)])
+            passwd, group = synthetic_identity(private)
+            prefix.extend(["--ro-bind", str(passwd), "/etc/passwd", "--ro-bind", str(group), "/etc/group",
+                           "--dir", "/home/quarry-ci"])
             prefix.extend(["--bind", str(project), str(project), "--bind", str(private), str(private),
                            "--chdir", str(project), str(interpreter)])
             sandbox = "Linux bubblewrap"
         else:
             parser.error("Supported offline CI platforms are Linux and macOS")
+        if sqlite_library:
+            prefix.extend(["-I", "-S", "-c", SQLITE_EXEC, str(sqlite_library), str(interpreter)])
         environment = {"PATH": str(interpreter.parent) + ":/usr/bin:/bin", "TMPDIR": str(private),
                        "PYTHONDONTWRITEBYTECODE": "1", "PYTHONNOUSERSITE": "1",
                        "OMP_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "2", "ARROW_NUM_THREADS": "2"}
@@ -217,6 +295,7 @@ def main(argv=None):
         report = {"schema_version": 1, "sandbox": sandbox, "probe": probe,
                   "credential_environment": "empty", "network": "host_network_denied" if sys.platform.startswith("linux") else "denied",
                   "python_version": platform.python_version(),
+                  "sqlite_runtime": sqlite_identity,
                   "platform": platform.platform(), "python_arguments": command, "source_tree": args.source,
                   "wall_timeout_seconds": args.timeout, "cpu_seconds_per_process": args.cpu_seconds,
                   "file_bytes_per_file_limit": 1_073_741_824, "open_files_limit": 256,
