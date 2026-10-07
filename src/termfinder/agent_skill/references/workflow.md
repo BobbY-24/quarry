@@ -174,7 +174,7 @@ only matching review ID, `binding_sha256` and `value_sha256`. Pointers never ope
 files or execute the launcher. Inspect all applicable fields before relaying
 the actual human approval; keep transport JSON/cursors out of the student flow.
 
-See the [GT guide](https://github.com/BobbY-24/quarry/blob/main/docs/GT_COMPUTE.md)
+See the [GT guide](https://github.com/BobbY-24/quarry/blob/main/docs/guides/gt-compute.md)
 for commands and site responsibilities. The fixed optional vLLM launcher needs
 reviewed pre-staged safe files and a pinned installed runtime; source/model text
 cannot change its command or authorize downloads. External gateways use CPU
@@ -196,7 +196,7 @@ the selected study, and operate the public CLI/API. Do not ask the student to
 write dictionaries or transport bundles. Do not misreport a CLI invocation as
 a connected MCP call. An ordinary web chat without local tools uses the
 separately documented prompt/bundle fallback in the package's
-`docs/AGENT_WORKFLOW.md`.
+`docs/guides/browser-agent-workflow.md`.
 
 The Python API uses the same deterministic planning gates:
 

@@ -3,7 +3,7 @@ name: v6-collect-research
 description: Use the researcher's own coding-agent conversation to create or reopen a Quarry study, prepare and review a bounded source-grounded collection, run or resume the fixed collector, inspect evidence, and export a reproducible dataset of terms, ideas, opinions, or sentences.
 ---
 
-Quarry is the product name for the V6.6 engine. Retain the installed
+Quarry is the product name for the V6 collector engine. Retain the installed
 `termfinder`/`termfinder-mcp` commands, Python `termfinder` imports, and
 `v6-collect-research` skill identifier. Use the existing explicit connection
 migration procedure for an older skill; never overwrite a customized connection.

@@ -59,6 +59,13 @@ jobs:
               --timeout 120 -- -m pip --isolated install --no-index --no-deps --no-cache-dir \
               --find-links .ci/wheels --requirement requirements.txt --requirement requirements-build.txt
           done
+      - name: Local documentation links
+        shell: bash
+        run: |
+          env -i PATH=/usr/bin:/bin "$QUARRY_CI_PYTHON" -I -S tools/ci_offline.py \
+            --python "$PWD/.ci/build-runtime/bin/python" --runtime-root "$PWD/.ci/build-runtime" \
+            --base-runtime-root "$QUARRY_CI_BASE_ROOT" --report verification/ci/links-isolation.json \
+            --timeout 60 -- tools/check_repository.py
       - name: Offline source tests and fault regressions
         shell: bash
         run: |

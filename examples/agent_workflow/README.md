@@ -121,6 +121,6 @@ stance labels, and cultural associations belong in suggestion fields until
 reviewed. The deterministic check establishes that text appears in the source;
 it does not prove truth, semantic type, sentence completeness, or representativeness.
 
-Read [the six-step agent workflow](../../docs/AGENT_WORKFLOW.md) for examples and
-[the publication protocol](../../docs/PUBLICATION_PROTOCOL.md) for complete-source
+Read [the six-step agent workflow](../../docs/guides/browser-agent-workflow.md) for examples and
+[the publication protocol](../../docs/research/publication-protocol.md) for complete-source
 evaluation, evidence lineage, reviewer questions, and reproducibility limits.

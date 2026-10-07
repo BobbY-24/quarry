@@ -114,7 +114,7 @@ transmit them to its provider. Source privacy requires approved tool output and
 data-handling policy, not just the institutional backend setting.
 
 For complete setup, finite Slurm commands, profile examples and pilot boundaries,
-read the [GT workflow](https://github.com/BobbY-24/quarry/blob/main/docs/GT_COMPUTE.md).
+read the [GT workflow](https://github.com/BobbY-24/quarry/blob/main/docs/guides/gt-compute.md).
 
 For installation, approved model-server commands and current primary-source
-links, use the [repository compute guide](https://github.com/BobbY-24/quarry/blob/main/docs/COMPUTE.md).
+links, use the [repository compute guide](https://github.com/BobbY-24/quarry/blob/main/docs/guides/compute.md).
