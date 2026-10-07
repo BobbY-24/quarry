@@ -26,7 +26,7 @@ Inside the reviewed isolation boundary described in [CI](CI.md):
 ```sh
 python examples/offline_demo.py --out verification/rehearsal-recipes
 python examples/simple_workflow_demo.py --out verification/rehearsal-agent
-python tools/ci_smoke.py --wheelhouse .ci/wheels --dist .ci/dist \
+python tools/ci_smoke.py --wheelhouse .ci/wheels --dist .ci/release-dist \
   --report verification/installed-smoke.json
 python tools/reliability_load.py --sources 1000 \
   --report verification/reliability-load-1000.json
@@ -38,7 +38,10 @@ reversible annotations, interruption/resume, visible budgets/failures,
 complete-source scoring and frozen exports. The simple workflow demonstration
 rehearses the researcher-agent handoff without calling an external agent or
 model. The installed smoke expects the fresh wheel and five pinned dependency
-wheels used by the release gate. These are engineering checks, not extraction
+wheels used by the release gate. The delivered V6.7 wheel is in
+`.ci/release-dist`; the V7.1 carry uses `.ci/dist`. When rebuilding elsewhere,
+use the directory containing exactly one freshly built, matching wheel.
+These are engineering checks, not extraction
 quality or student usability experiments.
 
 For ordinary local CLI use after reviewing the inputs:
