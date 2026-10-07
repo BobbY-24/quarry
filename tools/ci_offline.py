@@ -91,6 +91,36 @@ def bounded_run(command, *, environment, cwd, timeout, cpu_seconds):
         return code, output.decode("utf-8", errors="replace")
 
 
+def isolation_result(code, output, *, linux):
+    """Expose fixed startup categories, never arbitrary launcher output or paths."""
+    required = {"unrelated_file_read_denied", "network_denied"}
+    if linux:
+        required.add("host_network_namespace_isolated")
+    try:
+        probe = json.loads(output)
+    except ValueError:
+        probe = None
+    valid = (isinstance(probe, dict) and required <= probe.keys()
+             and all(type(probe[key]) is bool for key in required))
+    if valid and code == 0 and all(probe[key] for key in required):
+        return probe, None
+    lower = output.lower()
+    if code == 124:
+        category = "startup_timeout"
+    elif "bwrap:" in lower and any(text in lower for text in ("namespace", "unshare")):
+        category = "namespace_setup_failed"
+    elif "bwrap:" in lower and any(text in lower for text in ("mount", "bind", "mkdir")):
+        category = "filesystem_setup_failed"
+    elif "bwrap:" in lower and "exec" in lower:
+        category = "interpreter_launch_failed"
+    elif valid:
+        category = "isolation_assertion_failed"
+    else:
+        category = "unrecognized_startup_output"
+    safe_probe = {key: probe[key] for key in sorted(required)} if valid else {}
+    return safe_probe, category
+
+
 def main(argv=None):
     project = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
@@ -155,11 +185,12 @@ def main(argv=None):
         host_namespace = os.readlink("/proc/self/ns/net") if sys.platform.startswith("linux") else "unavailable_on_macos"
         code, output = bounded_run(prefix + ["-c", PROBE, marker.name, host_namespace], environment=environment,
                                    cwd=project, timeout=20, cpu_seconds=args.cpu_seconds)
-        try: probe = json.loads(output)
-        except ValueError: probe = {"unrelated_file_read_denied": False, "network_denied": False}
-        if code or not all(probe.values()):
+        probe, category = isolation_result(code, output, linux=sys.platform.startswith("linux"))
+        if category:
             failure = {"schema_version": 1, "isolation_probe_failed": True, "probe": probe,
                        "application_executed": False, "exit_code": code, "sandbox": sandbox,
+                       "startup_failure_category": category,
+                       "probe_output_sha256": hashlib.sha256(output.encode()).hexdigest(),
                        "reviewed_files_sha256": before_hashes}
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_text(json.dumps(failure, sort_keys=True, indent=2) + "\n", encoding="utf-8")
