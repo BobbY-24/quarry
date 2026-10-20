@@ -203,6 +203,9 @@ def parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--require-sense", action="store_true")
     evaluate.add_argument("--split-manifest", type=Path, help="Frozen source/group split manifest; validates test-source coverage")
     evaluate.add_argument("--out", type=Path)
+    compare = sub.add_parser("compare-experiments", help="Compare frozen normalized runs against complete-source gold; no model calls")
+    compare.add_argument("study", type=Path, help="Versioned study JSON with local corpus, gold and run files")
+    compare.add_argument("--out", type=Path, help="Save the comparison; refuses to overwrite")
     splits = sub.add_parser("split", help="Create deterministic source/group splits before recipe tuning")
     splits.add_argument("version")
     splits.add_argument("--seed", default="termfinder-v1")
@@ -226,6 +229,10 @@ def _write_or_print(value, path):
 def main(argv=None) -> int:
     args = parser().parse_args(argv)
     try:
+        if args.command == "compare-experiments":
+            from .experiments import compare_study
+            _write_or_print(compare_study(args.study), args.out)
+            return 0
         if args.command == "recipe":
             _write_or_print(_recipe(args.name), args.out)
             return 0

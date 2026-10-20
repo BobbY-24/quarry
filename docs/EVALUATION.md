@@ -1,5 +1,9 @@
 # Complete-source evaluation
 
+For paired comparisons, failure denominators, stage costs, and the ordered study
+plan, see [the experiment roadmap](EXPERIMENT_ROADMAP.md) and
+[the runnable offline comparison](../examples/experiments/README.md).
+
 Human review of extracted candidates can estimate their quality, but cannot
 measure missed terms. Freeze a held-out source split before recipe/prompt tuning,
 then annotate every complete source in that split. Keep a document family or
