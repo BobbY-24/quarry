@@ -292,7 +292,7 @@ source/family grouped splits, a documented rubric and sampling procedure,
 original-byte archives for parser replay, and verified source-use rights. Blank
 packets and fake-provider fixtures are not gold or quality measurements.
 
-The [student procedure](SIMPLE_WORKFLOW.md), [NLPx examples](NLPX_STUDENT_GUIDE.md),
+The [student procedure](SIMPLE_WORKFLOW.md),
 [publication protocol](PUBLICATION_PROTOCOL.md), and [evaluation procedure](EVALUATION.md)
 give the detailed research workflow. The offline protocol/connection tests
 verify software behavior; a real Claude/Codex session and real provider pilot

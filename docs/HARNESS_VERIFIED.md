@@ -127,7 +127,6 @@ consistency, not semantic correctness, novelty, truth, rights or recall.
 
 For the actual student procedure, use [AGENT_NATIVE.md](AGENT_NATIVE.md) and
 [SIMPLE_WORKFLOW.md](SIMPLE_WORKFLOW.md). The
-[11 research-specific walkthroughs](NLPX_STUDENT_GUIDE.md),
 [architecture](ARCHITECTURE.md), [notebook](../examples/simple_student_workflow.ipynb),
 [publication protocol](PUBLICATION_PROTOCOL.md) and [pilot steps](PILOT.md)
 provide the detailed handoff. A real pilot requires explicit authorization,

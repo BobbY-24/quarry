@@ -4,16 +4,15 @@ Detailed CLI, API, cost and data-format reference preserved from the V6.4 introd
 Quarry is the product name; the V6.4 engine retains the `termfinder` CLI/Python
 namespace and `v6-collect-research` packaged skill identifier.
 
-## Quarry — NLPx research collector
+## Quarry — research collector
 
 Quarry collects **terms and senses with inspectable source evidence**, plus exact
 source spans expressing ideas, opinions, or sentences. Start with a research
 question in plain language. Your own coding agent drafts a plan;
 Quarry validates its scope and inputs, collects with Broad or Specialists, resumes
 unfinished work, and saves a reproducible dataset version. It is intended for PhD
-students and research assistants in Georgia Tech's NLPx lab working with [name removed]
-and [name removed]. Their publications guide the product; this implementation is
-not a requested lab deployment or a reproduction of their datasets.
+students and research assistants in NLP. Published research guides the product;
+this implementation is not a reproduction of any paper's datasets.
 
 V5 supplies the GLM + DeepSeek broad route, additive community specialist lenses,
 grounded union, exact-occurrence deduplication, bounded split recovery, recorded
@@ -81,8 +80,8 @@ continue to apply. Your personal agent session's cost is separate and unknown
 to Quarry. Offline fake is a rehearsal, not an extractor for arbitrary research.
 
 [The student procedure](SIMPLE_WORKFLOW.md) includes NEO-BENCH, Camellia,
-CARE, and MedReadMe-inspired examples. The [11 student walkthroughs](NLPX_STUDENT_GUIDE.md)
-and [publication protocol](PUBLICATION_PROTOCOL.md) retain the detailed
+CARE, and MedReadMe-inspired examples.
+The [publication protocol](PUBLICATION_PROTOCOL.md) retain the detailed
 research and evaluation procedures. These are proposed extensions, not claims
 of lab adoption or dataset reproduction.
 
@@ -102,8 +101,7 @@ CLI/API/manual configuration remains available.
 
 The conversational entry follows the skill-and-connected-tool direction of
 [Paper2Agent](https://github.com/jmiao24/Paper2Agent); the visual annotation view
-draws on [Thresh](https://aclanthology.org/2023.emnlp-demo.30/) by [name removed],
-[name removed], and [name removed]. Quarry supplies its own fixed collector; it has no dependency
+draws on [Thresh](https://aclanthology.org/2023.emnlp-demo.30/). Quarry supplies its own fixed collector; it has no dependency
 on either project. Real harness usability and real provider quality still need
 field verification.
 
@@ -275,11 +273,7 @@ The `Project` methods `prepare_agent_setup`, `validate_agent_bundle`,
 `apply_agent_bundle`, `ingest_agent_sources`, `freeze_agent_corpus`, and
 `publication_audit` are shared by the CLI and browser.
 
-For proposed workflows tied to existing NLPx research, see the
-[11 student walkthroughs](NLPX_STUDENT_GUIDE.md),
-[complete lab procedure](LAB_PROTOCOL.md), and
-[editable student recipes and batch metadata](../examples/lab_recipes/README.md).
-The named examples use synthetic few-shots and zero spending until a researcher
+The examples use synthetic few-shots and zero spending until a researcher
 reviews the actual corpus, profile and finite budget.
 
 ## Sources and discovery

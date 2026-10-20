@@ -92,27 +92,9 @@
       "documentation_adapted": false
     },
     {
-      "path": "docs/LAB_EXAMPLES_VERIFIED.md",
-      "upstream_sha256": "17fcd74badc76f8f4933089ff1e3d363221483ce43ddaff887500d11673ddd62",
-      "standalone_sha256": "17fcd74badc76f8f4933089ff1e3d363221483ce43ddaff887500d11673ddd62",
-      "documentation_adapted": false
-    },
-    {
-      "path": "docs/LAB_PROTOCOL.md",
-      "upstream_sha256": "4826b75b1923b223c4ce8ecd01d28d341ace7763953582cdbda15b1238a4d23b",
-      "standalone_sha256": "c25ba0503cad935c6f15c6d8c81c29a2c8edf3af5d6026c1e12383236a19bfa1",
-      "documentation_adapted": true
-    },
-    {
       "path": "docs/LONG_RUNS.md",
       "upstream_sha256": "c52fbe496cf6193266031cc278f452f6b9aba13ed8c0b67a78c6db72384d8c5d",
       "standalone_sha256": "c52fbe496cf6193266031cc278f452f6b9aba13ed8c0b67a78c6db72384d8c5d",
-      "documentation_adapted": false
-    },
-    {
-      "path": "docs/NLPX_STUDENT_GUIDE.md",
-      "upstream_sha256": "17181c2a794b7090ff93e1c1f27e3eb0e61b7a1c30d8e0a5d40a4c50cc9f30d6",
-      "standalone_sha256": "17181c2a794b7090ff93e1c1f27e3eb0e61b7a1c30d8e0a5d40a4c50cc9f30d6",
       "documentation_adapted": false
     },
     {
@@ -239,150 +221,6 @@
       "path": "examples/gold_specs.json",
       "upstream_sha256": "37ce1dc7b551f0a547f0ec2a05927ed5eec4be5d7dcd90746527009be226da8e",
       "standalone_sha256": "37ce1dc7b551f0a547f0ec2a05927ed5eec4be5d7dcd90746527009be226da8e",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/README.md",
-      "upstream_sha256": "214cb9ff7e8917f1af1e4ab205143e47022445626acf42a33b82c6ad85333b39",
-      "standalone_sha256": "214cb9ff7e8917f1af1e4ab205143e47022445626acf42a33b82c6ad85333b39",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/catalog.json",
-      "upstream_sha256": "5bf7fe8fc1144b6a6623edd45fe9381273441aac872f1b6a4fa1a237287df4a3",
-      "standalone_sha256": "5bf7fe8fc1144b6a6623edd45fe9381273441aac872f1b6a4fa1a237287df4a3",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.json",
-      "upstream_sha256": "3d7bf5848e156c7dd2300b1a6d214e78c210a9dfc7a89f1acbc88e238fd8fb80",
-      "standalone_sha256": "3d7bf5848e156c7dd2300b1a6d214e78c210a9dfc7a89f1acbc88e238fd8fb80",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.metadata.json",
-      "upstream_sha256": "99c2c8dfada990ee62b11a0cc7abecc819dd838291f3efd939d70613e96f4c10",
-      "standalone_sha256": "99c2c8dfada990ee62b11a0cc7abecc819dd838291f3efd939d70613e96f4c10",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.json",
-      "upstream_sha256": "1341ec23e55165c52989c5ed2cd992ebfa2e0c138a942840658d1075224da8eb",
-      "standalone_sha256": "1341ec23e55165c52989c5ed2cd992ebfa2e0c138a942840658d1075224da8eb",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.metadata.json",
-      "upstream_sha256": "8a8a098bf1107555228f479c372c3b418d24cb005aab249338d1ac86c872b08e",
-      "standalone_sha256": "8a8a098bf1107555228f479c372c3b418d24cb005aab249338d1ac86c872b08e",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.json",
-      "upstream_sha256": "d8cca84cf0983e75d75132321697ded16723e89a02d421dbf4046b51f8ae3077",
-      "standalone_sha256": "d8cca84cf0983e75d75132321697ded16723e89a02d421dbf4046b51f8ae3077",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.metadata.json",
-      "upstream_sha256": "5536f4153bfa778ba4c2b50bc06fda51c3f791f24a8d78f0a7ad51220213f96f",
-      "standalone_sha256": "5536f4153bfa778ba4c2b50bc06fda51c3f791f24a8d78f0a7ad51220213f96f",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.json",
-      "upstream_sha256": "0060b769396ee7850fad947adddd67863d474cced3034b688ffeb05538275335",
-      "standalone_sha256": "0060b769396ee7850fad947adddd67863d474cced3034b688ffeb05538275335",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.metadata.json",
-      "upstream_sha256": "5255d700c6f4e6bc5c678556a406148a6aa6cdb9c867b7dd165315627eca1369",
-      "standalone_sha256": "5255d700c6f4e6bc5c678556a406148a6aa6cdb9c867b7dd165315627eca1369",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.json",
-      "upstream_sha256": "1e53a5b7de2186343a7332630c8e1d8eceebc27f28d605c783618fb72ad33c0d",
-      "standalone_sha256": "1e53a5b7de2186343a7332630c8e1d8eceebc27f28d605c783618fb72ad33c0d",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.metadata.json",
-      "upstream_sha256": "807b0be8a77ce860b3eb858cd79fbb4f6655a7163324d4d2e14de05c040c3471",
-      "standalone_sha256": "807b0be8a77ce860b3eb858cd79fbb4f6655a7163324d4d2e14de05c040c3471",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.json",
-      "upstream_sha256": "2d7fae86a1d51c8b615c4a1c2f06c9eb7a51c2ecae447741f847f13dc89941f8",
-      "standalone_sha256": "2d7fae86a1d51c8b615c4a1c2f06c9eb7a51c2ecae447741f847f13dc89941f8",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.metadata.json",
-      "upstream_sha256": "4a5ff98bc15d55666523847493578694f66593c1f09c11290776f276425eda66",
-      "standalone_sha256": "4a5ff98bc15d55666523847493578694f66593c1f09c11290776f276425eda66",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.json",
-      "upstream_sha256": "0a91f02081ac8da9a729b64f3393ca320700970e87200d85a653133d4f418851",
-      "standalone_sha256": "0a91f02081ac8da9a729b64f3393ca320700970e87200d85a653133d4f418851",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.metadata.json",
-      "upstream_sha256": "921812faa58134e32b2f93203a947e52b4a0780a9880c71feaa65ebecbdb7ad5",
-      "standalone_sha256": "921812faa58134e32b2f93203a947e52b4a0780a9880c71feaa65ebecbdb7ad5",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.json",
-      "upstream_sha256": "3c4d622c28e000073f78dd559e9f9ed2adf8ad7cbf28f53dfa2c4c458535ec9f",
-      "standalone_sha256": "3c4d622c28e000073f78dd559e9f9ed2adf8ad7cbf28f53dfa2c4c458535ec9f",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.metadata.json",
-      "upstream_sha256": "6716fbcc3a85288d4a66a186e11cf4615b1d85e7ee097b1377b88adc3898fb65",
-      "standalone_sha256": "6716fbcc3a85288d4a66a186e11cf4615b1d85e7ee097b1377b88adc3898fb65",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.json",
-      "upstream_sha256": "ca5c905d5899126dbd1f7717c041a24b44d0ff1b9d8edca0c10148d4d9f596a2",
-      "standalone_sha256": "ca5c905d5899126dbd1f7717c041a24b44d0ff1b9d8edca0c10148d4d9f596a2",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.metadata.json",
-      "upstream_sha256": "b2a76b00964dcf9fc28b2f8ea6e2c68cbf23a7be9c727ab20860295a1bcaeb4c",
-      "standalone_sha256": "b2a76b00964dcf9fc28b2f8ea6e2c68cbf23a7be9c727ab20860295a1bcaeb4c",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.json",
-      "upstream_sha256": "a3a27a5013ff56366beee64809232f6ef75de53b3957b821eebf9afb7617e544",
-      "standalone_sha256": "a3a27a5013ff56366beee64809232f6ef75de53b3957b821eebf9afb7617e544",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.metadata.json",
-      "upstream_sha256": "9756577ec9fc76470a2d3269772db51a9afb97096cfd520347c51f8a897b9de7",
-      "standalone_sha256": "9756577ec9fc76470a2d3269772db51a9afb97096cfd520347c51f8a897b9de7",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.json",
-      "upstream_sha256": "9a18dcb87dcd04a4b7e309cc0d70e73a39956254fa0d0bed3edfacd860740f92",
-      "standalone_sha256": "9a18dcb87dcd04a4b7e309cc0d70e73a39956254fa0d0bed3edfacd860740f92",
-      "documentation_adapted": false
-    },
-    {
-      "path": "examples/lab_recipes/example-study.metadata.json",
-      "upstream_sha256": "5fa46f3d2ebc1ee46fdbec00cecb880fc2cb97dd0bbe771dfbc682bfab3ee726",
-      "standalone_sha256": "5fa46f3d2ebc1ee46fdbec00cecb880fc2cb97dd0bbe771dfbc682bfab3ee726",
       "documentation_adapted": false
     },
     {
@@ -821,12 +659,6 @@
       "path": "tools/browser_launcher.py",
       "upstream_sha256": "db3c500faddfdaac11a8594d87e26180a8c6f9f2ff2b4e9d11164a9c1bf61373",
       "standalone_sha256": "db3c500faddfdaac11a8594d87e26180a8c6f9f2ff2b4e9d11164a9c1bf61373",
-      "documentation_adapted": false
-    },
-    {
-      "path": "tools/check_lab_examples.py",
-      "upstream_sha256": "653182d80ab8b915d32aaf12770a3911bb1b690f015ea8c0aaac7e160e950081",
-      "standalone_sha256": "653182d80ab8b915d32aaf12770a3911bb1b690f015ea8c0aaac7e160e950081",
       "documentation_adapted": false
     },
     {

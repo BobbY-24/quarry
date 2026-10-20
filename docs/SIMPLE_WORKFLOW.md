@@ -98,17 +98,14 @@ claim independent blindness without a separately specified research protocol.
 
 ## Three publication-inspired student examples
 
-These are proposed extensions guided by published NLPx research. They are not
+These are proposed extensions guided by published NLP research. They are not
 assignments, evidence of adoption, or reproductions of the cited datasets. All
 actual corpus files, rights, languages, and hypotheses belong to the researcher.
-The [11 student profiles](NLPX_STUDENT_GUIDE.md) supply more research-specific
-starting requests and references; their recipes are optional references for
-the agent, not files the student must maintain by hand.
 
-### [name removed]: expressions and changing senses
+### Expressions and changing senses
 
 [NEO-BENCH](https://arxiv.org/html/2402.12261v4) motivates a vocabulary study.
-[name removed] can tell his agent:
+A researcher can tell their agent:
 
 > Use Quarry for terms in my permitted dated EV-community exports. Find new
 > expressions and changed senses. Exclude names used only as names. Retain
@@ -119,16 +116,16 @@ the agent, not files the student must maintain by hand.
 The agent proposes a neologism recipe with examples of a novel expression, an
 established spelling with a changed sense, and a name to exclude. Quarry checks the
 scope, imports the text, and freezes the source families before extraction.
-[name removed] reviews complete held-out sources for the rubric independently of the
+The researcher reviews complete held-out sources for the rubric independently of the
 candidate list. He then inspects each expression's literal occurrence and
 proposed sense. A term seen once by only GLM remains retained if grounded.
 His dataset reports first observation in this corpus; it makes no claim that
 the date is the expression's actual coinage date.
 
-### [name removed]: cultural expressions and entities
+### Cultural expressions and entities
 
 [Camellia](https://arxiv.org/abs/2510.05291) motivates cultural vocabulary and
-entity collection. [name removed] can tell his agent:
+entity collection. A researcher can tell their agent:
 
 > Use Quarry for culturally situated entities and expressions in these permitted
 > unmasked Arabic, Chinese, Japanese, and English passages. Include established
@@ -140,7 +137,7 @@ entity collection. [name removed] can tell his agent:
 The agent changes the inclusion rubric to retain cultural entities and routes
 specialists by the declared communities. Quarry keeps exact original-script spans
 and distinct senses; it does not transfer a neologism exclusion to this study.
-[name removed] reviews translations and cultural attributes separately from the observed
+The researcher reviews translations and cultural attributes separately from the observed
 text. Bilingual annotators label complete held-out source families using the
 frozen rubric. The export distinguishes original contexts, any proposed
 translations, supported definitions, and model-proposed meanings. The $15 is a
@@ -194,7 +191,7 @@ meanings, translations, and model annotations remain suggestions. See the
 
 | Tool | Routine user path | Setup and research boundary |
 | --- | --- | --- |
-| [Thresh](https://github.com/example/thresh) | Configure a typology and data, then use the annotation interface | Fine-grained human annotation and deployable interfaces |
+| [Thresh](https://aclanthology.org/2023.emnlp-demo.30/) | Configure a typology and data, then use the annotation interface | Fine-grained human annotation and deployable interfaces |
 | [Paper2Agent](https://github.com/jmiao24/Paper2Agent) | Install a skill/connect tools, then request scientific work through a coding agent | Building paper-derived tools needs their code/environment and verification |
 | Quarry | Install/connect once, then ask the same agent to prepare, review, collect, inspect and export | One workspace connection manages multiple studies; deterministic collection/evidence/recovery gates remain underneath; the browser is optional |
 

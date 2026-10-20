@@ -94,8 +94,6 @@ Keep established terminology, page locations and exact contexts.
 Use our reviewed GT profile; show sources, costs and resources before submission.
 ```
 
-[NLPx research examples and student walkthroughs →](docs/NLPX_STUDENT_GUIDE.md)
-
 ## Keep working in the same conversation
 
 ```text

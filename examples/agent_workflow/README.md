@@ -7,15 +7,13 @@ agent returns one policy/source bundle for V6 to check and import.
 
 | Starting point | Choose | Tell your agent | Publication motivating the example |
 | --- | --- | --- | --- |
-| [[name removed]'s community vocabulary](community-neologisms.brief.json) | Term | Include new expressions and shifted senses; exclude entity-only names; keep singleton evidence | [NEO-BENCH](https://arxiv.org/abs/2402.12261) |
-| [[name removed]'s cultural entities](cultural-entities.brief.json) | Term | Include established food entities; preserve original script; label proposed association | [Camellia](https://arxiv.org/abs/2510.05291) |
-| [[name removed]'s cultural opinions](cultural-opinions.brief.json) | Opinion | Collect explicitly expressed assessments; preserve attribution and source origin | [CARE](https://arxiv.org/abs/2504.05154) |
+| [Community vocabulary](community-neologisms.brief.json) | Term | Include new expressions and shifted senses; exclude entity-only names; keep singleton evidence | [NEO-BENCH](https://arxiv.org/abs/2402.12261) |
+| [Cultural entities](cultural-entities.brief.json) | Term | Include established food entities; preserve original script; label proposed association | [Camellia](https://arxiv.org/abs/2510.05291) |
+| [Cultural opinions](cultural-opinions.brief.json) | Opinion | Collect explicitly expressed assessments; preserve attribution and source origin | [CARE](https://arxiv.org/abs/2504.05154) |
 | [Medical sentences](medical-sentences.brief.json) | Sentence | Collect complete source sentences containing jargon for independent readability annotation | [MedReadMe](https://arxiv.org/abs/2405.02144) |
 | [Legal ideas](legal-ideas.brief.json) | Idea | Collect exact clauses expressing obligations or case facts; preserve qualifications | [GAVEL](https://arxiv.org/abs/2601.04424) |
 
-These are proposed pilots informed by publications, not the students' assigned
-projects or reproductions of the papers' datasets. The two alumni projects are
-lab precedents. No research data has been collected for these examples.
+These are proposed pilots informed by publications, not reproductions of the papers' datasets. No research data has been collected for these examples.
 
 All examples permit only a researcher-owned `./corpus` folder, use the reserved
 `local-only.invalid` domain, allow at most 15 sources, and set extraction spending

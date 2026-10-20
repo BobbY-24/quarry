@@ -1,9 +1,8 @@
 # Research rationale
 
-V6 is a term-collection tool for researchers working in Georgia Tech's NLPx lab
-with [name removed] and [name removed]. The publications below inform product choices. This
-implementation does not claim that the PIs requested these features, reproduce
-their datasets, or provide a new validated benchmark. The starter examples and
+V6 is a term-collection tool for NLP researchers. The publications below inform
+product choices. This implementation does not claim that the authors requested
+these features, reproduce their datasets, or provide a new validated benchmark. The starter examples and
 offline corpus are synthetic.
 
 ## Evolving vocabulary
@@ -19,14 +18,14 @@ corpus inventory; it is not a claim about first use anywhere.
 ## Cultural vocabulary and entities
 
 [Camellia](https://arxiv.org/abs/2510.05291) evaluates entity-centric cultural
-biases across Asian languages. The [official dataset repository](https://github.com/example/camellia)
+biases across Asian languages. Its dataset
 separates entities from masked contexts and pairs them with English translations.
 This motivates an entity-inclusive cultural recipe, original-script evidence,
 explicit language and community metadata, and translations stored as generated
 suggestions. The neologism recipe's entity exclusion is unsuitable for this task.
 
 [CARE](https://arxiv.org/abs/2504.05154) investigates culturally specific questions,
-responses, and native human preferences. Its [official repository](https://github.com/example/CARE)
+responses, and native human preferences. Its official repository
 describes question, response, cultural category, associated culture, and human
 rating fields. V6 consequently keeps human annotations distinct from model
 suggestions and permits project-specific attributes. A term inventory does not

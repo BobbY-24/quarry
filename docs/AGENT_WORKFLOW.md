@@ -20,7 +20,7 @@ agent. V6 prepares a precise handoff prompt, your agent proposes the research
 inputs, and V6 shows you a checked plan before collection. You do not need to
 write the recipe or source metadata JSON yourself.
 
-For example, [name removed] could begin with:
+For example, a researcher could begin with:
 
 > I want to study new expressions and changed meanings in electric-vehicle
 > discussions from 2025–2026. Exclude names used only as names. Keep one-off
@@ -34,7 +34,7 @@ source list, and sampling/evaluation notes in one bundle. V6 remains responsible
 for ingestion, execution limits, grounding, persistent progress, and exports.
 
 This interaction is inspired by
-[[name removed], [name removed], and [name removed]'s Thresh](https://aclanthology.org/2023.emnlp-demo.30/):
+[Thresh](https://aclanthology.org/2023.emnlp-demo.30/):
 a configurable research definition should produce an interface the researcher
 can inspect and test. Thresh addresses fine-grained human evaluation; V6 uses
 that design direction for an agent-assisted collection handoff. V6 does not
@@ -227,18 +227,18 @@ how you reproduce the released records.
 
 ## Five realistic starting conversations
 
-These are proposed uses informed by existing NLPx research. They are not
-assignments from the students or PIs, and do not reproduce the named datasets.
+These are proposed uses informed by published NLP research. They are not
+endorsed by the papers' authors and do not reproduce the named datasets.
 The included briefs use a zero spending limit and local-only scope so a student
 can prepare and review a plan before authorizing collection.
 
-### [name removed]: new community terms
+### New community terms
 
 [NEO-BENCH](https://arxiv.org/abs/2402.12261) studies model robustness to
-neologisms. [name removed] chooses **Term**, supplies dated community exports, and
+neologisms. The researcher chooses **Term**, supplies dated community exports, and
 tells their agent: "Include new forms and changed senses; keep one-off uses;
 exclude entity-only names." The agent produces a neologism policy and a source
-plan inside the approved folder. [name removed] checks that it distinguishes shifted
+plan inside the approved folder. The researcher checks that it distinguishes shifted
 senses from ordinary uses, then collects and reviews exact contexts, using complete
 held-out sources to measure missed terms and exports a term/sense inventory for
 later understanding experiments. First observation in this corpus is not a
@@ -246,22 +246,22 @@ verified coinage date.
 
 Start with [`community-neologisms.brief.json`](../examples/agent_workflow/community-neologisms.brief.json).
 
-### [name removed]: cultural entities in original script
+### Cultural entities in original script
 
 [Camellia](https://arxiv.org/abs/2510.05291) motivates collecting culturally
-associated entities. [name removed] chooses **Term**, begins with permitted Urdu food
+associated entities. The researcher chooses **Term**, begins with permitted Urdu food
 descriptions, and asks their agent to include established food names. The agent
 drafts category and association attributes while preserving original scripts.
-[name removed] checks that named entities are eligible and that masked answers absent
+The researcher checks that named entities are eligible and that masked answers absent
 from the source are excluded. Native reviewers inspect original contexts and
 adjudicate cultural associations; uncertain meanings stay proposals. The export
 supports later cultural tasks without pretending to generate the benchmark.
 
 Start with [`cultural-entities.brief.json`](../examples/agent_workflow/cultural-entities.brief.json).
 
-### [name removed]: expressed cultural opinions
+### Expressed cultural opinions
 
-[CARE](https://arxiv.org/abs/2504.05154) examines cultural preferences. [name removed]
+[CARE](https://arxiv.org/abs/2504.05154) examines cultural preferences. The researcher
 chooses **Opinion** and supplies permitted passages about a specified set of
 cultural practices, asking the agent for explicit assessments and preferences,
 retaining quotations, attribution, and human/generated source origins. V6
@@ -275,7 +275,7 @@ Start with [`cultural-opinions.brief.json`](../examples/agent_workflow/cultural-
 
 ### Medical research: sentences for human readability annotation
 
-[MedReadMe](https://arxiv.org/abs/2405.02144), by [name removed] and [name removed], studies
+[MedReadMe](https://arxiv.org/abs/2405.02144) studies
 medical sentence and span readability. A researcher chooses **Sentence**,
 supplies permitted patient-facing documents, and asks the agent for complete
 sentences containing medical jargon. V6 retains original sentences, surrounding
@@ -351,10 +351,7 @@ termfinder --project . export RELEASE_VERSION_ID release --formats csv,jsonl,par
 the returned `dataset_…` version ID; they do not resolve display names.
 
 Use `freeze-corpus` above for the agent-assisted setup; it prepares the source
-snapshot, grouped splits, and blank packets together. See
-[the shared lab procedure](LAB_PROTOCOL.md) for cancellation/resume, CLI/API
-usage, and reversible annotations; its manual split procedure is an advanced
-alternative. See [the publication protocol](PUBLICATION_PROTOCOL.md) for the
+snapshot, grouped splits, and blank packets together. See [the publication protocol](PUBLICATION_PROTOCOL.md) for the
 evidence package, sampling statement, hostile-review questions, and honest
 reproducibility limits.
 

@@ -208,7 +208,7 @@ GPU allocation; an existing gateway instead uses a CPU collector profile.
 
 The manual endpoint patterns below also work without the cluster controller.
 
-There is no universal Georgia Tech API key or assumed NLPx allocation. PACE
+There is no universal Georgia Tech API key or assumed lab allocation. PACE
 describes Phoenix as research compute where faculty can add their research group
 to an account, and ICE as instructional compute for teaching. Use only the
 cluster/account and workload that your faculty sponsor and administrators have
