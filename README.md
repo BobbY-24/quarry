@@ -2,6 +2,9 @@
 
 # Quarry
 
+[![tests](https://github.com/BobbY-24/quarry/actions/workflows/tests.yml/badge.svg)](https://github.com/BobbY-24/quarry/actions/workflows/tests.yml) ![python](https://img.shields.io/badge/python-3.11--3.13-blue) ![license](https://img.shields.io/badge/license-MIT-green)
+
+
 **Turn a research idea into source-traceable data through your own agent.**
 Collect terms and senses—or source spans expressing ideas, opinions and sentences.
 
@@ -23,7 +26,7 @@ Quarry to this agent in my research workspace. Preserve existing settings.
 Start with the offline connection and confirm a list_studies tool call.
 ```
 
-Python 3.11–3.13 · macOS/Linux · GitHub access required for this private repo.
+Python 3.11–3.13 · macOS/Linux.
 
 ## Installation on macOS or Linux
 
