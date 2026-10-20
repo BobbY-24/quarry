@@ -8,13 +8,13 @@ import threading
 import unittest
 from unittest.mock import patch
 
-from termfinder import Project, FakeProvider, Response
-from termfinder.sources import parse_document
-from termfinder.store import digest
-from termfinder.engine import Engine
-from termfinder.workflow import (prepare_review, approve_review, current_review,
+from quarry import Project, FakeProvider, Response
+from quarry.sources import parse_document
+from quarry.store import digest
+from quarry.engine import Engine
+from quarry.workflow import (prepare_review, approve_review, current_review,
                                  check_review, run_review, release_dataset)
-from termfinder import workflow
+from quarry import workflow
 
 TEXT = "😀 Our system uses byte-level BPE. I think bilingual signs improve access."
 
@@ -69,8 +69,8 @@ class WorkflowTests(unittest.TestCase):
         return review
 
     def test_preparation_automates_freeze_and_length_estimate_without_jobs_or_provider(self):
-        with patch("termfinder.providers.HTTPProvider", side_effect=AssertionError("No model")), \
-             patch("termfinder.sources.SafeFetcher.fetch", side_effect=AssertionError("No network")):
+        with patch("quarry.providers.HTTPProvider", side_effect=AssertionError("No model")), \
+             patch("quarry.sources.SafeFetcher.fetch", side_effect=AssertionError("No network")):
             review = self.prepared()
         self.assertEqual(review["source_count"], 1)
         self.assertEqual(review["sources"][0]["characters"], len(TEXT))
@@ -180,7 +180,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_polling_does_not_rehash_sources_or_claim_fresh_approval(self):
         review = self.approved()
-        with patch("termfinder.workflow._selected", side_effect=AssertionError("No corpus scan")):
+        with patch("quarry.workflow._selected", side_effect=AssertionError("No corpus scan")):
             saved = current_review(self.project, check=False)
         self.assertEqual(saved["review_id"], review["review_id"])
         self.assertTrue(saved["check_deferred"])
@@ -287,7 +287,7 @@ class WorkflowTests(unittest.TestCase):
         remote = deepcopy(self.bundle["sources"][0])
         remote.update(source_key="web-2", kind="url", locator="https://example.org/article", family_id="web-family")
         self.bundle["sources"].append(remote)
-        with patch("termfinder.sources.SafeFetcher.fetch", side_effect=AssertionError("No network")):
+        with patch("quarry.sources.SafeFetcher.fetch", side_effect=AssertionError("No network")):
             review = prepare_review(self.project, self.bundle)
         self.assertFalse(review["ready"])
         self.assertEqual(review["pending_sources"][0]["source_key"], "web-2")
@@ -298,7 +298,7 @@ class WorkflowTests(unittest.TestCase):
         remote = deepcopy(self.bundle["sources"][0])
         remote.update(source_key="web-2", kind="url", locator="https://example.org/article")
         self.bundle["sources"].append(remote)
-        with patch("termfinder.sources.SafeFetcher.fetch", side_effect=ValueError("synthetic_failure")) as fetch:
+        with patch("quarry.sources.SafeFetcher.fetch", side_effect=ValueError("synthetic_failure")) as fetch:
             review = prepare_review(self.project, self.bundle, fetch_remote=True)
         self.assertEqual(fetch.call_count, 1)
         self.assertTrue(review["ready"])
@@ -369,7 +369,7 @@ class WorkflowTests(unittest.TestCase):
                 results.append(run_review(self.project, review["review_id"], provider=provider))
             except BaseException as error:
                 errors.append(error)
-        with patch("termfinder.workflow._check_review_unlocked", side_effect=blocked_check):
+        with patch("quarry.workflow._check_review_unlocked", side_effect=blocked_check):
             worker = threading.Thread(target=run)
             worker.start()
             try:
@@ -396,7 +396,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("records.parquet", released["files"])
         before = {p.name: p.read_bytes() for p in Path(released["out"]).iterdir()}
         self.project.annotate(self.project.store.all("terms")[0]["term_id"], "approved")
-        with patch("termfinder.workflow.HTTPProvider", side_effect=AssertionError("No model")):
+        with patch("quarry.workflow.HTTPProvider", side_effect=AssertionError("No model")):
             again = release_dataset(self.project, "release-one")
         self.assertEqual(again["version_id"], released["version_id"])
         self.assertEqual(before, {p.name: p.read_bytes() for p in Path(again["out"]).iterdir()})

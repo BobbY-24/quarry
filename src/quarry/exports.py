@@ -197,7 +197,7 @@ def _export_dataset(dataset: dict, out: Path, formats, staging) -> dict:
             import pyarrow as arrow
             import pyarrow.parquet as parquet
         except ImportError as exc:
-            raise RuntimeError("Parquet export requires the pinned pyarrow dependency; install termfinder with its dependencies or select csv,jsonl,annotation") from exc
+            raise RuntimeError("Parquet export requires the pinned pyarrow dependency; install quarry with its dependencies or select csv,jsonl,annotation") from exc
     out = Path(out)
     if out.is_symlink():
         raise ValueError("Export destination must not be a symbolic link")

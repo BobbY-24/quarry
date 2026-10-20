@@ -351,7 +351,7 @@ class Project:
 
     def _configured(self):
         if not self.recipe or not self.profile:
-            raise ValueError("Configure a project first (termfinder init)")
+            raise ValueError("Configure a project first (quarry init)")
 
     def add_source(self, document):
         self._configured()

@@ -3,8 +3,8 @@
   "description": "Explicit offline search results. Relative paths resolve against this manifest. Source links are bounded by the recipe hop policy.",
   "results": {
     "community vocabulary explanation": [
-      {"path": "../src/termfinder/fixtures/community.html", "title": "Synthetic community notebook", "metadata": {"language": "en", "community": "Gaming", "domain": "synthetic-community", "publication_date": "2026-01-15"}},
-      {"path": "../src/termfinder/fixtures/broken.pdf", "title": "Deliberate visible parse failure", "metadata": {"language": "en", "community": "Gaming", "domain": "synthetic-community"}},
+      {"path": "../src/quarry/fixtures/community.html", "title": "Synthetic community notebook", "metadata": {"language": "en", "community": "Gaming", "domain": "synthetic-community", "publication_date": "2026-01-15"}},
+      {"path": "../src/quarry/fixtures/broken.pdf", "title": "Deliberate visible parse failure", "metadata": {"language": "en", "community": "Gaming", "domain": "synthetic-community"}},
       {"url": "https://outside.invalid/escape", "title": "A rejected out-of-scope result"}
     ]
   }

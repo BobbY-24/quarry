@@ -13,11 +13,11 @@ import json
 from pathlib import Path
 import sys
 
-from termfinder import Project, FakeProvider, __version__
-from termfinder.cluster import file_sha256
-from termfinder.cluster_worker import run_bundle
-from termfinder.config import experts
-from termfinder.workflow import prepare_review, approve_review, release_dataset
+from quarry import Project, FakeProvider, __version__
+from quarry.cluster import file_sha256
+from quarry.cluster_worker import run_bundle
+from quarry.config import experts
+from quarry.workflow import prepare_review, approve_review, release_dataset
 
 
 class FakeScheduler:
@@ -30,7 +30,7 @@ class FakeScheduler:
 
     def submit(self, script_path, job_name):
         script = Path(script_path).read_text(encoding="utf-8")
-        assert "termfinder.cluster_worker" in script
+        assert "quarry.cluster_worker" in script
         scheduler_id = str(1000 + len(self.submissions))
         self.submissions.append({"scheduler_job_id": scheduler_id, "job_name": job_name})
         self.states[scheduler_id] = "pending"
@@ -67,7 +67,7 @@ def rehearse(root, mode):
     corpus, durable, scratch = (case / name for name in ("corpus", "durable", "node-local"))
     for path in (corpus, durable, scratch):
         path.mkdir(parents=True, mode=0o700)
-    fixtures = files("termfinder").joinpath("fixtures")
+    fixtures = files("quarry").joinpath("fixtures")
     paths = []
     for name in ("jargon.txt", "broken.pdf"):
         target = corpus / name

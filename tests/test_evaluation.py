@@ -1,7 +1,7 @@
 import hashlib
 import unittest
 
-from termfinder.evaluation import evaluate, source_splits, validate_gold
+from quarry.evaluation import evaluate, source_splits, validate_gold
 
 
 def fixture():

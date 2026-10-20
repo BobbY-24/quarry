@@ -165,7 +165,7 @@ def _configuration(host, original, entry):
 
 def _launcher():
     interpreter = Path(sys.executable).absolute()
-    script = interpreter.parent / "termfinder-mcp"
+    script = interpreter.parent / "quarry-mcp"
     try:
         info = script.lstat()
     except OSError:
@@ -175,7 +175,7 @@ def _launcher():
     # Preserve the venv path: resolving its interpreter link can lose site-packages.
     if not interpreter.is_file():
         raise HarnessError("The installed Python entry point is unavailable.")
-    return str(interpreter), ["-m", "termfinder.mcp_server"]
+    return str(interpreter), ["-m", "quarry.mcp_server"]
 
 
 def _assets():

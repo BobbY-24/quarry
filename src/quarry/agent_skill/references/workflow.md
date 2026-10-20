@@ -6,7 +6,7 @@ The researcher authorizes a specific existing agent workspace. After installing
 the reviewed local package in its isolated Python environment, connect it with:
 
 ```sh
-termfinder connect --host codex --workspace /path/to/research-workspace \
+quarry connect --host codex --workspace /path/to/research-workspace \
   --studies /path/to/research-workspace/v6-studies
 ```
 
@@ -49,7 +49,7 @@ ordinary language, with no mandatory browser or JSON handoff.
 
 ## Tool map for an entire connected session
 
-The workspace launch is `termfinder-mcp --workspace STUDIES_ROOT`. An advanced
+The workspace launch is `quarry-mcp --workspace STUDIES_ROOT`. An advanced
 `--project STUDY_PATH` launch remains fixed to one study and does not expose
 workspace selection. These modes are mutually exclusive. Neither launches an
 HTTP service or executes generated tools/code.
@@ -187,7 +187,7 @@ When the client has local terminal/file tools but no MCP connection, export
 the installed instructions into a fresh local directory:
 
 ```sh
-termfinder agent-skill --out ./v6-collect-research
+quarry agent-skill --out ./v6-collect-research
 ```
 
 This exports instructions only; it does not register a connection or start
@@ -201,8 +201,8 @@ separately documented prompt/bundle fallback in the package's
 The Python API uses the same deterministic planning gates:
 
 ```python
-from termfinder import Project
-from termfinder.workflow import prepare_review, approve_review, run_review, release_dataset
+from quarry import Project
+from quarry.workflow import prepare_review, approve_review, run_review, release_dataset
 
 project = Project("studies/my-study")
 setup = project.prepare_agent_setup(brief)  # actual user-authorized finite bounds
@@ -226,7 +226,7 @@ measurement. A real provider additionally requires explicit authorization and
 the selected profile's environment variables. Keep keys out of files, prompts,
 URLs, reports, notebook outputs and command arguments.
 
-Use installed `termfinder --help` and subcommand help for exact terminal options.
+Use installed `quarry --help` and subcommand help for exact terminal options.
 The guided operations are `review-plan`, `current-review`, `approve-review`,
 `run-review`, and `release`; the agent handles returned IDs. The browser's
 Plan, Evidence and Dataset tabs are an optional view of these same saved

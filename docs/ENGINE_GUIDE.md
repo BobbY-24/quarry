@@ -35,10 +35,10 @@ For an agent that has local terminal and file tools, paste this setup request.
 Replace the paths and choose `codex`, `claude`, or `generic` for the host:
 
 > Read the reviewed local Quarry package at `<QUARRY_DIR>`, including README.md and
-> `src/termfinder/agent_skill/SKILL.md`. Install it in a fresh isolated Python
+> `src/quarry/agent_skill/SKILL.md`. Install it in a fresh isolated Python
 > 3.11–3.13 environment using its pinned dependencies. Enable the project-local
 > `v6-collect-research` skill and local MCP connection for this harness in
-> `<WORKSPACE>`, with studies in `<STUDIES_ROOT>`, using `termfinder connect`.
+> `<WORKSPACE>`, with studies in `<STUDIES_ROOT>`, using `quarry connect`.
 > Preserve existing settings and studies. Keep the default offline launch gate;
 > make no paid collection calls. Verify the connection with `list_studies`.
 > Run subsequent Quarry sessions here in conversation; use the browser only if I
@@ -48,7 +48,7 @@ Replace the paths and choose `codex`, `claude`, or `generic` for the host:
 After [installation](#installation-on-macos-or-linux), the manual equivalent is:
 
 ```sh
-termfinder connect --host codex --workspace /path/to/research-workspace \
+quarry connect --host codex --workspace /path/to/research-workspace \
   --studies /path/to/research-workspace/v6-studies
 ```
 
@@ -155,8 +155,8 @@ browser store research evidence; protect their directories like the source data.
 
 ```sh
 termfinder recipe neologisms --out recipe.json
-termfinder init demo-neologisms --recipe recipe.json --profile fake --mode broad
-termfinder --project demo-neologisms ingest src/termfinder/fixtures/community.html \
+quarry init demo-neologisms --recipe recipe.json --profile fake --mode broad
+termfinder --project demo-neologisms ingest src/quarry/fixtures/community.html \
   --metadata examples/source_metadata.json
 termfinder --project demo-neologisms estimate
 termfinder --project demo-neologisms collect --offline --max-jobs 1
@@ -218,8 +218,8 @@ with all four data types in both modes.
 For an agent-prepared study, the same short workflow is available in Python:
 
 ```python
-from termfinder import Project
-from termfinder.workflow import prepare_review, approve_review, run_review, release_dataset
+from quarry import Project
+from quarry.workflow import prepare_review, approve_review, run_review, release_dataset
 
 project = Project("my-study")
 review = prepare_review(project, bundle=agent_bundle, fetch_remote=False)
@@ -238,15 +238,15 @@ exports. The lower-level API remains available for advanced workflows:
 
 ```python
 from importlib.resources import files
-from termfinder import Project, FakeProvider
-from termfinder.config import starter_recipe
+from quarry import Project, FakeProvider
+from quarry.config import starter_recipe
 
 recipe = starter_recipe("cultural")
 recipe["mode"] = "specialists"
 project = Project("my-cultural-study")
 project.configure(recipe, profile="fake")
 project.ingest(
-    paths=[files("termfinder").joinpath("fixtures", "cultural.md")],
+    paths=[files("quarry").joinpath("fixtures", "cultural.md")],
     metadata={"language": "mul", "community": "multilingual-community", "domain": "synthetic-cultural"},
 )
 estimate = project.estimate()

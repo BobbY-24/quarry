@@ -17,7 +17,7 @@ def _recipe(value):
 
 
 def parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="termfinder", description="Quarry: research collection with durable evidence, resume, and frozen datasets")
+    p = argparse.ArgumentParser(prog="quarry", description="Quarry: research collection with durable evidence, resume, and frozen datasets")
     p.add_argument("--project", default=".", help="Project directory containing project.sqlite3 (default: current directory)")
     sub = p.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init", help="Configure a project from a validated starter recipe or JSON file")
@@ -445,11 +445,11 @@ def main(argv=None) -> int:
         return 0
     except (ValueError, RuntimeError, OSError, KeyError) as exc:
         if args.command.startswith("cluster-") or args.command in {"configure-cluster", "tune-cluster"}:
-            print("termfinder: Cluster operation was blocked or failed. Inspect the saved job state and validated site profile; verify the concrete approval, execution gates and finite resource limits. No supplied values or scheduler exception bodies are echoed.", file=sys.stderr)
+            print("quarry: Cluster operation was blocked or failed. Inspect the saved job state and validated site profile; verify the concrete approval, execution gates and finite resource limits. No supplied values or scheduler exception bodies are echoed.", file=sys.stderr)
         elif args.command in {"configure-compute", "compute"}:
-            print("termfinder: Compute configuration is invalid or unavailable. Use a supported backend, credential environment-variable names, a safe endpoint, exact model/version, and finite token caps/rates. No supplied values are echoed.", file=sys.stderr)
+            print("quarry: Compute configuration is invalid or unavailable. Use a supported backend, credential environment-variable names, a safe endpoint, exact model/version, and finite token caps/rates. No supplied values are echoed.", file=sys.stderr)
         else:
-            print(f"termfinder: {exc}", file=sys.stderr)
+            print(f"quarry: {exc}", file=sys.stderr)
         return 2
 
 

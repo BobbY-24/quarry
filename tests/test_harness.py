@@ -6,8 +6,8 @@ import tomllib
 import unittest
 from unittest.mock import patch
 
-from termfinder import harness
-from termfinder.harness import HarnessError, connect_harness
+from quarry import harness
+from quarry.harness import HarnessError, connect_harness
 
 ASSETS = {"SKILL.md": b"---\nname: v6-collect-research\n---\nFixture instructions.\n",
           "references/workflow.md": b"Approval and source evidence remain required.\n"}
@@ -23,7 +23,7 @@ class HarnessTests(unittest.TestCase):
         self.assets = patch.object(harness, "_assets", return_value=dict(ASSETS))
         self.assets.start()
         self.addCleanup(self.assets.stop)
-        self.launcher = patch.object(harness, "_launcher", return_value=("/verified/venv/bin/python", ["-m", "termfinder.mcp_server"]))
+        self.launcher = patch.object(harness, "_launcher", return_value=("/verified/venv/bin/python", ["-m", "quarry.mcp_server"]))
         self.launcher.start()
         self.addCleanup(self.launcher.stop)
 
@@ -38,7 +38,7 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(result["skill_path"], str(self.workspace / ".agents/skills/v6-collect-research"))
         entry = tomllib.loads(Path(result["config_path"]).read_text())["mcp_servers"]["v6"]
         self.assertEqual(entry, {"command": result["command"], "args": result["args"]})
-        self.assertEqual(result["args"], ["-m", "termfinder.mcp_server", "--workspace", result["studies"]])
+        self.assertEqual(result["args"], ["-m", "quarry.mcp_server", "--workspace", result["studies"]])
         self.assertFalse(result["allow_paid"])
         self.assertFalse(result["connection_verified"])
         self.assertFalse(result["client_started"])
@@ -270,8 +270,8 @@ class HarnessTests(unittest.TestCase):
         base_python.write_text("inert interpreter fixture")
         python.symlink_to(base_python)
         with patch.object(harness.sys, "executable", str(python)):
-            self.assertEqual(harness._launcher(), (str(python), ["-m", "termfinder.mcp_server"]))
-            script = runtime / "termfinder-mcp"
+            self.assertEqual(harness._launcher(), (str(python), ["-m", "quarry.mcp_server"]))
+            script = runtime / "quarry-mcp"
             script.write_text("inert console script fixture")
             script.chmod(0o700)
             self.assertEqual(harness._launcher(), (str(script), []))

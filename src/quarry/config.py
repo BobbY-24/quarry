@@ -199,7 +199,7 @@ def validate_recipe(value):
 def starter_recipe(name):
     if name not in {"neologisms", "cultural", "jargon"}:
         raise ValueError("unknown starter recipe")
-    return load_recipe(json.loads(files("termfinder").joinpath("recipes", name + ".json").read_text()))
+    return load_recipe(json.loads(files("quarry").joinpath("recipes", name + ".json").read_text()))
 
 
 def load_recipe(path_or_dict):
@@ -257,7 +257,7 @@ def load_profile(value):
     if isinstance(value, dict):
         profile = deepcopy(value)
     elif str(value) in {"glm-deepseek", "gemini", "fake"}:
-        profile = json.loads(files("termfinder").joinpath("profiles", str(value) + ".json").read_text())
+        profile = json.loads(files("quarry").joinpath("profiles", str(value) + ".json").read_text())
     else:
         profile = read_json(value)
     required = {"schema_version", "id", "version", "providers", "models", "broad"}

@@ -21,7 +21,7 @@ Paste into **Claude Code, Codex or another local coding agent**:
 
 ```text
 Set up Quarry from https://github.com/BobbY-24/quarry.
-Read src/termfinder/agent_skill/SKILL.md, install the package, and connect
+Read src/quarry/agent_skill/SKILL.md, install the package, and connect
 Quarry to this agent in my research workspace. Preserve existing settings.
 Start with the offline connection and confirm a list_studies tool call.
 ```
@@ -36,8 +36,8 @@ Python 3.11–3.13 · macOS/Linux.
 ```sh
 gh repo clone BobbY-24/quarry
 cd quarry
-python3.13 -m venv .venv-6.6
-. .venv-6.6/bin/activate
+python3.13 -m venv .venv
+. .venv/bin/activate
 python -m pip install -r requirements-build.txt
 python -m pip install --no-build-isolation .
 mkdir -p research-workspace
@@ -46,13 +46,13 @@ mkdir -p research-workspace
 **Claude Code**
 
 ```sh
-termfinder connect --host claude --workspace "$PWD/research-workspace"
+quarry connect --host claude --workspace "$PWD/research-workspace"
 ```
 
 **Codex**
 
 ```sh
-termfinder connect --host codex --workspace "$PWD/research-workspace"
+quarry connect --host codex --workspace "$PWD/research-workspace"
 ```
 
 Open your agent in `research-workspace`, follow its trust/reload steps, then

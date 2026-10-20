@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from termfinder.discovery import HTTPJSONSearch, StaticManifestSearch, StaticSearchAdapter, discover
-from termfinder.sources import SourceError, parse_document
+from quarry.discovery import HTTPJSONSearch, StaticManifestSearch, StaticSearchAdapter, discover
+from quarry.sources import SourceError, parse_document
 
 
 def recipe(**overrides):
@@ -238,8 +238,8 @@ class DiscoveryTests(unittest.TestCase):
 
 class ProjectDiscoveryTests(unittest.TestCase):
     def configured_project(self, temporary, *, max_sources=10, stage_budget=0.2):
-        from termfinder import Project
-        from termfinder.config import starter_recipe
+        from quarry import Project
+        from quarry.config import starter_recipe
         configured = starter_recipe("neologisms")
         configured["discovery"].update({"enabled": True, "queries": [], "max_sources": max_sources,
                                         "max_requests": 10, "max_cost_usd": 0.2, "fetch_cost_usd": 0.02})
@@ -249,7 +249,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
         return project
 
     def test_crash_reservations_resume_and_new_campaign_uses_cache(self):
-        from termfinder import Project
+        from quarry import Project
         with tempfile.TemporaryDirectory() as temporary:
             project = self.configured_project(temporary)
             class InterruptedFetch:

@@ -6,11 +6,11 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from termfinder import FakeProvider, Project, Response
-from termfinder.config import starter_recipe
-from termfinder.publication import audit_dataset, verify_history
-from termfinder.sources import parse_document
-from termfinder.store import digest
+from quarry import FakeProvider, Project, Response
+from quarry.config import starter_recipe
+from quarry.publication import audit_dataset, verify_history
+from quarry.sources import parse_document
+from quarry.store import digest
 
 
 TEXT = "😀 I think bilingual signs improve access. Moonstep and moonstep are pauses."
@@ -68,9 +68,9 @@ class PublicationAuditTests(unittest.TestCase):
         for kind in ("term", "idea", "opinion", "sentence"):
             data = self.fixture(kind)
             before = digest(data)
-            with patch("termfinder.sources.SafeFetcher.fetch", side_effect=AssertionError("No fetch")), \
-                 patch("termfinder.sources.load_local", side_effect=AssertionError("No archive read")), \
-                 patch("termfinder.providers.HTTPProvider.complete", side_effect=AssertionError("No models")):
+            with patch("quarry.sources.SafeFetcher.fetch", side_effect=AssertionError("No fetch")), \
+                 patch("quarry.sources.load_local", side_effect=AssertionError("No archive read")), \
+                 patch("quarry.providers.HTTPProvider.complete", side_effect=AssertionError("No models")):
                 result = audit_dataset(data)
             self.assertTrue(result["integrity_passed"], result)
             self.assertEqual(result["checks"]["records"], 1)

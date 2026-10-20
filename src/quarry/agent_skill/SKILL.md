@@ -3,14 +3,14 @@ name: v6-collect-research
 description: Use the researcher's own coding-agent conversation to create or reopen a Quarry study, prepare and review a bounded source-grounded collection, run or resume the fixed collector, inspect evidence, and export a reproducible dataset of terms, ideas, opinions, or sentences.
 ---
 
-Quarry is the product name for the V6.6 engine. Retain the installed
-`termfinder`/`termfinder-mcp` commands, Python `termfinder` imports, and
-`v6-collect-research` skill identifier. Use the existing explicit connection
+Quarry is the product name for the V6.6 engine. Use the installed
+`quarry`/`quarry-mcp` commands (`termfinder`/`termfinder-mcp` remain as aliases),
+Python `quarry` imports, and the `v6-collect-research` skill identifier. Use the existing explicit connection
 migration procedure for an older skill; never overwrite a customized connection.
 
 Use the researcher's existing coding agent as Quarry's conversational setup and control layer. Keep the ordinary session in this conversation: do not require the researcher to write JSON, copy bundles, manage internal IDs, or open a browser. The installed Quarry collector owns deterministic validation, source ingestion, evidence checks, budgets, persistence, and exports. Its browser is an optional visual view of the same saved study.
 
-This skill does not grant paid-service authorization, host trust, account access, or permission to install global settings, hooks or services. When the researcher explicitly requests initial setup, follow the reviewed local package's `termfinder connect` procedure in [references/workflow.md](references/workflow.md). A generated configuration is not a verified connection: call `list_studies` after the host enables it. Do not run a remote installer pipe or print, copy, or configure credential values.
+This skill does not grant paid-service authorization, host trust, account access, or permission to install global settings, hooks or services. When the researcher explicitly requests initial setup, follow the reviewed local package's `quarry connect` procedure in [references/workflow.md](references/workflow.md). A generated configuration is not a verified connection: call `list_studies` after the host enables it. Do not run a remote installer pipe or print, copy, or configure credential values.
 
 ## Start with the study
 

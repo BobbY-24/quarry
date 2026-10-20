@@ -6,9 +6,10 @@ The public README, diagrams, browser labels and package description use Quarry.
 No collection policy, provider route, prompt version, schema, model rate, budget,
 evidence rule or stored record identity changes as part of this rename.
 
-The distribution is `quarry` (renamed from `nlpx-termfinder` on 2026-10-20), and it
-installs `quarry` and `quarry-mcp` commands. Compatibility identifiers remain `termfinder`
-(Python imports and CLI), `termfinder-mcp`, `v6-collect-research` (skill), `v6`
+The distribution and the Python package are both `quarry` (renamed from `nlpx-termfinder` and
+`termfinder` on 2026-10-20). It installs `quarry` and `quarry-mcp` commands; `termfinder` and
+`termfinder-mcp` remain as aliases. Re-run `quarry connect` once so an existing agent registration
+points at `quarry-mcp`. Unchanged identifiers: `v6-collect-research` (skill), `v6`
 (MCP registration), `v6-studies` and the existing connection lock/settings paths.
 No PyPI package was published and no personal agent settings were migrated.
 An upgraded packaged skill has new bytes: use a fresh workspace or the deliberate

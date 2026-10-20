@@ -10,9 +10,9 @@ import argparse
 import json
 from pathlib import Path
 
-from termfinder import Project, FakeProvider, Response, __version__
-from termfinder.config import experts
-from termfinder.workflow import prepare_review, approve_review, run_review, release_dataset
+from quarry import Project, FakeProvider, Response, __version__
+from quarry.config import experts
+from quarry.workflow import prepare_review, approve_review, run_review, release_dataset
 
 CASES = {
     "term": ("The community calls a brief pause moonstep.", "moonstep", "A brief pause"),

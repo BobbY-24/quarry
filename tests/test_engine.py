@@ -8,13 +8,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from termfinder import Project, FakeProvider, Response
-from termfinder.config import starter_recipe, load_profile, load_recipe
-from termfinder.costs import estimate, token_cost
-from termfinder.engine import Engine
-from termfinder.grounding import normalize, parse_response
-from termfinder.providers import ProviderError, HTTPProvider
-from termfinder.sources import parse_document
+from quarry import Project, FakeProvider, Response
+from quarry.config import starter_recipe, load_profile, load_recipe
+from quarry.costs import estimate, token_cost
+from quarry.engine import Engine
+from quarry.grounding import normalize, parse_response
+from quarry.providers import ProviderError, HTTPProvider
+from quarry.sources import parse_document
 
 
 TEXT = "🧪 Café crews call a pause a moonstep. In this group anchor means holding the checkpoint."
@@ -184,7 +184,7 @@ class EngineTests(unittest.TestCase):
         profile=load_profile("fake");profile["models"]["glm"]["version"]="revision-2"
         self.project.configure(recipe,profile);self.project.collect(provider)
         self.assertEqual(len(provider.calls),5)
-        with patch("termfinder.engine.VERSION","prompt-revision-2"):
+        with patch("quarry.engine.VERSION","prompt-revision-2"):
             self.project.collect(provider)
         self.assertEqual(len(provider.calls),7)
 
@@ -361,7 +361,7 @@ class ContractTests(unittest.TestCase):
         profile=load_profile("glm-deepseek")
         request={"expert":{"model":"glm"},"timeout_seconds":1,"prompt":"fixture prompt","max_output_tokens":128}
         with patch.dict("os.environ",{"FIREWORKS_API_KEY":"synthetic-service-key","UNRELATED_SECRET":"do-not-inherit"}), \
-             patch("termfinder.providers.subprocess.run",side_effect=subprocess.TimeoutExpired("worker",1)) as run:
+             patch("quarry.providers.subprocess.run",side_effect=subprocess.TimeoutExpired("worker",1)) as run:
             with self.assertRaises(ProviderError) as error:HTTPProvider(profile).complete(request)
             self.assertTrue(error.exception.uncertain)
             env=run.call_args.kwargs["env"]
@@ -375,7 +375,7 @@ class ContractTests(unittest.TestCase):
         request={"expert":{"model":"glm"},"timeout_seconds":1,"prompt":"多语言 fixture window", "max_output_tokens":128,
                  "source":{"text":"大"*21_000_000}}
         with patch.dict("os.environ",{"FIREWORKS_API_KEY":"synthetic-service-key"}), \
-             patch("termfinder.providers.subprocess.run",return_value=CompletedProcess([],0,json.dumps({"response":asdict(response([]))}).encode())) as run:
+             patch("quarry.providers.subprocess.run",return_value=CompletedProcess([],0,json.dumps({"response":asdict(response([]))}).encode())) as run:
             HTTPProvider(profile).complete(request)
             data=json.loads(run.call_args.kwargs["input"])
             self.assertEqual(data["request"]["prompt"],request["prompt"])

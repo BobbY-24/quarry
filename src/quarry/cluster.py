@@ -382,7 +382,7 @@ def make_script(profile, bundle, submission_id, *, credential_names=()):
     # The fixed worker contains the entire action. No source/model text occurs
     # in the script; exec makes the Python process receive Slurm batch signals.
     lines += ["set -eu", "umask 077", "exec " + shlex.join([profile["runtime"]["python_executable"], "-m",
-        "termfinder.cluster_worker", "--bundle", str(bundle), "--submission", submission_id, "--execute"])]
+        "quarry.cluster_worker", "--bundle", str(bundle), "--submission", submission_id, "--execute"])]
     return "\n".join(lines) + "\n"
 
 

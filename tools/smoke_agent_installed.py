@@ -22,10 +22,10 @@ def main():
     root = Path(__file__).resolve().parents[1]
     if not report_path.is_relative_to(root / "verification") or report_path.exists():
         parser.error("Use a fresh report path inside V6's verification directory.")
-    import termfinder
-    from termfinder import Project
-    assert Path(termfinder.__file__).resolve().is_relative_to(Path(sys.prefix).resolve()), "Import the installed wheel"
-    assert termfinder.__version__ == "6.2.0"
+    import quarry
+    from quarry import Project
+    assert Path(quarry.__file__).resolve().is_relative_to(Path(sys.prefix).resolve()), "Import the installed wheel"
+    assert quarry.__version__ == "6.2.0"
     results = []
     with tempfile.TemporaryDirectory(prefix="v6-agent-installed-") as temporary:
         base = Path(temporary)
@@ -70,7 +70,7 @@ def main():
         finally:
             os.chdir(original)
         assert namespace["audit"]["integrity_passed"]
-        report = {"package_version": termfinder.__version__, "installed_module": str(termfinder.__file__),
+        report = {"package_version": quarry.__version__, "installed_module": str(quarry.__file__),
                   "briefs": results, "notebook_code_cells": executed, "paid_requests": 0,
                   "external_agent_calls": 0,
                   "limit": "Scripted handoff and synthetic source test mechanics; no field accuracy measurement."}

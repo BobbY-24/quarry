@@ -7,8 +7,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from termfinder.compute import build_compute_profile
-from termfinder.serving import VLLMServer, normalize_server, ServingError
+from quarry.compute import build_compute_profile
+from quarry.serving import VLLMServer, normalize_server, ServingError
 
 
 class Process:
@@ -48,7 +48,7 @@ class ServingTests(unittest.TestCase):
         return server, process, captured
 
     def version(self, version="0.11.0"):
-        return patch("termfinder.serving.subprocess.run", return_value=subprocess.CompletedProcess([], 0, stdout=(version + "\n").encode()))
+        return patch("quarry.serving.subprocess.run", return_value=subprocess.CompletedProcess([], 0, stdout=(version + "\n").encode()))
 
     def test_profile_rejects_unbounded_resources_scope_and_shell_extensions(self):
         changes = [{"adapter": "anything"}, {"port": 80}, {"tensor_parallel_size": 2},
@@ -131,7 +131,7 @@ class ServingTests(unittest.TestCase):
     def test_prestart_cancellation_never_launches_or_checks_package(self):
         server, _, captured = self.create()
         server.cancelled = lambda: True
-        with patch("termfinder.serving.subprocess.run") as probe, self.assertRaises(ServingError) as error:
+        with patch("quarry.serving.subprocess.run") as probe, self.assertRaises(ServingError) as error:
             server.start()
         self.assertEqual(error.exception.reason, "model_server_startup_cancelled")
         self.assertFalse(probe.called)
@@ -140,7 +140,7 @@ class ServingTests(unittest.TestCase):
     def test_health_checks_served_identity_with_no_proxy_or_redirect(self):
         server, _, _ = self.create()
         for model, expected in (("fixture-model", True), ("other-model", False)):
-            with patch("termfinder.serving.build_opener") as opener:
+            with patch("quarry.serving.build_opener") as opener:
                 response = opener.return_value.open.return_value.__enter__.return_value
                 response.read1.side_effect = [("{\"data\":[{\"id\":\"" + model + "\"}]}").encode(), b""]
                 self.assertEqual(server._ready("http://127.0.0.1:18880/v1/models"), expected)
@@ -164,7 +164,7 @@ class ServingTests(unittest.TestCase):
         process = Process(); process.returncode = 1; process.pid = 12345
         server.factory = None
         server.process = process
-        with patch("termfinder.serving.os.killpg") as groups:
+        with patch("quarry.serving.os.killpg") as groups:
             server.close()
             server.close()
         self.assertEqual(groups.call_count, 2)

@@ -12,9 +12,9 @@ import re
 
 
 TOP = ("README.md", "LICENSE", "pyproject.toml", "requirements.txt", "requirements-build.txt", ".gitignore")
-TREES = ("src/termfinder", "docs", "tests", "examples", "tools")
+TREES = ("src/quarry", "docs", "tests", "examples", "tools")
 SUFFIXES = {".py", ".md", ".json", ".html", ".js", ".css", ".ipynb", ".txt", ".sb", ".yaml"}
-PDFS = {"src/termfinder/fixtures/jargon.pdf", "src/termfinder/fixtures/broken.pdf"}
+PDFS = {"src/quarry/fixtures/jargon.pdf", "src/quarry/fixtures/broken.pdf"}
 LOCAL_DIRECTORIES = {"verification", "projects", "studies", "v6-studies", "my-study",
                      "output", "outputs", "exports", "datasets", "dist", "build", "__pycache__"}
 SECRET_PATTERNS = (

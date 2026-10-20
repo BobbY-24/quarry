@@ -21,7 +21,7 @@ python3.13 -m venv .venv-6.5
 python -m pip install -r requirements-build.txt
 python -m pip install --no-build-isolation .
 mkdir -p research-workspace
-termfinder connect --host claude --workspace "$PWD/research-workspace"
+quarry connect --host claude --workspace "$PWD/research-workspace"
 ```
 
 Use `--host codex` or `--host generic` as appropriate. Follow the host's normal

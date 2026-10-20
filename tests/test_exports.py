@@ -7,7 +7,7 @@ from unittest.mock import patch
 import os
 from pathlib import Path
 
-from termfinder.exports import annotation_sources, canonical_json, export_dataset
+from quarry.exports import annotation_sources, canonical_json, export_dataset
 
 
 def dataset():
@@ -27,7 +27,7 @@ class ExportTests(unittest.TestCase):
                 count+=1
                 if count==3: raise OSError("synthetic disk interruption")
                 return real_link(source,target)
-            with patch("termfinder.exports.os.link",side_effect=interrupted):
+            with patch("quarry.exports.os.link",side_effect=interrupted):
                 with self.assertRaises(OSError): export_dataset(saved,out,["jsonl"])
             self.assertFalse((out/"manifest.json").exists())
             self.assertFalse(any(p.name.startswith(".termfinder-export-") for p in out.iterdir()))

@@ -5,7 +5,7 @@ sources. They authorize no paid collection, publishing, external messaging,
 background monitoring, or credential migration.
 
 V6.4 first needs a real student usability check: install the collector and use
-`termfinder connect` for the chosen coding-agent workspace, ask one of the
+`quarry connect` for the chosen coding-agent workspace, ask one of the
 [publication-inspired questions](SIMPLE_WORKFLOW.md), and verify that the student
 can create a study, review its complete plan in conversation, inspect exact
 evidence, resume and export without moving JSON or opening a browser. Check

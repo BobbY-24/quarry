@@ -84,14 +84,14 @@ def main():
     if not out.is_relative_to(root / "verification") or out.exists():
         parser.error("Use a fresh output directory inside verification")
     out.mkdir(parents=True)
-    import termfinder
-    assert termfinder.__version__ == "6.5.0"
-    assert Path(termfinder.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
+    import quarry
+    assert quarry.__version__ == "6.5.0"
+    assert Path(quarry.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
     connections = {}
     for host in ("codex", "claude", "generic"):
         workspace = out / host
         workspace.mkdir()
-        command = [sys.executable, "-m", "termfinder", "connect", "--host", host,
+        command = [sys.executable, "-m", "quarry", "connect", "--host", host,
                    "--workspace", str(workspace)]
         first = subprocess.run(command, capture_output=True, text=True, timeout=20, check=True)
         connection = json.loads(first.stdout)
@@ -107,7 +107,7 @@ def main():
     corpus = workspace / "corpus"
     corpus.mkdir()
     source = corpus / "community.html"
-    source.write_bytes(files("termfinder").joinpath("fixtures", "community.html").read_bytes())
+    source.write_bytes(files("quarry").joinpath("fixtures", "community.html").read_bytes())
     cases = []
     harness = SyntheticHarness(connection, workspace)
     try:
@@ -230,7 +230,7 @@ def main():
         for case in cases:
             harness.tool("open_study", slug=case["slug"])
             assert harness.tool("status")["status"]["jobs"]["done"] == case["completed_fake_jobs"]
-        result = {"package_version": termfinder.__version__, "installed_module": str(termfinder.__file__),
+        result = {"package_version": quarry.__version__, "installed_module": str(quarry.__file__),
             "origin": "synthetic_installed_harness_rehearsal", "configured_hosts": list(connections),
             "project_local_configuration_idempotent": True, "same_connection_multiple_studies": True,
             "browser_required": False, "cases": cases, "source_problem_cases": problems,

@@ -4,9 +4,9 @@ from pathlib import Path
 import resource
 import signal
 
-from termfinder import Project, FakeProvider
-from termfinder.config import starter_recipe
-from termfinder.web import serve
+from quarry import Project, FakeProvider
+from quarry.config import starter_recipe
+from quarry.web import serve
 
 
 if __name__=="__main__":
@@ -18,6 +18,6 @@ if __name__=="__main__":
     root=Path(__file__).resolve().parents[1]
     project=Project(root/"verification"/"browser-project")
     project.configure(starter_recipe("cultural"),"fake")
-    project.ingest([files("termfinder").joinpath("fixtures","cultural.md")],metadata={"language":"mul","community":"multilingual-community"})
+    project.ingest([files("quarry").joinpath("fixtures","cultural.md")],metadata={"language":"mul","community":"multilingual-community"})
     project.collect(FakeProvider())
     serve(project,port=8765,allow_paid=False)

@@ -8,12 +8,12 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from termfinder import Project, FakeProvider
-from termfinder.compute import build_compute_profile
-from termfinder.config import load_profile, starter_recipe, experts
-from termfinder.costs import estimate
-from termfinder.providers import HTTPProvider, ProviderError
-from termfinder.sources import parse_document
+from quarry import Project, FakeProvider
+from quarry.compute import build_compute_profile
+from quarry.config import load_profile, starter_recipe, experts
+from quarry.costs import estimate
+from quarry.providers import HTTPProvider, ProviderError
+from quarry.sources import parse_document
 
 
 class ComputeTests(unittest.TestCase):
@@ -69,7 +69,7 @@ class ComputeTests(unittest.TestCase):
 
     def test_no_auth_transport_sends_no_header_and_does_not_require_environment(self):
         envelope = {"choices": [{"message": {"content": "{}"}, "finish_reason": "stop"}], "model": "fixture-runtime"}
-        with patch.dict(os.environ, {}, clear=True), patch("termfinder.providers.build_opener") as opener:
+        with patch.dict(os.environ, {}, clear=True), patch("quarry.providers.build_opener") as opener:
             opener.return_value.open.return_value.__enter__.return_value.read.return_value = json.dumps(envelope).encode()
             response = HTTPProvider(self.profile, _direct=True).complete(self.request)
             sent = opener.return_value.open.call_args.args[0]
@@ -81,7 +81,7 @@ class ComputeTests(unittest.TestCase):
     def test_response_format_option_is_transport_only_validation_stays_external(self):
         profile = build_compute_profile(**dict(self.settings, response_format="none"))
         envelope = {"choices": [{"message": {"content": "not valid extraction JSON"}}]}
-        with patch("termfinder.providers.build_opener") as opener:
+        with patch("quarry.providers.build_opener") as opener:
             opener.return_value.open.return_value.__enter__.return_value.read.return_value = json.dumps(envelope).encode()
             result = HTTPProvider(profile, _direct=True).complete(self.request)
             body = json.loads(opener.return_value.open.call_args.args[0].data)
@@ -91,7 +91,7 @@ class ComputeTests(unittest.TestCase):
     def test_worker_receives_only_selected_credential_and_no_credentials_for_local(self):
         profile = build_compute_profile(**dict(self.settings, backend="institutional", base_url="https://service.example/v1", credential_env="TEST_API_KEY"))
         answer = subprocess.CompletedProcess([], 0, stdout=json.dumps({"response": {"text": "{}"}}).encode())
-        with patch.dict(os.environ, {"TEST_API_KEY": "synthetic-selected", "UNRELATED_TOKEN": "synthetic-unrelated"}, clear=True), patch("termfinder.providers.subprocess.run", return_value=answer) as run:
+        with patch.dict(os.environ, {"TEST_API_KEY": "synthetic-selected", "UNRELATED_TOKEN": "synthetic-unrelated"}, clear=True), patch("quarry.providers.subprocess.run", return_value=answer) as run:
             HTTPProvider(profile).complete(self.request)
             self.assertEqual(run.call_args.kwargs["env"]["TEST_API_KEY"], "synthetic-selected")
             self.assertNotIn("UNRELATED_TOKEN", run.call_args.kwargs["env"])
@@ -105,7 +105,7 @@ class ComputeTests(unittest.TestCase):
         marker = "synthetic-selected-marker"
         for field in ("text", "model", "id"):
             envelope = {"choices": [{"message": {"content": marker if field == "text" else "{}"}}], field: marker}
-            with patch.dict(os.environ, {"TEST_API_KEY": marker}, clear=True), patch("termfinder.providers.build_opener") as opener:
+            with patch.dict(os.environ, {"TEST_API_KEY": marker}, clear=True), patch("quarry.providers.build_opener") as opener:
                 opener.return_value.open.return_value.__enter__.return_value.read.return_value = json.dumps(envelope).encode()
                 with self.assertRaises(ProviderError) as raised:
                     HTTPProvider(profile, _direct=True).complete(self.request)

@@ -11,12 +11,12 @@ from urllib.error import HTTPError, URLError
 import ssl
 import subprocess
 
-from termfinder import Project, FakeProvider, Response
-from termfinder.config import starter_recipe, load_recipe
-from termfinder.engine import Engine
-from termfinder.providers import ProviderError, HTTPProvider
-from termfinder.resilience import DEFAULT_RESILIENCE, retry_delay, parse_retry_after
-from termfinder.sources import parse_document
+from quarry import Project, FakeProvider, Response
+from quarry.config import starter_recipe, load_recipe
+from quarry.engine import Engine
+from quarry.providers import ProviderError, HTTPProvider
+from quarry.resilience import DEFAULT_RESILIENCE, retry_delay, parse_retry_after
+from quarry.sources import parse_document
 
 
 class Clock:
@@ -183,7 +183,7 @@ class ResilienceTests(unittest.TestCase):
 
     def test_budget_holds_all_unknown_reserves_and_never_retries_after_cap(self):
         self.source()
-        from termfinder.costs import reserve_cost
+        from quarry.costs import reserve_cost
         recipe=deepcopy(self.recipe)
         profile=deepcopy(self.project.profile)
         for model in profile["models"].values(): model.update(input_per_million=1,output_per_million=1)
@@ -277,18 +277,18 @@ class ResilienceTests(unittest.TestCase):
         self.run_engine(provider);self.assertEqual(len(provider.calls),before)
 
     def test_transport_timeout_and_retry_after_are_safe_and_no_sdk_retry_occurs(self):
-        from termfinder.config import load_profile
+        from quarry.config import load_profile
         profile=load_profile("glm-deepseek")
         credential=profile["providers"][profile["models"]["glm"]["provider"]]["credential_env"]
         request={"expert":{"model":"glm"},"prompt":"synthetic source only","timeout_seconds":1,"max_output_tokens":10}
-        with patch.dict("os.environ",{credential:"synthetic-test-placeholder"},clear=True), patch("termfinder.providers.subprocess.run",side_effect=subprocess.TimeoutExpired("worker",1)) as call:
+        with patch.dict("os.environ",{credential:"synthetic-test-placeholder"},clear=True), patch("quarry.providers.subprocess.run",side_effect=subprocess.TimeoutExpired("worker",1)) as call:
             with self.assertRaises(ProviderError) as raised: HTTPProvider(profile).complete(request)
             self.assertTrue(raised.exception.uncertain and raised.exception.retryable)
             self.assertEqual(call.call_count,1)
         headers=Message();headers["Retry-After"]="120"
         for failure,reason,retry in [(HTTPError("https://synthetic.invalid",429,"",headers,None),"http_429",True),
                                     (URLError(ssl.SSLCertVerificationError("test")),"tls_identity_verification_failed",False)]:
-            with patch.dict("os.environ",{credential:"synthetic-test-placeholder"},clear=True), patch("termfinder.providers.build_opener") as build:
+            with patch.dict("os.environ",{credential:"synthetic-test-placeholder"},clear=True), patch("quarry.providers.build_opener") as build:
                 build.return_value.open.side_effect=failure
                 with self.assertRaises(ProviderError) as raised: HTTPProvider(profile,_direct=True).complete(request)
                 self.assertEqual(raised.exception.reason,reason);self.assertEqual(raised.exception.retryable,retry)
@@ -313,7 +313,7 @@ class ResilienceTests(unittest.TestCase):
 
     def test_low_disk_prevents_dispatch_and_consistent_backup_contains_saved_state(self):
         self.source();provider=Flaky(self.clock,fail=0)
-        with patch("termfinder.engine.shutil.disk_usage",return_value=type("Usage",(),{"free":0})()):
+        with patch("quarry.engine.shutil.disk_usage",return_value=type("Usage",(),{"free":0})()):
             result=self.run_engine(provider)
         self.assertEqual(provider.calls,[])
         self.assertEqual(result["stop_reason"],"local_disk_reserve_exhausted")

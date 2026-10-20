@@ -12,10 +12,10 @@ import time
 import unittest
 from unittest.mock import patch
 
-from termfinder import Project, FakeProvider, Response
-from termfinder import mcp_server
-from termfinder.mcp_server import MCPServer, decode_json, write_skill
-from termfinder.workflow import run_review
+from quarry import Project, FakeProvider, Response
+from quarry import mcp_server
+from quarry.mcp_server import MCPServer, decode_json, write_skill
+from quarry.workflow import run_review
 
 TEXT = "😀 Our system uses byte-level BPE. I think bilingual signs improve access."
 ROOT = Path(__file__).resolve().parents[1]
@@ -130,8 +130,8 @@ class MCPTests(unittest.TestCase):
 
     def test_plan_submission_is_inert_then_preparation_freezes_without_model_calls(self):
         bundle = self.bundle()
-        with patch("termfinder.sources.SafeFetcher.fetch", side_effect=AssertionError("No URL fetch")), \
-             patch("termfinder.workflow.HTTPProvider", side_effect=AssertionError("No paid provider")):
+        with patch("quarry.sources.SafeFetcher.fetch", side_effect=AssertionError("No URL fetch")), \
+             patch("quarry.workflow.HTTPProvider", side_effect=AssertionError("No paid provider")):
             result = self.server.call_tool("submit_plan", {"bundle": bundle})
             self.assertTrue(result["valid"])
             self.assertIsNone(self.project.recipe)
@@ -173,7 +173,7 @@ class MCPTests(unittest.TestCase):
     def test_launch_paid_gate_cannot_be_enabled_by_tool_input(self):
         self.brief["model_profile"] = "glm-deepseek"
         review = self.approved()
-        with patch("termfinder.workflow.HTTPProvider", side_effect=AssertionError("No paid provider")):
+        with patch("quarry.workflow.HTTPProvider", side_effect=AssertionError("No paid provider")):
             with self.assertRaises(ValueError):
                 self.server.call_tool("collect", {"review_id": review["review_id"]})
         self.assertIsNone(self.server.worker)
@@ -200,7 +200,7 @@ class MCPTests(unittest.TestCase):
             entered.set()
             release.wait(2)
             return {"status": "synthetic-stopped"}
-        with patch("termfinder.workflow.run_review", side_effect=slow_run):
+        with patch("quarry.workflow.run_review", side_effect=slow_run):
             result = self.server.call_tool("collect", {"review_id": review["review_id"], "max_jobs": 1})
             self.assertTrue(result["started"])
             self.assertTrue(entered.wait(1))
@@ -222,7 +222,7 @@ class MCPTests(unittest.TestCase):
         def response(items):
             return Response(json.dumps({"candidates": items, "coverage_complete": True}), 40, 40, "stop", "fixture-v1")
         fake = FakeProvider([], [response([proposal]), response([])])
-        with patch("termfinder.workflow.FakeProvider", return_value=fake):
+        with patch("quarry.workflow.FakeProvider", return_value=fake):
             self.server.call_tool("collect", {"review_id": review["review_id"], "max_jobs": 1})
             self.server.worker.join(3)
             self.assertFalse(self.server.running)
@@ -246,7 +246,7 @@ class MCPTests(unittest.TestCase):
             while not self.project.store.read_setting("cancel_requested") and time.monotonic() < deadline:
                 time.sleep(0.01)
             return {"status": "cancelled"}
-        with patch("termfinder.workflow.run_review", side_effect=cooperative):
+        with patch("quarry.workflow.run_review", side_effect=cooperative):
             self.server.call_tool("collect", {"review_id": review["review_id"]})
             self.assertTrue(entered.wait(1))
             self.server.serve(io.BytesIO(b""), io.StringIO())
@@ -315,7 +315,7 @@ class MCPTests(unittest.TestCase):
 
     def test_release_is_fixed_local_and_byte_reproducible_without_models(self):
         self.with_record()
-        with patch("termfinder.workflow.HTTPProvider", side_effect=AssertionError("No models")):
+        with patch("quarry.workflow.HTTPProvider", side_effect=AssertionError("No models")):
             release = self.server.call_tool("release", {"name": "mcp-v1"})
             original = {p.name: p.read_bytes() for p in Path(release["out"]).iterdir()}
             repeated = self.server.call_tool("release", {"name": "mcp-v1"})
@@ -483,7 +483,7 @@ class MCPTests(unittest.TestCase):
         remote.update(source_key="web-2", kind="url", locator="https://example.org/article")
         bundle["sources"].append(remote)
         self.assertTrue(self.server.call_tool("submit_plan", {"bundle": bundle})["valid"])
-        with patch("termfinder.sources.SafeFetcher.fetch", side_effect=AssertionError("No network")):
+        with patch("quarry.sources.SafeFetcher.fetch", side_effect=AssertionError("No network")):
             review = self.server.call_tool("prepare_review", {})
             self.assertFalse(review["ready"])
             page = self.server.call_tool("inspect_review", {"review_id": review["review_id"], "section": "pending_sources"})
@@ -510,7 +510,7 @@ class MCPTests(unittest.TestCase):
         result = self.server.call_tool("submit_plan", {"bundle": bundle})
         self.assertTrue(result["valid"])
         checksum = result["bundle_sha256"]
-        with patch("termfinder.sources.SafeFetcher.fetch", side_effect=AssertionError("No fetch")):
+        with patch("quarry.sources.SafeFetcher.fetch", side_effect=AssertionError("No fetch")):
             proposed = self.server.call_tool("inspect_plan", {"plan_sha256": checksum, "section": "sources"})
             self.assertEqual(proposed["stage"], "proposed")
             self.assertEqual(json.loads(proposed["text"])[0]["locator"], "https://example.org/source")
@@ -579,7 +579,7 @@ class MCPSubprocessTests(unittest.TestCase):
     def test_actual_stdio_subprocess_negotiates_lists_tools_and_prepares_without_credentials(self):
         with tempfile.TemporaryDirectory() as folder:
             base = Path(folder)
-            child = subprocess.Popen([sys.executable, "-m", "termfinder.mcp_server", "--project", str(base / "project")],
+            child = subprocess.Popen([sys.executable, "-m", "quarry.mcp_server", "--project", str(base / "project")],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 env={"PATH": "/usr/bin:/bin", "PYTHONPATH": str(ROOT / "src"), "TMPDIR": str(base)}, cwd=base)
             try:
@@ -618,7 +618,7 @@ class MCPSubprocessTests(unittest.TestCase):
     def test_stdio_workspace_connection_reuses_multiple_studies_without_reconfiguration(self):
         with tempfile.TemporaryDirectory() as folder:
             base = Path(folder)
-            child = subprocess.Popen([sys.executable, "-m", "termfinder.mcp_server", "--workspace", str(base)],
+            child = subprocess.Popen([sys.executable, "-m", "quarry.mcp_server", "--workspace", str(base)],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 env={"PATH": "/usr/bin:/bin", "PYTHONPATH": str(ROOT / "src"), "TMPDIR": str(base)}, cwd=base)
             try:
@@ -705,7 +705,7 @@ class WorkspaceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             MCPServer(workspace=linked)
         (self.workspace / "linked-study").symlink_to(outside, target_is_directory=True)
-        with patch("termfinder.mcp_server.Project", side_effect=AssertionError("No unrelated project open")):
+        with patch("quarry.mcp_server.Project", side_effect=AssertionError("No unrelated project open")):
             with self.assertRaises(ValueError):
                 self.server.call_tool("open_study", {"slug": "linked-study"})
         for filename in ("project.sqlite3", ".collection.lock"):
@@ -740,7 +740,7 @@ class WorkspaceTests(unittest.TestCase):
                     Path(candidate_path).rename(self.workspace / (slug + "-original"))
                     Path(candidate_path).symlink_to(outside, target_is_directory=True)
                     return Project(candidate_path, **kwargs)
-                with patch("termfinder.mcp_server.Project", side_effect=replace_before_constructor):
+                with patch("quarry.mcp_server.Project", side_effect=replace_before_constructor):
                     with self.assertRaises(ValueError):
                         self.server.call_tool(operation, {"slug": slug})
                 self.assertFalse((outside / "project.sqlite3").exists())
@@ -750,7 +750,7 @@ class WorkspaceTests(unittest.TestCase):
                     self.assertEqual(Project(self.workspace / (slug + "-original")).store.read_setting("fixture_marker"), "retained")
 
     def test_store_constructor_race_cannot_initialize_an_outside_database(self):
-        from termfinder.store import Store
+        from quarry.store import Store
         slug = "store-race"
         path = self.workspace / slug
         outside = self.base / "store-outside"
@@ -760,7 +760,7 @@ class WorkspaceTests(unittest.TestCase):
             path.rename(self.workspace / "store-original")
             path.symlink_to(outside, target_is_directory=True)
             return Store(database_path, **kwargs)
-        with patch("termfinder.project.Store", side_effect=replace_before_store):
+        with patch("quarry.project.Store", side_effect=replace_before_store):
             with self.assertRaises(ValueError):
                 self.server.call_tool("create_study", {"slug": slug})
         self.assertEqual(list(outside.iterdir()), [])

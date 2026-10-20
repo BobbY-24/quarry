@@ -13,12 +13,12 @@ import time
 import unittest
 from unittest.mock import patch
 
-from termfinder import Project, FakeProvider, Response
-from termfinder.cluster import (ClusterController, SlurmScheduler, file_sha256,
+from quarry import Project, FakeProvider, Response
+from quarry.cluster import (ClusterController, SlurmScheduler, file_sha256,
     make_script, normalize_profile, read_json, verify_bundle, write_json)
-from termfinder.cluster_worker import run_bundle, _retain_checkpoints
-from termfinder.store import digest
-from termfinder.workflow import prepare_review, approve_review, run_review, release_dataset
+from quarry.cluster_worker import run_bundle, _retain_checkpoints
+from quarry.store import digest
+from quarry.workflow import prepare_review, approve_review, run_review, release_dataset
 
 TEXT = "😀 The system uses byte-level BPE. Café names vary across languages."
 
@@ -156,7 +156,7 @@ class ClusterTests(unittest.TestCase):
         self.assertEqual(self.scheduler.submitted, [])
 
     def test_reconfigured_resources_invalidate_old_review_without_database_change(self):
-        from termfinder.cluster import project_fingerprint
+        from quarry.cluster import project_fingerprint
         old_review = self.prepared()
         baseline = project_fingerprint(self.project)
         changed = deepcopy(self.profile)
@@ -194,7 +194,7 @@ class ClusterTests(unittest.TestCase):
         self.assertIn("--nodes=1", script)
         self.assertIn("--no-requeue", script)
         self.assertIn("--export=NIL", script)
-        self.assertIn("termfinder.cluster_worker", script)
+        self.assertIn("quarry.cluster_worker", script)
         self.assertNotIn(TEXT, script)
         self.assertNotIn("curl", script)
         self.assertEqual(digest(script), job["script_sha256"])
@@ -306,7 +306,7 @@ class ClusterTests(unittest.TestCase):
         provider = self.provider()
         run_bundle(review["bundle"], job["job_id"], execute=True,
             provider=provider, scratch_root=self.scratch)
-        with patch("termfinder.cluster.write_json", side_effect=RuntimeError("synthetic receipt crash")):
+        with patch("quarry.cluster.write_json", side_effect=RuntimeError("synthetic receipt crash")):
             with self.assertRaises(RuntimeError):
                 self.controller.import_result(job["job_id"])
         self.assertEqual(self.project.store.count("terms"), 1)
@@ -576,8 +576,8 @@ class ClusterTests(unittest.TestCase):
             calls.append((argv, settings))
             settings["stdout"].write(b"12345;fixture-cluster\n")
             return Process()
-        with patch("termfinder.cluster.shutil.which", return_value="/bin/sh"), \
-                patch("termfinder.cluster.subprocess.Popen", side_effect=process), \
+        with patch("quarry.cluster.shutil.which", return_value="/bin/sh"), \
+                patch("quarry.cluster.subprocess.Popen", side_effect=process), \
                 patch.dict("os.environ", {"INSTITUTION_MODEL_TOKEN": "synthetic-required-marker", "UNRELATED_TOKEN": "synthetic-unrelated-marker"}, clear=True):
             scheduler = SlurmScheduler(credential_names=["INSTITUTION_MODEL_TOKEN"])
             receipt = scheduler.submit(self.base / "reviewed.sbatch", "cluster_job_" + "a" * 32)
@@ -598,8 +598,8 @@ class ClusterTests(unittest.TestCase):
             def process(argv, **settings):
                 settings["stdout"].write(output)
                 return Process()
-            with patch("termfinder.cluster.shutil.which", return_value="/bin/sh"), \
-                    patch("termfinder.cluster.subprocess.Popen", side_effect=process):
+            with patch("quarry.cluster.shutil.which", return_value="/bin/sh"), \
+                    patch("quarry.cluster.subprocess.Popen", side_effect=process):
                 with self.assertRaises(RuntimeError) as error:
                     SlurmScheduler().submit(self.base / "reviewed.sbatch", "cluster_job_" + "a" * 32)
             self.assertNotIn("synthetic-private-output", str(error.exception))
@@ -645,7 +645,7 @@ class ClusterTests(unittest.TestCase):
         self.assertEqual(len(list(moved.iterdir())), 2)
 
     def test_checkpoint_failure_stops_monitor_instead_of_repeating_full_backups(self):
-        from termfinder.store import Store
+        from quarry.store import Store
         review, job = self.submitted()
         original_backup, original_monotonic = Store.backup, time.monotonic
         attempts = []
@@ -659,7 +659,7 @@ class ClusterTests(unittest.TestCase):
             if len(attempts) == 1:
                 return original_backup(store, target)
             raise OSError("Synthetic durable checkpoint failure")
-        with patch("termfinder.cluster_worker.time", Clock), patch.object(Store, "backup", backup):
+        with patch("quarry.cluster_worker.time", Clock), patch.object(Store, "backup", backup):
             with self.assertRaises(OSError):
                 run_bundle(review["bundle"], job["job_id"], execute=True,
                     provider=self.provider(delay=0.8), scratch_root=self.scratch)

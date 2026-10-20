@@ -14,7 +14,7 @@ and its content hash are recorded for each run.
 ```python
 import json
 from pathlib import Path
-from termfinder.config import starter_recipe, load_recipe
+from quarry.config import starter_recipe, load_recipe
 
 recipe = starter_recipe("cultural")
 recipe["id"] = "local-cultural-study"

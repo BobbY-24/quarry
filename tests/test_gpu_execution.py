@@ -4,14 +4,14 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from termfinder import Project, FakeProvider
-from termfinder.config import load_profile, starter_recipe
-from termfinder.costs import estimate
-from termfinder.engine import Engine
-from termfinder.resilience import cluster_execution
-from termfinder.runtime import PromptTokenizer, validate_runtime
-from termfinder.sources import parse_document
-from termfinder.token_windows import token_admission, planned_windows
+from quarry import Project, FakeProvider
+from quarry.config import load_profile, starter_recipe
+from quarry.costs import estimate
+from quarry.engine import Engine
+from quarry.resilience import cluster_execution
+from quarry.runtime import PromptTokenizer, validate_runtime
+from quarry.sources import parse_document
+from quarry.token_windows import token_admission, planned_windows
 
 
 class GPUExecutionTests(unittest.TestCase):
@@ -175,7 +175,7 @@ class GPUExecutionTests(unittest.TestCase):
             token_admission(model, "text", 128, tokenizer=PromptTokenizer("fixture", "v1", len, tokenizer_sha256="b" * 64))
 
     def test_truncation_children_are_admitted_before_requests(self):
-        from termfinder import Response
+        from quarry import Response
         self.profile["models"]["glm"].update(context_limit_tokens=10000, input_token_ceiling=10000,
             output_token_ceiling=512)
         self.profile["broad"] = [self.profile["broad"][0]]

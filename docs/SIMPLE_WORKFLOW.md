@@ -13,7 +13,7 @@ skill/MCP connection using the [one-time setup prompt](AGENT_NATIVE.md).
 After installation, the manual connection command is:
 
 ```sh
-termfinder connect --host codex --workspace /path/to/research-workspace \
+quarry connect --host codex --workspace /path/to/research-workspace \
   --studies /path/to/research-workspace/v6-studies
 ```
 
@@ -229,8 +229,8 @@ termfinder --project studies/my-study release research-v1
 For notebooks, the same operations are available without CLI parsing:
 
 ```python
-from termfinder import Project
-from termfinder.workflow import prepare_review, approve_review, run_review, release_dataset
+from quarry import Project
+from quarry.workflow import prepare_review, approve_review, run_review, release_dataset
 
 project = Project("studies/my-study")
 review = prepare_review(project, bundle=agent_bundle, fetch_remote=False)

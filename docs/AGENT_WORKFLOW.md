@@ -363,7 +363,7 @@ plan review makes no model call:
 ```python
 import json
 from pathlib import Path
-from termfinder import Project
+from quarry import Project
 
 project = Project("my-study")
 brief = json.loads(Path("brief.json").read_text(encoding="utf-8"))

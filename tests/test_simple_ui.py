@@ -12,8 +12,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from termfinder import Project
-from termfinder.web import Handler, ResearchServer, STATIC, MAX_DOWNLOAD, _read_artifact, _review_state, _setup_revision, _agent_setup_state
+from quarry import Project
+from quarry.web import Handler, ResearchServer, STATIC, MAX_DOWNLOAD, _read_artifact, _review_state, _setup_revision, _agent_setup_state
 
 
 def request(path, body=None, *, running=False):
@@ -91,7 +91,7 @@ class SimpleBrowserTests(unittest.TestCase):
         bundle = {"sources": []}
         handler = request("/api/review", {"bundle_text": json.dumps(bundle), "fetch_remote": True,
             "allow_paid": True, "urls": ["https://outside.example"]})
-        with patch("termfinder.workflow.prepare_review", return_value={"review_id": "r1", "ready": True}) as prepare:
+        with patch("quarry.workflow.prepare_review", return_value={"review_id": "r1", "ready": True}) as prepare:
             handler.do_POST()
         self.assertEqual(handler.responses[0][0], 200)
         prepare.assert_called_once_with(handler.server.project, bundle=bundle, fetch_remote=True)
@@ -100,22 +100,22 @@ class SimpleBrowserTests(unittest.TestCase):
         for body in ({"fetch_remote": "yes"}, {"bundle_text": "[]"},
                      {"bundle_text": '{"sources":[],"sources":[{}]}'}, {"fetch_remote": 1}):
             handler = request("/api/review", body)
-            with patch("termfinder.workflow.prepare_review") as prepare:
+            with patch("quarry.workflow.prepare_review") as prepare:
                 handler.do_POST()
             self.assertEqual(handler.responses[0][0], 400)
             prepare.assert_not_called()
 
     def test_approval_and_release_do_not_collect(self):
         handler = request("/api/review/approve", {"review_id": "r1", "allow_paid": True})
-        with patch("termfinder.workflow.approve_review", return_value={"approval_id": "a1"}) as approve, \
-             patch("termfinder.workflow.run_review") as run:
+        with patch("quarry.workflow.approve_review", return_value={"approval_id": "a1"}) as approve, \
+             patch("quarry.workflow.run_review") as run:
             handler.do_POST()
         approve.assert_called_once_with(handler.server.project, "r1")
         run.assert_not_called()
         self.assertEqual(handler.responses[0][0], 200)
         handler = request("/api/release", {"name": "study-v1", "allow_paid": True})
-        with patch("termfinder.workflow.release_dataset", return_value={"version_id": "d1"}) as release, \
-             patch("termfinder.workflow.run_review") as run:
+        with patch("quarry.workflow.release_dataset", return_value={"version_id": "d1"}) as release, \
+             patch("quarry.workflow.run_review") as run:
             handler.do_POST()
         release.assert_called_once_with(handler.server.project, "study-v1",
             formats=["csv", "jsonl", "parquet", "annotation"], version_id=None)
@@ -125,9 +125,9 @@ class SimpleBrowserTests(unittest.TestCase):
     def test_running_worker_blocks_prepare_approval_and_release(self):
         for path in ("/api/review", "/api/review/approve", "/api/release"):
             handler = request(path, {"review_id": "r1"}, running=True)
-            with patch("termfinder.workflow.prepare_review") as prepare, \
-                 patch("termfinder.workflow.approve_review") as approve, \
-                 patch("termfinder.workflow.release_dataset") as release:
+            with patch("quarry.workflow.prepare_review") as prepare, \
+                 patch("quarry.workflow.approve_review") as approve, \
+                 patch("quarry.workflow.release_dataset") as release:
                 handler.do_POST()
             self.assertEqual(handler.responses[0][0], 400)
             for call in (prepare, approve, release):
@@ -145,8 +145,8 @@ class SimpleBrowserTests(unittest.TestCase):
         server = ResearchServer.__new__(ResearchServer)
         server.project = SimpleNamespace(profile={"id": "fake"})
         server.allow_paid, server.worker, server.worker_lock = False, None, threading.Lock()
-        with patch("termfinder.workflow.run_review", return_value={"status": "complete"}) as run, \
-             patch("termfinder.workflow.check_review", return_value={"ready": True}) as preflight:
+        with patch("quarry.workflow.run_review", return_value={"status": "complete"}) as run, \
+             patch("quarry.workflow.check_review", return_value={"ready": True}) as preflight:
             result = server.start_collection(max_jobs=1, review_id="review-1")
             server.worker.join(2)
         self.assertFalse(server.worker.is_alive())
@@ -164,8 +164,8 @@ class SimpleBrowserTests(unittest.TestCase):
         server.project = SimpleNamespace(profile={"id": "fake"})
         server.allow_paid, server.worker, server.worker_lock = False, None, threading.Lock()
         for reason in ("This collection review is outdated", "Explicit approval is required"):
-            with patch("termfinder.workflow.check_review", side_effect=ValueError(reason)), \
-                 patch("termfinder.workflow.run_review") as run:
+            with patch("quarry.workflow.check_review", side_effect=ValueError(reason)), \
+                 patch("quarry.workflow.run_review") as run:
                 with self.assertRaisesRegex(ValueError, reason):
                     server.start_collection(review_id="review-1")
             self.assertIsNone(server.worker)
@@ -173,7 +173,7 @@ class SimpleBrowserTests(unittest.TestCase):
 
     def test_polling_review_is_lightweight_but_explicit_review_rechecks(self):
         project = SimpleNamespace(store=object())
-        with patch("termfinder.workflow.current_review", return_value={"review_id": "r1"}) as review:
+        with patch("quarry.workflow.current_review", return_value={"review_id": "r1"}) as review:
             _review_state(project)
             _review_state(project, check=True)
         self.assertEqual(review.call_args_list[0].kwargs, {"check": False})
@@ -252,7 +252,7 @@ class SimpleBrowserTests(unittest.TestCase):
     def test_download_endpoint_requires_authentication(self):
         handler = request("/api/download?path=exports/dataset-1/records.csv")
         handler.headers.replace_header("X-Termfinder-Token", "wrong")
-        with patch("termfinder.web._read_artifact") as read:
+        with patch("quarry.web._read_artifact") as read:
             handler.do_GET()
         self.assertEqual(handler.responses[0][0], 403)
         read.assert_not_called()

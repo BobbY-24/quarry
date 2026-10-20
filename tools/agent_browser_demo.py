@@ -11,8 +11,8 @@ import signal
 import sqlite3
 import uuid
 
-from termfinder import Project
-from termfinder.web import serve
+from quarry import Project
+from quarry.web import serve
 
 
 if __name__ == "__main__":
@@ -41,6 +41,6 @@ if __name__ == "__main__":
             with sqlite3.connect(path / "project.sqlite3") as copied:
                 original.backup(copied)
     project = Project(path)
-    print(json.dumps({"project": str(path), "synthetic_corpus_folder": str(root / "src/termfinder/fixtures"),
+    print(json.dumps({"project": str(path), "synthetic_corpus_folder": str(root / "src/quarry/fixtures"),
                       "provider_requests": 0, "outbound_network": "denied"}), flush=True)
     serve(project, port=8766, allow_paid=False)

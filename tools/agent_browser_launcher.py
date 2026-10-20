@@ -63,7 +63,7 @@ def main():
                   "wall_limit_seconds": 300, "paid_requests": 0, "source_tree": not args.installed,
                   "reviewed_files_sha256": {path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
                                            for path in [root / "tools/agent_browser_demo.py", root / "tools/agent_browser_launcher.py",
-                                                        root / "src/termfinder/web.py", *sorted((root / "src/termfinder/static").glob("*"))]}}
+                                                        root / "src/quarry/web.py", *sorted((root / "src/quarry/static").glob("*"))]}}
         report_path.write_text(json.dumps(report, indent=2) + "\n")
         return returncode
 

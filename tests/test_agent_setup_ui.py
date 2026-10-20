@@ -11,7 +11,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from types import SimpleNamespace
 
-from termfinder.web import Handler, ResearchServer, STATIC
+from quarry.web import Handler, ResearchServer, STATIC
 
 
 class PlanProject:
@@ -232,7 +232,7 @@ class AgentSetupBrowserTests(unittest.TestCase):
                 self.assertTrue(parser.elements[record]["closed_disclosure"])
 
     def test_definition_fixture_matches_structured_public_record_contract(self):
-        from termfinder.exports import record_view
+        from quarry.exports import record_view
         fixtures = json.loads((Path(__file__).parent / "fixtures/ui_definition_records.json").read_text(encoding="utf-8"))
         records = {row["record_id"]: row for row in record_view(fixtures)}
         present = records["term-quote-present"]["source_support_quote"]

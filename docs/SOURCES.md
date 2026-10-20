@@ -70,7 +70,7 @@ Create a separately versioned recipe with discovery enabled and no link hops:
 ```python
 import json
 from pathlib import Path
-from termfinder.config import starter_recipe, load_recipe
+from quarry.config import starter_recipe, load_recipe
 
 recipe = starter_recipe("neologisms")
 recipe["version"] = "1.0.1"
@@ -83,7 +83,7 @@ Path("discovery-recipe.json").write_text(json.dumps(recipe, indent=2), encoding=
 ```
 
 ```sh
-termfinder init offline-discovery --recipe discovery-recipe.json --profile fake
+quarry init offline-discovery --recipe discovery-recipe.json --profile fake
 termfinder --project offline-discovery discover --manifest examples/discovery.json --local-root .
 termfinder --project offline-discovery status
 termfinder --project offline-discovery collect --offline

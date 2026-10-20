@@ -23,11 +23,11 @@ def main():
         parser.error("Use the fresh synthetic verification project from the browser helper")
     if not report.is_relative_to(root / "verification") or report.exists():
         parser.error("Use a fresh verification report")
-    from termfinder import Project
+    from quarry import Project
     existing = Project(project)
     if existing.profile and existing.profile["id"] != "fake":
         parser.error("Only a synthetic fake-provider project is allowed")
-    process = subprocess.Popen([str(Path(sys.prefix) / "bin" / "termfinder-mcp"), "--project", str(project)],
+    process = subprocess.Popen([str(Path(sys.prefix) / "bin" / "quarry-mcp"), "--project", str(project)],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=root)
     identifier = 0
     try:
@@ -57,7 +57,7 @@ def main():
             "id": "neologisms",
             "research_question": "Which new expressions and distinct senses occur in this fictional Gaming source?",
             "data_type": "term", "starter_recipe": "neologisms",
-            "local_roots": [str(root / "src" / "termfinder" / "fixtures")],
+            "local_roots": [str(root / "src" / "quarry" / "fixtures")],
             "languages": ["en"], "communities": ["Gaming"], "mode": "specialists",
             "model_profile": "fake", "budget_usd": 0, "max_sources": 1}})
         bundle = deepcopy(setup["starter_bundle"])
@@ -68,7 +68,7 @@ def main():
         # surrogate uses the fixture's documented ID to exercise real evidence.
         bundle["recipe"]["execution"]["concurrency"] = 1
         bundle["sources"] = [{"source_key": "synthetic-gaming", "kind": "local",
-            "locator": str(root / "src" / "termfinder" / "fixtures" / "community.html"),
+            "locator": str(root / "src" / "quarry" / "fixtures" / "community.html"),
             "metadata": {"language": "en", "community": "Gaming", "domain": "synthetic",
                 "publication_date": "2026-01-15", "publication_date_reason": None,
                 "constraints": {"content_origin": "synthetic_fixture", "license": "synthetic-test",

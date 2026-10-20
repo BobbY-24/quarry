@@ -44,13 +44,13 @@ reviewed package location, host, workspace, and studies folder:
 
 ```text
 Read the reviewed local Quarry package at <QUARRY_DIR>, including README.md and
-src/termfinder/agent_skill/SKILL.md. Install it in a fresh isolated Python
+src/quarry/agent_skill/SKILL.md. Install it in a fresh isolated Python
 3.11–3.13 environment with the pinned build/runtime dependencies. Preserve
 existing Quarry and earlier V6 environments, outputs, studies and my agent settings.
 
 Enable the project-local v6-collect-research skill and local stdio MCP
 connection for <codex|claude|generic> in <WORKSPACE>, with studies saved under
-<STUDIES_ROOT>. Use the installed termfinder connect command; do not edit
+<STUDIES_ROOT>. Use the installed quarry connect command; do not edit
 home/global settings, install hooks, or create a persistent service.
 
 Keep the default offline launch gate. Make no paid collection calls and do
@@ -68,7 +68,7 @@ Do not pipe a downloaded installer into an interpreter.
 The equivalent manual connection command, **after installing Quarry**, is:
 
 ```sh
-termfinder connect --host codex --workspace /path/to/research-workspace \
+quarry connect --host codex --workspace /path/to/research-workspace \
   --studies /path/to/research-workspace/v6-studies
 ```
 
@@ -154,7 +154,7 @@ shows all-failed plans honestly. It neither fetches nor approves collection.
 After preparation produces a ready review, `inspect_review`, `review_sources`
 and `review_text` provide the frozen plan, costs and provenance. Pending or
 failed-only plans cannot be approved as ready; resolve or disclose their state.
-The packaged [workflow reference](../src/termfinder/agent_skill/references/workflow.md)
+The packaged [workflow reference](../src/quarry/agent_skill/references/workflow.md)
 documents every bounded tool and continuation cursor.
 
 When satisfied, approve the concrete reviewed plan in conversation:
@@ -181,7 +181,7 @@ After explicitly authorizing the real provider connection, the corresponding
 connection command includes the flag:
 
 ```sh
-termfinder connect --host codex --workspace /path/to/pilot-workspace \
+quarry connect --host codex --workspace /path/to/pilot-workspace \
   --studies /path/to/research-workspace/v6-studies --allow-paid
 ```
 
@@ -256,7 +256,7 @@ export the packaged skill into a fresh local folder and have the coding agent
 operate the same CLI/API:
 
 ```sh
-termfinder agent-skill --out ./v6-collect-research
+quarry agent-skill --out ./v6-collect-research
 ```
 
 No ordinary study needs student-authored JSON. An agent without local tools can

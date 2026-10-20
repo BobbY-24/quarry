@@ -117,7 +117,7 @@ complete `server.artifact_files` mapping, **not one weight-file hash**. Your age
 can compute that nonsecret inventory binding with:
 
 ```python
-from termfinder.store import digest
+from quarry.store import digest
 reviewed_profile["model_artifacts"][0]["sha256"] = digest(
     reviewed_profile["server"]["artifact_files"]
 )
@@ -211,7 +211,7 @@ review calls submits a scheduler job:
 ```python
 import json
 from pathlib import Path
-from termfinder import Project
+from quarry import Project
 
 project = Project("studies/medical-pilot")
 site = json.loads(Path("reviewed-site-profile.json").read_text())
@@ -243,7 +243,7 @@ Construction and default status read saved state. Explicit scheduler refresh
 uses the site's reviewed Slurm commands:
 
 ```python
-from termfinder.cluster import SlurmScheduler
+from quarry.cluster import SlurmScheduler
 
 saved = controller.status(job["job_id"])
 refreshed = controller.status(job["job_id"], scheduler=SlurmScheduler())
@@ -268,7 +268,7 @@ null with reasons; runtime declarations do not automatically inspect a server.
 Advanced trusted Python integrations can register a preinstalled tokenizer:
 
 ```python
-from termfinder import PromptTokenizer
+from quarry import PromptTokenizer
 
 tokenizer = PromptTokenizer(
     identifier="reviewed-tokenizer-revision",

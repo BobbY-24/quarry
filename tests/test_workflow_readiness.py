@@ -4,8 +4,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from termfinder import Project
-from termfinder.workflow import approve_review, check_review, current_review, prepare_review, run_review
+from quarry import Project
+from quarry.workflow import approve_review, check_review, current_review, prepare_review, run_review
 
 
 class PendingReviewTests(unittest.TestCase):

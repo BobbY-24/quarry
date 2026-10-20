@@ -16,13 +16,13 @@ Repository = "https://github.com/BobbY-24/quarry"
 Documentation = "https://github.com/BobbY-24/quarry/blob/main/README.md"
 
 [project.scripts]
-quarry = "termfinder.cli:main"
-quarry-mcp = "termfinder.mcp_server:main"
-termfinder = "termfinder.cli:main"
-termfinder-mcp = "termfinder.mcp_server:main"
+quarry = "quarry.cli:main"
+quarry-mcp = "quarry.mcp_server:main"
+termfinder = "quarry.cli:main"
+termfinder-mcp = "quarry.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-termfinder = ["recipes/*.json", "profiles/*.json", "fixtures/*", "static/*", "schemas/*.json", "agent_skill/*", "agent_skill/references/*"]
+quarry = ["recipes/*.json", "profiles/*.json", "fixtures/*", "static/*", "schemas/*.json", "agent_skill/*", "agent_skill/references/*"]

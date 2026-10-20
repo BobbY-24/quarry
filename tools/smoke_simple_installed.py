@@ -21,10 +21,10 @@ def main():
     report_path = args.report.resolve()
     if not report_path.is_relative_to(root / "verification") or report_path.exists():
         parser.error("Use a fresh report inside verification")
-    import termfinder
-    from termfinder import Project
-    assert termfinder.__version__ == args.expect_version
-    assert Path(termfinder.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
+    import quarry
+    from quarry import Project
+    assert quarry.__version__ == args.expect_version
+    assert Path(quarry.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
     with tempfile.TemporaryDirectory(prefix="v6-simple-installed-") as tmp:
         base = Path(tmp)
         corpus = base / "corpus"
@@ -48,7 +48,7 @@ def main():
         bundle_file.write_text(json.dumps(bundle), encoding="utf-8")
         commands = []
         def cli(*arguments):
-            result = subprocess.run([sys.executable, "-m", "termfinder", "--project", str(study), *arguments],
+            result = subprocess.run([sys.executable, "-m", "quarry", "--project", str(study), *arguments],
                 cwd=base, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=60, check=True)
             commands.append(arguments[0])
             return json.loads(result.stdout)
@@ -76,7 +76,7 @@ def main():
             {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {
                 "name": "status", "arguments": {}}},
         ]
-        protocol = subprocess.run([str(Path(sys.prefix) / "bin" / "termfinder-mcp"), "--project", str(study)],
+        protocol = subprocess.run([str(Path(sys.prefix) / "bin" / "quarry-mcp"), "--project", str(study)],
             input="".join(json.dumps(p) + "\n" for p in packets), cwd=base,
             capture_output=True, text=True, timeout=30, check=True)
         assert protocol.stderr == ""
@@ -97,7 +97,7 @@ def main():
                 exec(compile("".join(cell["source"]), "simple_student_workflow.ipynb", "exec"), namespace)
                 executed_cells += 1
         namespace["workspace"].cleanup()
-        report = {"package_version": termfinder.__version__, "installed_module": str(termfinder.__file__),
+        report = {"package_version": quarry.__version__, "installed_module": str(quarry.__file__),
             "commands": commands, "guided_cli_passed": True, "skill_exported": True,
             "installed_stdio_entrypoint_passed": True, "notebook_cells_executed": executed_cells,
             "frozen_integrity_passed": True, "paid_requests": 0, "external_agent_calls": 0,

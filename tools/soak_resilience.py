@@ -13,11 +13,11 @@ import resource
 import tempfile
 import time
 
-from termfinder import Project, FakeProvider, Response
-from termfinder.config import starter_recipe
-from termfinder.engine import Engine
-from termfinder.providers import ProviderError
-from termfinder.sources import parse_document
+from quarry import Project, FakeProvider, Response
+from quarry.config import starter_recipe
+from quarry.engine import Engine
+from quarry.providers import ProviderError
+from quarry.sources import parse_document
 
 
 class Clock:

@@ -12,9 +12,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from termfinder import cli, Project
-from termfinder.mcp_server import MCPServer, ToolFailure
-from termfinder.workflow import current_review
+from quarry import cli, Project
+from quarry.mcp_server import MCPServer, ToolFailure
+from quarry.workflow import current_review
 
 
 class ComputeInterfaceTests(unittest.TestCase):
@@ -56,8 +56,8 @@ class ComputeInterfaceTests(unittest.TestCase):
         return self.server.call_tool("prepare_review", {})
 
     def test_mcp_configuration_is_inert_and_does_not_enable_inference_gate(self):
-        with patch("termfinder.workflow.HTTPProvider", side_effect=AssertionError("No inference")), \
-             patch("termfinder.sources.SafeFetcher.fetch", side_effect=AssertionError("No fetch")):
+        with patch("quarry.workflow.HTTPProvider", side_effect=AssertionError("No inference")), \
+             patch("quarry.sources.SafeFetcher.fetch", side_effect=AssertionError("No fetch")):
             result = self.server.call_tool("configure_compute", self.local)
             summary = self.server.call_tool("inspect_compute", {})
         self.assertFalse(result["paid_transport_permitted"])

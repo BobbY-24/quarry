@@ -69,7 +69,7 @@ class HTTPProvider:
                 wire_request = {k:request[k] for k in ("expert","prompt","max_output_tokens","timeout_seconds")}
                 payload=json.dumps({"profile":self.profile,"request":wire_request}, ensure_ascii=False, allow_nan=False).encode()
                 if len(payload)>20_000_000: raise ProviderError("transport_request_size_limit")
-                result = subprocess.run([sys.executable, "-m", "termfinder.transport_worker"],
+                result = subprocess.run([sys.executable, "-m", "quarry.transport_worker"],
                     input=payload,
                     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env,
                     timeout=request["timeout_seconds"], check=False)
@@ -173,7 +173,7 @@ class FakeProvider:
 
     def __init__(self, expectations=None, responses=None):
         if expectations is None:
-            resource = files("termfinder").joinpath("fixtures", "expectations.json")
+            resource = files("quarry").joinpath("fixtures", "expectations.json")
             expectations = json.loads(resource.read_text()) if resource.is_file() else []
         self.expectations = expectations
         from .store import digest

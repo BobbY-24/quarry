@@ -7,8 +7,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from termfinder import Project, cli
-from termfinder.mcp_server import MCPServer, ToolFailure
+from quarry import Project, cli
+from quarry.mcp_server import MCPServer, ToolFailure
 
 
 class ClusterInterfaceTests(unittest.TestCase):
@@ -96,7 +96,7 @@ class ClusterInterfaceTests(unittest.TestCase):
         self.assertEqual(self.project.store.read_setting("cluster_execution")["status"], "submitted")
 
     def test_frozen_export_retains_accounting_without_reading_current_job_state(self):
-        from termfinder.config import starter_recipe
+        from quarry.config import starter_recipe
         self.project.configure(starter_recipe("jargon"), "fake")
         self.project.store.setting("cluster_accounting", {"reserved_gpu_hours": 2.5,
             "actual_charge_usd": None, "actual_charge_reason": "invoice_unavailable"})
@@ -123,14 +123,14 @@ class ClusterInterfaceTests(unittest.TestCase):
         budget = fixture.project.recipe["execution"]["budget_usd"]
         original_recipe = fixture.project.recipe
         fixture.project.configure_cluster_throughput(concurrency=3, model_concurrency=2)
-        from termfinder.workflow import current_review
+        from quarry.workflow import current_review
         self.assertTrue(current_review(fixture.project)["stale"])
         self.assertEqual(fixture.project.recipe, original_recipe)
         self.assertEqual(fixture.project.recipe["execution"]["budget_usd"], budget)
 
     def test_agent_reconnects_to_partial_job_resumes_imports_and_inspects_evidence(self):
         from test_cluster import ClusterTests
-        from termfinder.cluster_worker import run_bundle
+        from quarry.cluster_worker import run_bundle
         fixture = ClusterTests("test_partial_resume_uses_checkpoint_and_does_not_repeat_completed_calls")
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
@@ -141,7 +141,7 @@ class ClusterInterfaceTests(unittest.TestCase):
         server.call_tool("configure_cluster", {"profile": profile, "researcher_configured": True,
             "configuration_reference": "Synthetic approved durable storage and resources"})
         review = server.call_tool("prepare_cluster", {"review_id": fixture.review["review_id"]})
-        with patch("termfinder.cluster.SlurmScheduler", return_value=fixture.scheduler):
+        with patch("quarry.cluster.SlurmScheduler", return_value=fixture.scheduler):
             job = server.call_tool("submit_cluster", {"cluster_review_id": review["cluster_review_id"],
                 "researcher_approved": True, "approval_reference": "Synthetic first allocation decision"})
         server.close()
@@ -154,7 +154,7 @@ class ClusterInterfaceTests(unittest.TestCase):
         partial = reconnected.call_tool("inspect_cluster", {"job_id": job["job_id"]})
         self.assertEqual(partial["cluster"]["job"]["state"], "partial")
         self.assertTrue(reconnected.call_tool("import_cluster", {"job_id": job["job_id"]})["imported"])
-        with patch("termfinder.cluster.SlurmScheduler", return_value=fixture.scheduler):
+        with patch("quarry.cluster.SlurmScheduler", return_value=fixture.scheduler):
             resumed = reconnected.call_tool("resume_cluster", {"cluster_review_id": review["cluster_review_id"],
                 "researcher_approved": True, "approval_reference": "Synthetic second allocation decision"})
         provider = fixture.provider()
@@ -179,7 +179,7 @@ class ClusterInterfaceTests(unittest.TestCase):
 
     def test_resource_review_is_fully_inspectable_in_hash_bound_chunks(self):
         from test_cluster import ClusterTests
-        from termfinder.store import digest
+        from quarry.store import digest
         fixture = ClusterTests("test_partial_resume_uses_checkpoint_and_does_not_repeat_completed_calls")
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)

@@ -12,12 +12,12 @@ import tempfile
 
 
 def main(report_path=None):
-    import termfinder
-    from termfinder import Project, FakeProvider
-    from termfinder.config import starter_recipe
+    import quarry
+    from quarry import Project, FakeProvider
+    from quarry.config import starter_recipe
     root=Path(__file__).resolve().parents[1]
-    assert Path(termfinder.__file__).resolve().is_relative_to(Path(sys.prefix).resolve()), "must import installed wheel"
-    entry=Path(sys.executable).parent/"termfinder"
+    assert Path(quarry.__file__).resolve().is_relative_to(Path(sys.prefix).resolve()), "must import installed wheel"
+    entry=Path(sys.executable).parent/"quarry"
     checks=[]
     with tempfile.TemporaryDirectory(prefix="v6-installed-") as temporary:
         base=Path(temporary)
@@ -29,7 +29,7 @@ def main(report_path=None):
             return json.loads(result.stdout)
         project_path=base/"cli-project"
         cli("init",project_path,"--recipe","neologisms","--profile","fake","--mode","specialists")
-        fixture=files("termfinder").joinpath("fixtures","community.html")
+        fixture=files("quarry").joinpath("fixtures","community.html")
         metadata=base/"metadata.json"
         metadata.write_text(json.dumps({"community":"Gaming","language":"en"}))
         cli("--project",project_path,"ingest",fixture,"--metadata",metadata)
@@ -69,10 +69,10 @@ def main(report_path=None):
         checks.append(f"{executed} notebook code cells executed with installed package")
         for name in ("neologisms","cultural","jargon"):
             assert starter_recipe(name)["schema_version"]==1
-        assert files("termfinder").joinpath("static","index.html").is_file()
-        assert files("termfinder").joinpath("fixtures","jargon.pdf").is_file()
+        assert files("quarry").joinpath("static","index.html").is_file()
+        assert files("quarry").joinpath("fixtures","jargon.pdf").is_file()
         checks.append("packaged recipes/profiles/fixtures/browser assets available independently")
-    report={"checks":checks,"installed_module":str(termfinder.__file__),"paid_requests":0,"notebook_code_cells":executed}
+    report={"checks":checks,"installed_module":str(quarry.__file__),"paid_requests":0,"notebook_code_cells":executed}
     destination = Path(report_path) if report_path else root/"verification"/"installed-report.json"
     destination.write_text(json.dumps(report,indent=2)+"\n")
     print(json.dumps(report,indent=2))

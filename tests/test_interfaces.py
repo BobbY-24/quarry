@@ -7,8 +7,8 @@ from types import SimpleNamespace
 from http.server import ThreadingHTTPServer
 from unittest.mock import patch
 
-from termfinder import cli
-from termfinder.web import Handler, ResearchServer, MAX_BODY
+from quarry import cli
+from quarry.web import Handler, ResearchServer, MAX_BODY
 
 
 class FakeProject:
@@ -133,7 +133,7 @@ class InterfaceTests(unittest.TestCase):
 
     def test_cli_cost_assumptions_forwarded(self):
         project = FakeProject()
-        with patch("termfinder.project.Project", return_value=project), patch("sys.stdout", new_callable=io.StringIO) as output:
+        with patch("quarry.project.Project", return_value=project), patch("sys.stdout", new_callable=io.StringIO) as output:
             code = cli.main(["estimate", "--links", "300", "--average-chars", "8000", "--cache-hit-rate", "0.4"])
         self.assertEqual(code, 0)
         self.assertEqual(project.calls[0][1], {"links": 300, "average_chars": 8000, "cache_hit_rate": .4})

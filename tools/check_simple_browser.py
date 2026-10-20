@@ -20,8 +20,8 @@ def main():
         parser.error("Use the named synthetic browser verification project")
     if not report.is_relative_to(root / "verification") or report.exists():
         parser.error("Use a fresh verification report")
-    from termfinder import Project, __version__
-    from termfinder.workflow import current_review, release_dataset
+    from quarry import Project, __version__
+    from quarry.workflow import current_review, release_dataset
     project = Project(project_path)
     assert project.profile["id"] == "fake"
     status, inventory = project.status(), project.inventory()

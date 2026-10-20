@@ -11,9 +11,9 @@ from copy import deepcopy
 import json
 from pathlib import Path
 
-from termfinder import FakeProvider, Project, Response
-from termfinder.agent_setup import write_handoff
-from termfinder.evaluation import evaluate
+from quarry import FakeProvider, Project, Response
+from quarry.agent_setup import write_handoff
+from quarry.evaluation import evaluate
 
 CASES = {
     "term": ("The protocol uses byte-level BPE for tokenization.", "byte-level BPE", "A tokenization method"),

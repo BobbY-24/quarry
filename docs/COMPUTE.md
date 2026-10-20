@@ -119,7 +119,7 @@ that only supports Anthropic Messages, are not supported by this adapter.
 In a notebook, the same operator decision uses the Python API:
 
 ```python
-from termfinder import Project
+from quarry import Project
 
 study = Project("my-study")
 study.configure_compute(

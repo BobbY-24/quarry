@@ -9,14 +9,14 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from termfinder import FakeProvider, Project, Response
-from termfinder.config import DATA_TYPES, load_profile, load_recipe, starter_recipe
-from termfinder.evaluation import evaluate, validate_gold
-from termfinder.exports import annotation_sources, dataset_record_view, export_dataset
-from termfinder.grounding import ground, normalize
-from termfinder.prompts import VERSION, build_prompt, manifest
-from termfinder.sources import parse_document
-from termfinder.store import ident
+from quarry import FakeProvider, Project, Response
+from quarry.config import DATA_TYPES, load_profile, load_recipe, starter_recipe
+from quarry.evaluation import evaluate, validate_gold
+from quarry.exports import annotation_sources, dataset_record_view, export_dataset
+from quarry.grounding import ground, normalize
+from quarry.prompts import VERSION, build_prompt, manifest
+from quarry.sources import parse_document
+from quarry.store import ident
 
 
 TEXT = "😀 Café. I think bilingual signage improves access. Keep the original wording."

@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from termfinder.sources import (SafeFetcher, SourceError, UnsafeURLError, canonical_url,
+from quarry.sources import (SafeFetcher, SourceError, UnsafeURLError, canonical_url,
                                 error_category, in_domain_scope, load_local, parse_document)
 
 
@@ -88,7 +88,7 @@ class SourceTests(unittest.TestCase):
             self.assertEqual(document["domain"], "local")
 
     def test_pdf_page_locations_and_explicit_ocr_limit(self):
-        fixture = Path(__file__).parent.parent / "src" / "termfinder" / "fixtures" / "jargon.pdf"
+        fixture = Path(__file__).parent.parent / "src" / "quarry" / "fixtures" / "jargon.pdf"
         self.assertTrue(fixture.is_file(), "packaged two-page fixture must exist")
         document = load_local(fixture)
         self.assertEqual(document["parser_info"]["pages"], 2)
@@ -103,27 +103,27 @@ class SourceTests(unittest.TestCase):
             parse_document(b"not a pdf", "application/pdf", "broken.pdf")
 
     def test_pdf_worker_timeout_and_resource_failure_are_visible(self):
-        with patch("termfinder.sources._run_pdf_worker", side_effect=subprocess.TimeoutExpired("worker", 30)):
+        with patch("quarry.sources._run_pdf_worker", side_effect=subprocess.TimeoutExpired("worker", 30)):
             with self.assertRaisesRegex(SourceError, "pdf_parse_timeout"):
                 parse_document(b"fixture", "application/pdf", "source.pdf")
         failed = subprocess.CompletedProcess(["worker"], -9, stdout=b"")
-        with patch("termfinder.sources._run_pdf_worker", return_value=failed):
+        with patch("quarry.sources._run_pdf_worker", return_value=failed):
             with self.assertRaisesRegex(SourceError, "pdf_resource_limit_exceeded"):
                 parse_document(b"fixture", "application/pdf", "source.pdf")
 
     def test_pdf_worker_uses_clean_environment_and_never_echoes_unknown_errors(self):
         successful = subprocess.CompletedProcess(["worker"], 0, stdout=b'{"pages":["one","two"],"title":"Fixture"}')
-        with patch("termfinder.sources._run_pdf_worker", return_value=successful):
+        with patch("quarry.sources._run_pdf_worker", return_value=successful):
             document = parse_document(b"fixture", "application/pdf", "source.pdf")
             self.assertEqual(document["text"], "one\n\ntwo")
             self.assertEqual(document["title"], "Fixture")
         malicious = subprocess.CompletedProcess(["worker"], 0, stdout=b'{"error":"source SECRET header"}')
-        with patch("termfinder.sources._run_pdf_worker", return_value=malicious):
+        with patch("quarry.sources._run_pdf_worker", return_value=malicious):
             with self.assertRaisesRegex(SourceError, "^pdf_worker_invalid_response$"):
                 parse_document(b"fixture", "application/pdf", "source.pdf")
 
     def test_pdf_worker_launch_has_private_fds_and_no_inherited_credentials(self):
-        from termfinder.sources import _run_pdf_worker
+        from quarry.sources import _run_pdf_worker
         captured = {}
         class FinishedProcess:
             returncode = 0
@@ -135,7 +135,7 @@ class SourceTests(unittest.TestCase):
                 kwargs["stdout"].write(b'{"pages":["one"],"title":null}')
             def poll(self):
                 return 0
-        with patch("termfinder.sources.subprocess.Popen", side_effect=FinishedProcess):
+        with patch("quarry.sources.subprocess.Popen", side_effect=FinishedProcess):
             result = _run_pdf_worker(b"fixture")
         self.assertEqual(captured["env"], {"PATH": "/usr/bin:/bin"})
         self.assertEqual(captured["stderr"], subprocess.DEVNULL)

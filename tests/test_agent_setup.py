@@ -9,11 +9,11 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from termfinder import Project, FakeProvider, Response
-from termfinder import cli
-from termfinder.agent_setup import normalize_brief, validate_bundle, write_handoff
-from termfinder.publication import audit_dataset, verify_history
-from termfinder.store import digest
+from quarry import Project, FakeProvider, Response
+from quarry import cli
+from quarry.agent_setup import normalize_brief, validate_bundle, write_handoff
+from quarry.publication import audit_dataset, verify_history
+from quarry.store import digest
 
 TEXT = "Our system uses byte-level BPE. I think bilingual signs improve access."
 
@@ -57,8 +57,8 @@ class AgentSetupTests(unittest.TestCase):
         self.project.collect(FakeProvider([], [response([proposal]), response([])]))
 
     def test_plain_brief_creates_portable_request_without_provider_or_source_read(self):
-        with patch("termfinder.providers.HTTPProvider", side_effect=AssertionError("No provider")), \
-             patch("termfinder.sources.load_local", side_effect=AssertionError("No source content read")):
+        with patch("quarry.providers.HTTPProvider", side_effect=AssertionError("No provider")), \
+             patch("quarry.sources.load_local", side_effect=AssertionError("No source content read")):
             setup = self.project.prepare_agent_setup(self.brief)
             write_handoff(setup, self.base / "handoff")
         self.assertIn("Return JSON only", setup["prompt"])
@@ -68,8 +68,8 @@ class AgentSetupTests(unittest.TestCase):
         self.assertTrue((self.base / "handoff" / "contract.json").is_file())
 
     def test_apply_local_plan_and_trace_to_frozen_export_without_network(self):
-        with patch("termfinder.sources.SafeFetcher.fetch", side_effect=AssertionError("No network")), \
-             patch("termfinder.providers.HTTPProvider", side_effect=AssertionError("No provider")):
+        with patch("quarry.sources.SafeFetcher.fetch", side_effect=AssertionError("No network")), \
+             patch("quarry.providers.HTTPProvider", side_effect=AssertionError("No provider")):
             self.assertTrue(self.validate()["valid"])
             self.assertEqual(len(self.project.apply_agent_bundle(self.bundle)["source_ids"]), 1)
         self.collect()
@@ -168,8 +168,8 @@ class AgentSetupTests(unittest.TestCase):
         self.assertEqual(self.project.inventory()["sources"], [])
 
     def test_nonterm_templates_start_with_units_rather_than_jargon_policy(self):
-        from termfinder.agent_setup import template_bundle
-        from termfinder.config import load_recipe
+        from quarry.agent_setup import template_bundle
+        from quarry.config import load_recipe
         for kind in ("idea", "opinion", "sentence"):
             brief = normalize_brief(dict(self.brief, data_type=kind))
             recipe = template_bundle(brief)["recipe"]
@@ -183,8 +183,8 @@ class AgentSetupTests(unittest.TestCase):
                 self.assertIn("Synthetic", example["reason"])
 
     def test_template_routing_supports_all_profiles_types_and_modes(self):
-        from termfinder.agent_setup import template_bundle
-        from termfinder.config import experts, load_profile
+        from quarry.agent_setup import template_bundle
+        from quarry.config import experts, load_profile
         for profile in ("glm-deepseek", "gemini", "fake"):
             for kind in ("term", "idea", "opinion", "sentence"):
                 for mode in ("broad", "specialists"):
@@ -222,12 +222,12 @@ class AgentSetupTests(unittest.TestCase):
         bundle = deepcopy(self.bundle)
         source = bundle["sources"][0]
         source.update(kind="url", locator="https://example.org/source")
-        with patch("termfinder.sources.SafeFetcher.fetch", side_effect=AssertionError("Apply must stage")):
+        with patch("quarry.sources.SafeFetcher.fetch", side_effect=AssertionError("Apply must stage")):
             result = self.project.apply_agent_bundle(bundle)
         self.assertEqual(result["staged_remote_source_keys"], ["source-001"])
-        from termfinder.sources import parse_document
+        from quarry.sources import parse_document
         document = parse_document(TEXT.encode(), "text/plain", source["locator"], source["metadata"])
-        with patch("termfinder.sources.SafeFetcher.fetch", return_value=document) as fetch:
+        with patch("quarry.sources.SafeFetcher.fetch", return_value=document) as fetch:
             self.project.ingest_agent_sources()
             self.project.ingest_agent_sources()
         self.assertEqual(fetch.call_count, 1)

@@ -13,11 +13,11 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from termfinder import FakeProvider, Project
-from termfinder.config import load_profile, load_recipe, starter_recipe
-from termfinder.discovery import discover, StaticSearchAdapter
-from termfinder.evaluation import evaluate, source_splits
-from termfinder.sources import parse_document
+from quarry import FakeProvider, Project
+from quarry.config import load_profile, load_recipe, starter_recipe
+from quarry.discovery import discover, StaticSearchAdapter
+from quarry.evaluation import evaluate, source_splits
+from quarry.sources import parse_document
 
 
 CORPUS = (
@@ -72,13 +72,13 @@ def demonstrate(out: Path, *, formats=None) -> dict:
     out = Path(out).resolve()
     out.mkdir(parents=True, exist_ok=False)
     formats = formats or ["csv", "jsonl", "parquet", "annotation"]
-    fixture_root = files("termfinder").joinpath("fixtures")
+    fixture_root = files("quarry").joinpath("fixtures")
     specs_path = Path(__file__).with_name("gold_specs.json")
     specs = json.loads(specs_path.read_text(encoding="utf-8"))
     report = {"schema_version": 1, "offline": True, "provider": "synthetic-fake",
               "paid_requests": 0, "quality_claim": None,
               "quality_claim_reason": "Synthetic acceptance is software verification, not field accuracy.",
-              "package_file": str(files("termfinder")), "projects": [], "checks": []}
+              "package_file": str(files("quarry")), "projects": [], "checks": []}
     for recipe_name in ("neologisms", "cultural", "jargon"):
         for mode in ("broad", "specialists"):
             directory = out / f"{recipe_name}-{mode}"
@@ -148,12 +148,12 @@ def demonstrate(out: Path, *, formats=None) -> dict:
             _write(directory / "source-splits.json", source_splits(dataset["sources"]))
             first, second = directory / "export-one", directory / "export-two"
             # Fail immediately if export attempts either transport.
-            with patch("termfinder.providers.HTTPProvider.complete", side_effect=AssertionError("Export called a real provider")), \
-                 patch("termfinder.providers.FakeProvider.complete", side_effect=AssertionError("Export called a fake provider")):
+            with patch("quarry.providers.HTTPProvider.complete", side_effect=AssertionError("Export called a real provider")), \
+                 patch("quarry.providers.FakeProvider.complete", side_effect=AssertionError("Export called a fake provider")):
                 project.export(version, first, formats=formats)
             project.annotate(term_id, "approved", note="Later annotation must not change the frozen version.")
-            with patch("termfinder.providers.HTTPProvider.complete", side_effect=AssertionError("Export called a real provider")), \
-                 patch("termfinder.providers.FakeProvider.complete", side_effect=AssertionError("Export called a fake provider")):
+            with patch("quarry.providers.HTTPProvider.complete", side_effect=AssertionError("Export called a real provider")), \
+                 patch("quarry.providers.FakeProvider.complete", side_effect=AssertionError("Export called a fake provider")):
                 project.export(version, second, formats=formats)
             assert _hashes(first) == _hashes(second), "Saved version exports must match byte for byte."
             repeated_provider = FakeProvider()
