@@ -3,7 +3,7 @@ requires = ["setuptools==84.0.0", "wheel==0.48.0", "packaging==26.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nlpx-termfinder"
+name = "quarry"
 version = "6.6.0"
 description = "Quarry: recipe-driven, evidence-backed research collection"
 readme = "README.md"
@@ -16,6 +16,8 @@ Repository = "https://github.com/BobbY-24/quarry"
 Documentation = "https://github.com/BobbY-24/quarry/blob/main/README.md"
 
 [project.scripts]
+quarry = "termfinder.cli:main"
+quarry-mcp = "termfinder.mcp_server:main"
 termfinder = "termfinder.cli:main"
 termfinder-mcp = "termfinder.mcp_server:main"
 
